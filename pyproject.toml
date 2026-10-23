@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rfp-intelligence"
+version = "0.1.0"
+description = "RFP Intelligence Platform infrastructure"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.115,<1", "uvicorn[standard]>=0.34,<1",
+  "pydantic>=2.10,<3", "pydantic-settings>=2.7,<3",
+  "sqlalchemy>=2.0.38,<2.1", "psycopg[binary]>=3.2,<4",
+  "alembic>=1.14,<2", "celery[redis]>=5.4,<6", "redis>=5.2,<7",
+  "httpx>=0.28,<1", "boto3>=1.36,<2", "pytesseract>=0.3.13,<0.4",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<9", "ruff>=0.11,<1", "mypy>=1.15,<2"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rfp"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".bootstrap", ".uv-cache", ".uv-clean-cache", ".python", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/rfp"]
+check_untyped_defs = true
+ignore_missing_imports = true
