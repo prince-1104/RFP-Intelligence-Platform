@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     database_url: SecretStr
     redis_url: SecretStr
     qdrant_url: str
+    qdrant_api_key: SecretStr = SecretStr("")
     qdrant_collection: str = Field(default="bid_documents", min_length=1)
     r2_account_id: str = ""
     r2_endpoint_url: str = ""
@@ -61,6 +62,12 @@ class Settings(BaseSettings):
         ):
             raise ValueError("QDRANT_URL must be an HTTP URL without credentials or query")
         return value.rstrip("/")
+
+    @model_validator(mode="after")
+    def validate_qdrant_auth(self) -> "Settings":
+        if self.qdrant_api_key.get_secret_value() and urlsplit(self.qdrant_url).scheme != "https":
+            raise ValueError("QDRANT_URL must use HTTPS when QDRANT_API_KEY is configured")
+        return self
 
     @model_validator(mode="after")
     def validate_r2(self) -> "Settings":

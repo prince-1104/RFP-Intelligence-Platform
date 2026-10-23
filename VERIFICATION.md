@@ -65,3 +65,15 @@ No Phase 2 processing, OCR workflow, retrieval, agents, extracted-field logic or
 
 The local stack is left running. From the project directory, start/recreate it with
 `docker compose up --build -d`; stop it without removing data with `docker compose down`.
+
+## Cloud configuration follow-up
+
+Private `.env` now supplies Qdrant Cloud authentication and Cloudflare R2 bucket credentials.
+No credentials are included in tracked files. Read-only live checks verified Qdrant `/readyz`,
+authenticated `/collections` access, and R2 `HeadBucket`. These checks do not verify object
+write/delete permissions or create collections. This supersedes the earlier R2-access limitation.
+
+The Qdrant key uses `SecretStr`, requires HTTPS, and is sent in the `api-key` header. Tests
+cover authenticated and local probes, rejection of insecure authenticated URLs, and sanitized
+readiness responses after authentication failure. The offline suite passes 31 tests (one
+existing upstream TestClient deprecation warning); Ruff, mypy and Compose validation pass.

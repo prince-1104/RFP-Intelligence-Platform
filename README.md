@@ -52,6 +52,12 @@ The adapter rejects incomplete configuration when instantiated. Provider/model/A
 are reserved and never used to call an LLM. `TESSERACT_CMD` identifies the executable for future
 OCR code; host installations may need an absolute Windows path.
 
+For Qdrant Cloud, set `QDRANT_URL` to the cluster HTTPS endpoint and `QDRANT_API_KEY` in
+private `.env`. The key is masked in settings and sent only in the `api-key` header.
+Readiness checks both cluster health and authenticated collection-list access when a key is
+configured; it does not create collections. Local Qdrant uses an empty API key. Compose still
+starts its local Qdrant service, but the backend always checks the configured URL.
+
 ## Start with Docker
 
 ```powershell

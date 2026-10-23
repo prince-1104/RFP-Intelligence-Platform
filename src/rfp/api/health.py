@@ -22,7 +22,12 @@ def dependency_checks(settings: Settings, engine: Engine) -> dict[str, Callable[
             client.ping()
 
     def qdrant() -> None:
+        api_key = settings.qdrant_api_key.get_secret_value()
+        headers = {"api-key": api_key} if api_key else {}
         with httpx.Client(timeout=settings.dependency_timeout_seconds, trust_env=False) as client:
-            client.get(f"{settings.qdrant_url}/readyz").raise_for_status()
+            client.get(f"{settings.qdrant_url}/readyz", headers=headers).raise_for_status()
+            if api_key:
+                # Health routes may be public; also verify authenticated cluster access.
+                client.get(f"{settings.qdrant_url}/collections", headers=headers).raise_for_status()
 
     return {"postgres": postgres, "redis": redis, "qdrant": qdrant}
