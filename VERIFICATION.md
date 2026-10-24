@@ -345,3 +345,77 @@ FastEmbed requires `pillow<13`). Migration `0004_search_index` adds `embedding_c
 - No relevance benchmark was run; the only quality evidence is the synthetic sample above.
 - Real-model checks used two synthetic documents (6 chunks). Latency figures are single-machine
   CPU observations: rerank ~0.7–0.9 s for 6 candidates including first-call warm-up.
+
+# Phase 4.1 Qdrant compatibility and assessment-input preparation — 2026-10-24
+
+No Qdrant Cloud, R2 or PostgreSQL data was created, modified or deleted, and no production
+ingestion/indexing job was enqueued. Cloud access was limited to version/collection-existence reads.
+
+## Versions
+
+| Component | Before | After |
+| --- | --- | --- |
+| `qdrant-client` (pyproject / uv.lock / image) | 1.13.3, `<1.14` | **1.19.1**, `>=1.19.1,<1.20` (latest 1.19.x; no 1.19.2 client exists) |
+| Local compose server | `qdrant/qdrant:v1.13.4` | **`qdrant/qdrant:v1.19.2`** on new volume `qdrant_data_v1_19` |
+| Qdrant Cloud server (read-only) | 1.19.2 | 1.19.2 |
+| Client compatibility check | disabled | enabled, plus synchronous enforcement in `CollectionManager.check_server` |
+
+The lock change only updated `qdrant-client` and dropped its unused `grpcio-tools`/`setuptools`;
+FastEmbed 0.9.0, numpy, grpcio, protobuf, httpx and pydantic are unchanged. Release notes for
+1.14–1.19 were reviewed: removed APIs (`search`, `recommend`, `discovery`, `upload_records`,
+`add`/`query`, `init_from`, lock methods) are not used. Phase 4 uses `query_batch_points`,
+`query_points`, `upsert`, `count`, `scroll`, `set_payload`, `delete`, collection and payload-index
+APIs and `info`.
+
+## Commands and results
+
+| Check actually executed | Result |
+| --- | --- |
+| `uv lock --upgrade-package qdrant-client`, `uv sync --frozen`, `uv lock --check` | Resolved 99 packages; lock consistent |
+| `docker compose config --quiet` | Passed |
+| `docker compose pull qdrant` / `up -d --no-deps qdrant` | Healthy; `GET /` reports version 1.19.2 |
+| `.venv/Scripts/pytest -q` | **214 passed, 5 skipped** (live tests without env vars), 1 upstream warning |
+| `ruff check` / `ruff format --check` (`src tests examples`) | Passed / 91 files formatted |
+| `mypy src/rfp` | No issues in 61 source files |
+| Live `tests/test_search_integration.py` with `RFP_QDRANT_INTEGRATION_URL=http://127.0.0.1:6333 RFP_MODEL_SMOKE=1 RFP_QDRANT_EXPECTED_VERSION=1.19.2` | **5 passed**: collection creation with named dense/sparse vectors and IDF, payload indexes, idempotent reindex, server version 1.19.2 + compatibility, bid/doc-type/addendum filters, identifier branch, retained dense/sparse/identifier ranks and scores with RRF score, PDF page and HTML locator citations, app RRF top set = server `FusionQuery(RRF)`, real-model end-to-end |
+| Real client against local 1.19.2 with warnings recorded | client 1.19.1, server 1.19.2, no compatibility warning |
+| `examples/search_smoke.py` (existing model cache, no downloads) | All 10 checks passed; fresh 1.19.2 collection rebuilt from embedding cache (6 hits, 0 misses) |
+| `docker compose build migrate` | Image contains qdrant-client 1.19.1, fastembed 0.9.0 |
+| Offline `docker run --network none` parse-folder + chunk-folder on the existing synthetic fixture (mechanics only, scratch output) | 3 parsed (incl. OCR), 0 failed, 7 chunks; read-only input mount rejected writes |
+| `docker compose up -d --no-build api worker` | Migrate no-op at head; API healthy; `/data/assessment` mounted read-only (write rejected) |
+| `GET /api/v1/index/status` (container → Qdrant Cloud, read-only) | server 1.19.2, client 1.19.1, enforced check passed; `exists: false` |
+| Assessment layout check | `data/assessment/Bid1` and `Bid2` exist and contain **0 files**; git ignores bid files, README trackable |
+
+## Real assessment documents (local only)
+
+All runs were offline (`docker run --network none`, source mounted read-only) or against local
+Qdrant 1.19.2 via `index-folder`/`search --local`. Nothing was written to R2, PostgreSQL or
+Qdrant Cloud, and no jobs were enqueued.
+
+| | Bid1 | Bid2 |
+|---|---|---|
+| Bid ID | `5809c088-8514-58c3-a0e5-4d9e72adab0b` | `05876a57-4ff3-52ce-a5fe-9d605ebf94b3` |
+| Parsed / partial / failed | 4 / 0 / 0 | 5 / 0 / 0 |
+| Chunks (canonical, reused) | 276 (221, 55) | 99 (66, 33) |
+| Notable warnings | main RFP: 6 OCR pages, `ocr_table_structure_not_recovered` on 6 pages, 113 ambiguous table headers, `table_prose_overlap_uncertain` | main RFP: 15 ambiguous table headers, `table_prose_overlap_uncertain` |
+
+**Classifier defect found and fixed.** Parser 2.0.0 typed documents by any mention anywhere in
+the text, so the Bid1 RFP became `addendum` ("by means of an addendum" in the body), the Bid2
+RFP became `affidavit`, `Dell_Laptop_Specs.pdf` became `other` (`_` defeats `\b`) and both
+BidNet pages became `rfp`. `classify()` now ranks evidence (filename tokens, HTML listing page,
+earliest title term in the first 500 characters, body `rfp` mention) and takes addendum numbers
+only from the filename/title of addenda. `PARSER_VERSION` is 2.1.0 so old artifacts re-parse.
+After re-parsing, all nine documents have the expected type; bid IDs and chunk counts unchanged.
+pytest: 222 passed, 5 skipped; ruff and mypy clean.
+
+**Local index and search (Bid1).** 4/4 generations completed, 276 points, 0 failures,
+61 inputs truncated for the dense model (57 in the main RFP), one generation needed a second
+attempt. Hybrid-rerank queries returned the cited sources expected: `JA-207652` (identifier
+match, BidNet heading then RFP pages), "When are proposals due?" (Addendum 2, page 1, new due
+date), "USB 3.1 requirement for display monitor" (Addendum 1, page 1), "warranty period for
+devices" (RFP page 4 table rows, then Addendum 1). `--doc-type` filters for addendum, rfp and
+bid_page each returned only matching documents. CPU reranking took 4–18 s per query.
+
+## Not yet verified
+
+Bid2 local indexing/search, and the production canary (R2, PostgreSQL, Qdrant Cloud, Celery).

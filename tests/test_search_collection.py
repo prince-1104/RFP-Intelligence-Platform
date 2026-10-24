@@ -18,6 +18,7 @@ from rfp.search.collection import (
     qdrant_call,
 )
 from rfp.search.errors import (
+    CollectionIncompatible,
     IndexUnavailable,
     InferenceFailed,
     InvalidVector,
@@ -66,7 +67,7 @@ def test_collection_created_with_named_vectors_and_idf():
 def test_server_payload_indexes_and_version_check():
     client = MagicMock()
     client._client = object()
-    client.info.return_value = models.VersionInfo(title="qdrant", version="1.13.4")
+    client.info.return_value = models.VersionInfo(title="qdrant", version="1.19.2")
     client.collection_exists.return_value = True
     manager = CollectionManager(client, "rfp", PROFILE)
     info = MagicMock()
@@ -87,6 +88,40 @@ def test_server_payload_indexes_and_version_check():
         manager.check_server()
     assert error.value.code == "vector_store_version_unsupported"
     client.delete_collection.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("server", "client_version", "compatible"),
+    [
+        ("1.19.2", "1.19.1", True),
+        ("1.20.0", "1.19.1", True),
+        ("1.13.4", "1.19.1", False),
+        ("2.0.0", "1.19.1", False),
+    ],
+)
+def test_client_server_compatibility_enforced(monkeypatch, server, client_version, compatible):
+    client = MagicMock()
+    client._client = object()
+    client.info.return_value = models.VersionInfo(title="qdrant", version=server)
+    monkeypatch.setattr("rfp.search.collection.client_version", lambda: client_version)
+    manager = CollectionManager(client, "rfp", PROFILE)
+    if compatible:
+        assert manager.check_server() == server
+        return
+    with pytest.raises(CollectionIncompatible) as error:
+        manager.ensure()
+    assert error.value.code == "vector_store_version_incompatible"
+    client.create_collection.assert_not_called()
+
+
+def test_remote_client_enables_compatibility_check(settings, monkeypatch):
+    from rfp.search import collection
+
+    built = MagicMock()
+    monkeypatch.setattr(collection, "QdrantClient", built)
+    collection.create_qdrant_client(settings)
+    assert built.call_args.kwargs["check_compatibility"] is True
+    assert built.call_args.kwargs["prefer_grpc"] is False
 
 
 def test_vector_validation():

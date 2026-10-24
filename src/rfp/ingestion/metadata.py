@@ -11,25 +11,53 @@ def normalize_text(value: str) -> str:
     ).strip()
 
 
+TITLE_WINDOW = 500
+TYPE_TERMS = (
+    (DocumentType.addendum, r"\baddend(?:um|a)\b"),
+    (DocumentType.affidavit, r"\baffidavit\b"),
+    (DocumentType.specs, r"\b(?:specifications?|specs)\b"),
+    (DocumentType.rfp, r"\b(?:rfp|request for proposals?)\b"),
+)
+ADDENDUM_NUMBER = r"\baddendum\s*(?:no\.?\s*|#\s*)?(\d+)\b"
+
+
+def _title_type(head: str) -> DocumentType | None:
+    hits = [
+        (match.start(), kind)
+        for kind, pattern in TYPE_TERMS
+        if kind != DocumentType.specs and (match := re.search(pattern, head, re.I))
+    ]
+    return min(hits, key=lambda hit: hit[0])[1] if hits else None
+
+
 def classify(
     filename: str, text: str, content_type: str, type_patterns: dict[str, str] | None = None
 ) -> dict:
-    """Conservative, replaceable rules. Only explicitly labeled dates are publication dates."""
+    """Conservative, replaceable rules. Only explicitly labeled dates are publication dates.
+
+    Evidence is ranked: filename, then HTML listing pages, then the title area, then the body.
+    Passing body mentions of addenda or affidavits do not determine the type.
+    """
     source = f"{filename}\n{text[:100000]}"
-    numbers = set(re.findall(r"\baddendum\s*(?:no\.?\s*|#\s*)?(\d+)\b", source, re.I))
-    kind = DocumentType.other
-    if re.search(r"\baddend(?:um|a)\b", source, re.I):
-        kind = DocumentType.addendum
-    elif re.search(r"\baffidavit\b", source, re.I):
-        kind = DocumentType.affidavit
-    elif re.search(r"\b(?:specifications?|specs)\b", filename, re.I):
-        kind = DocumentType.specs
-    elif re.search(r"\b(?:rfp|request for proposals?)\b", source, re.I):
-        kind = DocumentType.rfp
-    elif content_type == "text/html" and re.search(
-        r"\b(?:bid|solicitation|procurement)\b", source, re.I
+    name = re.sub(r"[_\-.]+", " ", re.split(r"[\\/]", filename)[-1].rsplit(".", 1)[0])
+    head = text[:TITLE_WINDOW]
+    kind = next((kind for kind, pattern in TYPE_TERMS if re.search(pattern, name, re.I)), None)
+    if (
+        kind is None
+        and content_type == "text/html"
+        and re.search(r"\b(?:bid|solicitation|procurement)\b", source, re.I)
     ):
         kind = DocumentType.bid_page
+    if kind is None:
+        kind = _title_type(head)
+    if kind is None and re.search(TYPE_TERMS[-1][1], source, re.I):
+        kind = DocumentType.rfp
+    kind = kind or DocumentType.other
+    numbers = (
+        set(re.findall(ADDENDUM_NUMBER, f"{name}\n{head}", re.I))
+        if kind == DocumentType.addendum
+        else set()
+    )
     overrides = {
         DocumentType(name)
         for name, pattern in (type_patterns or {}).items()

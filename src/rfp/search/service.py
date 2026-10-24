@@ -91,6 +91,7 @@ class SearchService:
             self.client, self.settings.qdrant_collection, self.runtime.profile()
         )
         if manager.name not in self._verified:
+            manager.check_server()
             manager.verify()
             self._verified.add(manager.name)
         return manager

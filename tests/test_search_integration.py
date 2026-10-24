@@ -7,7 +7,7 @@ import uuid
 
 import pytest
 from qdrant_client import QdrantClient, models
-from search_fakes import BID_A, generation, sample_bid, services
+from search_fakes import BID_A, BID_B, generation, sample_bid, services
 
 from rfp.cli import local_settings
 from rfp.schemas.search import RetrievalMode, SearchFilters, SearchRequest
@@ -43,6 +43,52 @@ def test_live_index_payload_indexes_and_search(live):
     response = search.search(SearchRequest(query="PX-420", filters=SearchFilters(bid_ids=[BID_A])))
     assert response.results[0].citation.relative_path == "specs/pumps.pdf"
     assert response.results[0].citation.page_start == 1
+
+
+def test_live_server_version_is_compatible(live):
+    from qdrant_client.common.version_check import is_compatible
+
+    from rfp.search.collection import CollectionManager, client_version
+
+    settings, client, indexer, _ = live
+    server = client.info().version
+    expected = os.environ.get("RFP_QDRANT_EXPECTED_VERSION")
+    if expected:
+        assert server == expected
+    assert is_compatible(client_version(), server)
+    manager = CollectionManager(client, settings.qdrant_collection, indexer.runtime.profile())
+    assert manager.check_server() == server
+
+
+def test_live_filters_scores_and_citations(live):
+    _, _, indexer, search = live
+    assert indexer.index([generation(r) for r in sample_bid(BID_A) + sample_bid(BID_B)]).succeeded
+    response = search.search(
+        SearchRequest(
+            query="PX-420", mode=RetrievalMode.hybrid, filters=SearchFilters(bid_ids=[BID_B])
+        )
+    )
+    top = response.results[0]
+    assert top.citation.bid_id == BID_B and top.citation.relative_path == "specs/pumps.pdf"
+    assert top.citation.page_start == 1
+    scores = top.scores
+    assert scores.dense_rank and scores.sparse_rank and scores.identifier_rank
+    assert scores.dense_score is not None and scores.sparse_score is not None
+    assert scores.rrf_score is not None and top.identifier_match.matched == ["PX-420"]
+    assert set(response.candidate_counts) >= {"dense", "sparse", "identifier", "fused"}
+    addendum = search.search(
+        SearchRequest(
+            query="proposals valid ninety days",
+            mode=RetrievalMode.sparse,
+            filters=SearchFilters(bid_ids=[BID_A], doc_types=["addendum"], addendum_numbers=[1]),
+        )
+    )
+    assert [r.citation.relative_path for r in addendum.results] == ["addenda/addendum-1.pdf"]
+    html = search.search(
+        SearchRequest(query="pre-bid meeting vendors", filters=SearchFilters(bid_ids=[BID_A]))
+    )
+    assert html.results[0].citation.page_start is None
+    assert html.results[0].citation.html_locators
 
 
 def test_app_rrf_matches_server_side_rrf_ordering(live):

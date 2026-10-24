@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from rfp.core.config import Settings
 
-PARSER_VERSION = "2.0.0"
+PARSER_VERSION = "2.1.0"
 
 
 class ParserOptions(BaseModel):

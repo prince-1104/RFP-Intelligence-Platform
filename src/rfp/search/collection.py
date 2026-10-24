@@ -1,5 +1,6 @@
 """Profile-specific Qdrant collection management; never deletes or recreates collections."""
 
+import importlib.metadata
 import logging
 import re
 from collections.abc import Callable
@@ -8,6 +9,7 @@ from typing import Any
 
 import httpx
 from qdrant_client import QdrantClient, models
+from qdrant_client.common.version_check import is_compatible
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 
 from rfp.core.config import Settings
@@ -48,9 +50,14 @@ def create_qdrant_client(settings: Settings) -> QdrantClient:
         api_key=api_key,
         timeout=settings.search.qdrant_timeout_seconds,
         prefer_grpc=False,
-        # Compatibility is verified explicitly (and sanitized) by CollectionManager.
-        check_compatibility=False,
+        # The client's own check only warns from a background thread; CollectionManager
+        # enforces the same rule synchronously before any read or write.
+        check_compatibility=True,
     )
+
+
+def client_version() -> str:
+    return importlib.metadata.version("qdrant-client")
 
 
 def qdrant_call[T](operation: Callable[[], T]) -> T:
@@ -96,6 +103,20 @@ class CollectionManager:
             raise QdrantUnavailable(
                 "Qdrant server must be at least 1.10 for the Query API and sparse IDF",
                 "vector_store_version_unsupported",
+            )
+        client = client_version()
+        if not is_compatible(client, version):
+            log_event(
+                logger,
+                "vector_store_version_incompatible",
+                logging.ERROR,
+                client_version=client,
+                server_version=version,
+            )
+            raise CollectionIncompatible(
+                f"qdrant-client {client} is incompatible with Qdrant server {version}; "
+                "major versions must match and minor versions differ by at most one",
+                "vector_store_version_incompatible",
             )
         return version
 
@@ -167,12 +188,14 @@ class CollectionManager:
             )
 
     def diagnostics(self) -> dict[str, Any]:
+        versions = {"server_version": self.check_server(), "client_version": client_version()}
         if not self.exists():
-            return {"collection": self.name, "exists": False}
+            return {"collection": self.name, "exists": False, **versions}
         info = self.verify()
         return {
             "collection": self.name,
             "exists": True,
+            **versions,
             "status": str(info.status),
             "points_count": info.points_count,
             "payload_indexes": sorted((info.payload_schema or {}).keys()),

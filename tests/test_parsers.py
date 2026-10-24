@@ -169,6 +169,57 @@ def test_metadata_classification(name, text, kind, number):
     assert result["document_date"] is None
 
 
+@pytest.mark.parametrize(
+    "name,text,content_type,kind,number",
+    [
+        (
+            "Final Solicitation.pdf",
+            "Purchasing Department\nRequest For Proposal 100 Devices\n"
+            + "x " * 400
+            + "changes will be issued by means of an addendum. See Addendum No. 3.",
+            "application/pdf",
+            "rfp",
+            None,
+        ),
+        (
+            "Order_Final.pdf",
+            "Purchase Order Request for Proposals\n" + "x " * 400 + "Submit the affidavit.",
+            "application/pdf",
+            "rfp",
+            None,
+        ),
+        ("Laptop_Specs.pdf", "SKU Description", "application/pdf", "specs", None),
+        (
+            "Vendor-Affidavit.pdf",
+            "Request for proposal reference",
+            "application/pdf",
+            "affidavit",
+            None,
+        ),
+        (
+            "Bid Information _ Portal.html",
+            "Solicitations\nAddenda\nRequest for Proposal details",
+            "text/html",
+            "bid_page",
+            None,
+        ),
+        (
+            "Notice.pdf",
+            "ADDENDUM No. 2 RFP 100\nThis addendum supersedes Addendum No. 1 terms.",
+            "application/pdf",
+            "addendum",
+            None,
+        ),
+        ("Addendum_2_RFP_100.pdf", "ADDENDUM No. 2 RFP 100", "application/pdf", "addendum", 2),
+        ("Notice.pdf", "Cover letter\n" + "x " * 400 + "RFP 100", "application/pdf", "rfp", None),
+    ],
+)
+def test_metadata_classification_ranks_evidence(name, text, content_type, kind, number):
+    result = classify(name, text, content_type)
+    assert result["doc_type"] == DocumentType(kind)
+    assert result["addendum_number"] == number
+
+
 def test_explicit_dates_and_ambiguity():
     result = classify("a.html", "Date issued: 2025-02-03 Deadline: 2025-03-04", "text/html")
     assert result["document_date"].isoformat() == "2025-02-03"

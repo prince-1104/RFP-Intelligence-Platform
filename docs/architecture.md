@@ -169,6 +169,11 @@ Results are collapsed by content hash and every filter-valid occurrence is attac
 additional citation. Reranker/sparse failures are errors unless `allow_degraded` is enabled, in
 which case the response is flagged `degraded` with a warning.
 
+**Vector-store compatibility.** `qdrant-client` 1.19.x is pinned against Qdrant server 1.19.2
+(cloud and compose). The client's background compatibility warning is enabled, and
+`CollectionManager.check_server` enforces the same rule synchronously (equal major, minor
+difference ≤ 1, server ≥ 1.10) before indexing or searching.
+
 Structured logs record timings, candidate counts, score components, profile and a query hash, not
 query text, document text, signed URLs or secrets. Phase 4 returns evidence only: no answer
 generation, extraction, agents or reconciliation.

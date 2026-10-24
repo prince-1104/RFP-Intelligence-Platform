@@ -25,9 +25,10 @@ services:
       retries: 15
     stop_grace_period: 30s
   qdrant:
-    image: qdrant/qdrant:v1.13.4
+    image: qdrant/qdrant:v1.19.2
     ports: ["127.0.0.1:6333:6333"]
-    volumes: ["qdrant_data:/qdrant/storage"]
+    # Fresh volume: storage written by 1.13.x is not migrated across non-consecutive minors.
+    volumes: ["qdrant_data_v1_19:/qdrant/storage"]
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333; printf \"GET /readyz HTTP/1.0\\r\\n\\r\\n\" >&3; head -1 <&3 | grep -q 200'"]
       interval: 5s
@@ -47,7 +48,9 @@ services:
     env_file: .env
     init: true
     ports: ["127.0.0.1:8000:8000"]
-    volumes: ["model_cache:/app/model-cache"]
+    volumes:
+      - model_cache:/app/model-cache
+      - ./data/assessment:/data/assessment:ro
     depends_on:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
@@ -79,4 +82,5 @@ volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  qdrant_data_v1_19:
   model_cache:

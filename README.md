@@ -495,6 +495,21 @@ and runs on the existing Celery app as `rfp.index`. `index-bid --inline` process
 process. Job state is per generation in `chunk_index_states`. R2 is mandatory for production
 indexing; there is no local fallback. Qdrant Cloud is used through `QDRANT_URL`/`QDRANT_API_KEY`.
 
+Qdrant versions: `qdrant-client` 1.19.1 (no 1.19.2 client exists) is pinned to `<1.20`; the
+compose server is `qdrant/qdrant:v1.19.2`, matching the configured cloud cluster. The client's
+compatibility check is enabled, and `CollectionManager.check_server` enforces the same rule
+(equal major, minor difference ≤ 1, server ≥ 1.10) before any search or write, failing with
+`vector_store_version_incompatible`. `GET /api/v1/index/status` reports both versions. The local
+1.19.2 server uses the fresh `qdrant_data_v1_19` volume; the old 1.13.4 `qdrant_data` volume is
+left untouched (Qdrant does not migrate storage across non-consecutive minor versions).
+
+### Assessment inputs (local only)
+
+Real bid documents go in the git-ignored `data/assessment/Bid1` and `data/assessment/Bid2`
+(mounted read-only at `/data/assessment` in the API container). Extraction, offline
+parse/chunk commands (`docker run --network none ...`) and optional local indexing are in
+`data/assessment/README.md`. Do not substitute synthetic documents.
+
 Errors use the standard envelope with stable codes, for example `index_not_found`,
 `collection_incompatible`, `embedding_model_unavailable` (run `init-models`),
 `vector_store_unavailable`, `embedding_cache_unavailable`, `query_too_long`, `top_k_too_large`,
