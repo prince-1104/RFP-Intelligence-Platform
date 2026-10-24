@@ -28,6 +28,34 @@ def local_only_settings():
     return settings
 
 
+class ReadOnlyQdrant:
+    """Qdrant client proxy that only exposes read methods; anything else raises before a
+    request is sent, so a read-only workflow cannot upsert, delete or create collections."""
+
+    READ_METHODS = frozenset(
+        {
+            "info",
+            "collection_exists",
+            "get_collection",
+            "get_collections",
+            "query_points",
+            "query_batch_points",
+            "scroll",
+            "count",
+            "retrieve",
+            "_client",  # inspected by CollectionManager to detect local mode
+        }
+    )
+
+    def __init__(self, client):
+        self._wrapped = client
+
+    def __getattr__(self, name):
+        if name not in self.READ_METHODS:
+            raise PermissionError(f"read-only Qdrant guard blocked {name!r}")
+        return getattr(self._wrapped, name)
+
+
 class _Counters(ctypes.Structure):
     _fields_ = [
         ("cb", ctypes.wintypes.DWORD),
