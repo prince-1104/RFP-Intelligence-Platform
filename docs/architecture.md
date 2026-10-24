@@ -1,4 +1,25 @@
-# RFP platform architecture through Phase 6
+# RFP platform architecture through Phase 7
+
+## End-to-end workflow
+
+```mermaid
+flowchart LR
+  Folder[Bid folder: PDF and HTML] --> Parse[parse-folder: pages, tables, OCR]
+  Parse --> Chunk[chunk-folder: sections, table rows, overlap]
+  Chunk --> Index[index-folder: dense + BM25 points in Qdrant]
+  Index --> Search[SearchService.search: hybrid, RRF, rerank, bid filter, citations]
+  Search --> Extract[extract-bid: specialists, reconciliation, validator, retries]
+  Search --> Ask[ask: claims with verbatim quotes, grounding checks]
+  Extract --> BidJSON[Bid JSON + extraction trace]
+  Ask --> Answer[Cited answer or Not found + Q&A trace]
+  Model[LLM via build_live_model] --- Extract
+  Model --- Ask
+```
+
+Agents communicate through typed Pydantic contracts: `EvidenceHit`, `DraftField`,
+`FieldValidation`, `AddendumChange` and `ModelReply`. Shared state lives in `ExtractionState`;
+nothing passes as free text. Every search call carries the bid filter, so evidence from another
+bid cannot reach a model prompt. Live results for both bids are in `docs/live_validation.md`.
 
 The API, operator CLI and Celery worker share Settings, the SQLAlchemy model/engine factory,
 the existing R2 Storage protocol and application logging conventions.
@@ -204,6 +225,12 @@ only when the cited hit belongs to the bid and the value is supported by that hi
 Addendum number alone does not override a field. Live model calls use `LLM_PROVIDER`,
 `LLM_MODEL` and `LLM_API_KEY`. Missing credentials stop the command.
 
+A field can have several query steps, such as primary, addendum-only, specs-only or label search.
+Their hits are merged round-robin by rank, so each step reaches the eight passages the specialist
+sees. The prompt names the exact field keys. The reconciler takes the original due date only from
+a date that follows a due-date label, never from the first date on a page. Output `confidence`
+is a fixed value per validation status, not a calibrated probability.
+
 ## Phase 6 Q&A
 
 ```mermaid
@@ -214,15 +241,20 @@ flowchart LR
   Search --> Evidence[Bid-scoped passages E1..En]
   Evidence -->|none| Abstain[Not found in documents]
   Evidence --> Model[LanguageModel]
-  Model --> Check[Deterministic citation check]
+  Model --> Check[Verbatim quotes, claim grounding, checklist]
   Check -->|reject, one correction| Model
   Check -->|still rejected| Abstain
   Check --> Answer[answered or conflict with citations]
 ```
 
 `src/rfp/agents/qa.py` reuses the extraction retrieval adapter, model client, locator checks and
-due-date reconciliation. The check rejects citations outside the retrieved set, quotes not found in
-the cited passage, answer facts (dates, numbers, identifiers) missing from the cited text, a
-`conflict` with fewer than two distinct sources, and a deadline answer that disagrees with an
-explicit addendum revision or picks between disagreeing addenda. Answer confidence is not
-reported because no calibrated method exists. The CLI layer is `src/rfp/agents/qa_runner.py`.
+due-date reconciliation. Deterministic checks live in `quotes.py` (verbatim span location),
+`grounding.py` (claim-level lexical support against each claim's own quotes) and `checklist.py`
+(named list items found in evidence). Unsupported claims are corrected once, then dropped or the
+answer abstains. Before abstaining, a non-verbatim quote is discarded if the same claim has
+another valid quote that supports it; the discard is reported in `limitations`. Literal `\n`
+sequences in indexed table cells count as whitespace when quotes are located. Deadline
+questions also search addenda and the bid page; list questions add an
+item-keyword search. Answer confidence is not reported because no calibrated method exists. The CLI
+layer is `qa_runner.py`; offline scoring is `src/rfp/evaluation/qa.py` with
+`scripts/evaluate_qa.py` and the reviewed set `evaluation/qa_reviewed.json`.

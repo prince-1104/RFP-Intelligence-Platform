@@ -1,0 +1,266 @@
+{
+  "version": "1.0",
+  "description": "Reviewed expectations for the 14 Q&A questions in examples/qa_questions.json. Expected answers were checked against parsed source text in artifacts/assessment/<Bid>/parsed (pdfplumber text and tables; Bid1 FINAL pages 54-59 are OCR). Model outputs were not used as ground truth. 'review_status' is 'verified' only where the supporting text was located and read; 'reviewer' records that this was an assistant-assisted review that a human should confirm.",
+  "reviewer": "assistant-assisted source review; pending human confirmation",
+  "cases": [
+    {
+      "id": "bid1-final-deadline",
+      "bid_id": "Bid1",
+      "question": "What is the final proposal submission deadline after all addenda?",
+      "question_type": "addendum_sensitive",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "July 9, 2024 at 2:00 PM CST, set by Addendum 2.",
+      "required_facts": [["July 9, 2024"], ["2:00 PM"]],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [{"document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1}],
+      "quotes": [
+        {"document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1, "text": "The new due date for this RFP will be July 9, 2024 at 2:00 PM CST."}
+      ],
+      "expected_behavior": "Answer with the Addendum 2 date and cite Addendum 2; do not give the original RFP date as final.",
+      "notes": ""
+    },
+    {
+      "id": "bid1-addendum2-changes",
+      "bid_id": "Bid1",
+      "question": "What changed in Addendum 2?",
+      "question_type": "addendum_sensitive",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "Addendum 2 extends the RFP due date to July 9, 2024 at 2:00 PM CST. It states all other provisions remain unchanged and bidders must acknowledge and return a copy with their proposal.",
+      "required_facts": [["July 9, 2024"]],
+      "required_items": [],
+      "material_omissions": ["bidders must acknowledge and return a copy of the addendum"],
+      "sources": [{"document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1}],
+      "quotes": [
+        {"document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1, "text": "The Purpose of this Addendum is to extend the due date of this RFP."},
+        {"document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1, "text": "ALL OTHER PROVISIONS AND OTHER TERMS AND CONDITIONS REMAIN UNCHANGED."}
+      ],
+      "expected_behavior": "A claim that other provisions are unchanged must cite the ALL OTHER PROVISIONS sentence, not only the due-date sentence.",
+      "notes": ""
+    },
+    {
+      "id": "bid1-bid-bond",
+      "bid_id": "Bid1",
+      "question": "Is a bid bond or proposal guarantee required?",
+      "question_type": "unknown",
+      "review_status": "verified",
+      "answerable": false,
+      "expected_answer": "Not found in documents. The RFP only refers generically to insurance/bond requirements 'noted elsewhere'; no specific bid bond or proposal guarantee requirement was found in any Bid1 document.",
+      "required_facts": [],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [{"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 9}, {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 17}],
+      "quotes": [
+        {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 9, "text": "The Offeror must comply with any insurance, bid bond, or liability requirements of the District as noted elsewhere in this solicitation document."},
+        {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 17, "text": "Insurance and/or bond requirements are enumerated elsewhere in Contract documents."}
+      ],
+      "expected_behavior": "Abstain. Asserting that a bid bond is required, or that it is not required, is incorrect: the documents neither state an amount/form nor waive it.",
+      "notes": "Searched all Bid1 parsed text for bid bond, bond, guarantee, bid security, proposal security and cashier. Only generic clauses and M/WBE bonding references were found. Pages 54-59 of the FINAL PDF are OCR text."
+    },
+    {
+      "id": "bid1-pre-proposal",
+      "bid_id": "Bid1",
+      "question": "Is there a pre-proposal conference, and when is it?",
+      "question_type": "multi_fact",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "Yes. A pre-proposal meeting is held June 10, 2024 at 2:00 PM CST via TEAMS video conference.",
+      "required_facts": [["June 10, 2024", "10-JUN-2024", "06/10/2024"], ["2:00 PM", "14:00", "03:00 PM EDT", "3:00 PM EDT"]],
+      "required_items": [],
+      "material_omissions": ["TEAMS video conference (only if cited)"],
+      "sources": [{"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 2}],
+      "quotes": [
+        {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 2, "text": "A pre-proposal meeting will be held at 2:00 PM CST via TEAMS video conference on June 10, 2024."},
+        {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 2, "text": "Pre-Proposal Meeting 10-JUN-2024 14:00:00"}
+      ],
+      "expected_behavior": "Time zone and TEAMS may be stated only when the cited quote contains them.",
+      "notes": "The indexed chunk containing the schedule spans pages 1-2, so the search citation reports page_start 1; the text is on page 2. The BidNet page lists the prebid conference as 06/10/2024 03:00 PM EDT."
+    },
+    {
+      "id": "bid1-rfp-number",
+      "bid_id": "Bid1",
+      "question": "What is the RFP number?",
+      "question_type": "single_fact",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "JA-207652 (BidNet sourcing #168884).",
+      "required_facts": [["JA-207652"]],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [{"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 2}, {"document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1}],
+      "quotes": [
+        {"document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1, "text": "RFP JA-207652 Student and Staff Computing Devices"}
+      ],
+      "expected_behavior": "",
+      "notes": ""
+    },
+    {
+      "id": "bid1-contact",
+      "bid_id": "Bid1",
+      "question": "Who is the point of contact for questions about this RFP?",
+      "question_type": "single_fact",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "Questions go in writing to the Buyer, Jasmine Alzate (JALZATE@dallasisd.org).",
+      "required_facts": [["JALZATE@dallasisd.org", "Alzate"]],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [{"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 2}],
+      "quotes": [
+        {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 2, "text": "Questions concerning this solicitation document should be addressed in writing to the Buyer's Email."},
+        {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 2, "text": "JALZATE@dallasisd.org"}
+      ],
+      "expected_behavior": "The BidNet page's general Procurement Services contact is not the RFP's designated contact for questions.",
+      "notes": ""
+    },
+    {
+      "id": "bid1-warranty",
+      "bid_id": "Bid1",
+      "question": "What warranty is required for the computing devices?",
+      "question_type": "multi_fact",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "Addendum 1: minimum one-year warranty for student Chromebooks and three years for student and staff Windows laptops; all warranties by the OEM. The RFP specifications list 3-year minimums for Windows devices and monitors and a 1-year minimum for student tablets.",
+      "required_facts": [["one-year", "one year", "1-year"], ["three years", "three-year", "3-year", "3 years"]],
+      "required_items": [],
+      "material_omissions": ["student tablets 1-year minimum", "desktops and monitors 3-year minimum", "warranties made by the OEM"],
+      "sources": [{"document": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1}, {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 5}],
+      "quotes": [
+        {"document": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf", "page": 1, "text": "As a minimum requirement, Dallas ISD is asking for a one-year warranty for student Chromebooks and three years for student and staff Windows laptops."},
+        {"document": "JA-207652 Student and Staff Computing Devices FINAL.pdf", "page": 5, "text": "Warranty: 1-year minimum"}
+      ],
+      "expected_behavior": "",
+      "notes": ""
+    },
+    {
+      "id": "bid2-affidavits",
+      "bid_id": "Bid2",
+      "question": "Which affidavits must vendors submit with their proposal?",
+      "question_type": "exhaustive_list",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "The PORFP explicitly requires a Mercury Affidavit. A Contract Affidavit form is also part of the bid package (Contract_Affidavit.pdf), but the retrieved text does not state that it is due with the proposal.",
+      "required_facts": [["Mercury Affidavit"]],
+      "required_items": ["Mercury Affidavit", "Contract Affidavit"],
+      "material_omissions": [],
+      "forbidden_patterns": [
+        "(must|shall|required to) (submit|provide|include) (a |an |the )?(Contract|Proposal) Affidavit",
+        "(Contract|Proposal) Affidavit (is|are) required"
+      ],
+      "sources": [{"document": "PORFP_-_Dell_Laptop_Final.pdf", "page": 2}, {"document": "Contract_Affidavit.pdf", "page": 3}],
+      "quotes": [
+        {"document": "PORFP_-_Dell_Laptop_Final.pdf", "page": 2, "text": "The Master Contractor must provide a Mercury Affidavit:"},
+        {"document": "Contract_Affidavit.pdf", "page": 3, "text": "as if made as of the date of this Contract Affidavit"}
+      ],
+      "expected_behavior": "Address both affidavits; do not claim the Contract Affidavit is due with the proposal unless a quote says so; do not claim the list is exhaustive.",
+      "notes": "No PORFP or BidNet text names the Contract Affidavit; it is present as a separate document in the bid package."
+    },
+    {
+      "id": "bid2-due-date",
+      "bid_id": "Bid2",
+      "question": "When are proposals due?",
+      "question_type": "single_fact",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "06/10/2024 (BidNet closing date 06/10/2024 02:00 PM EDT).",
+      "required_facts": [["06/10/2024", "June 10, 2024"]],
+      "required_items": [],
+      "material_omissions": ["02:00 PM EDT closing time from the BidNet page"],
+      "sources": [{"document": "PORFP_-_Dell_Laptop_Final.pdf", "page": 1}, {"document": "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html", "page": null}],
+      "quotes": [
+        {"document": "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html", "page": null, "text": "06/10/2024 02:00 PM EDT"},
+        {"document": "PORFP_-_Dell_Laptop_Final.pdf", "page": 1, "text": "06/10/2024"}
+      ],
+      "expected_behavior": "Answer the date; the earlier 06/01/2024 date is the questions deadline, not the proposal due date.",
+      "notes": "The PORFP page 1 table pairs 'PROPOSAL DUE' with 06/10/2024 but its text layer splits the label from the value."
+    },
+    {
+      "id": "bid2-warranty",
+      "bid_id": "Bid2",
+      "question": "What extended warranty is required for the Dell laptops?",
+      "question_type": "single_fact",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "Dell Limited Hardware Warranty extended for all machines purchased, 3 years following the date of delivery.",
+      "required_facts": [["3 years", "three years", "3 Years", "3-year"]],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [{"document": "PORFP_-_Dell_Laptop_Final.pdf", "page": 3}],
+      "quotes": [
+        {"document": "PORFP_-_Dell_Laptop_Final.pdf", "page": 3, "text": "3 years following the date of delivery"}
+      ],
+      "expected_behavior": "",
+      "notes": ""
+    },
+    {
+      "id": "bid2-ram",
+      "bid_id": "Bid2",
+      "question": "How much RAM must each laptop have?",
+      "question_type": "single_fact",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "16 GB (2 x 8 GB DDR5), per the Dell laptop specification sheet.",
+      "required_facts": [["16 GB"]],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [{"document": "Dell_Laptop_Specs.pdf", "page": 1}],
+      "quotes": [
+        {"document": "Dell_Laptop_Specs.pdf", "page": 1, "text": "16 GB: 2 x 8 GB, DDR5, 5600 MT/s"}
+      ],
+      "expected_behavior": "",
+      "notes": "The figure comes from the attached Dell configuration sheet, not from a PORFP sentence stating a minimum."
+    },
+    {
+      "id": "bid2-quantity",
+      "bid_id": "Bid2",
+      "question": "How many laptops are being purchased?",
+      "question_type": "single_fact",
+      "review_status": "verified",
+      "answerable": true,
+      "expected_answer": "30 Dell Latitude 5550 laptops (the order also lists 30 Thunderbolt docks).",
+      "required_facts": [["30"]],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [{"document": "PORFP_-_Dell_Laptop_Final.pdf", "page": 3}],
+      "quotes": [
+        {"document": "PORFP_-_Dell_Laptop_Final.pdf", "page": 3, "text": "Qty 30"}
+      ],
+      "expected_behavior": "",
+      "notes": "Verified from the page 3 pdfplumber table: row '1. SI# CC7802 Dell Latitude 5550 | ... | Qty 30 | 06/10/2024'. The page text layer separates the quantity from its row label."
+    },
+    {
+      "id": "bid2-liquidated-damages",
+      "bid_id": "Bid2",
+      "question": "What liquidated damages apply for late delivery?",
+      "question_type": "unknown",
+      "review_status": "verified",
+      "answerable": false,
+      "expected_answer": "Not found in documents.",
+      "required_facts": [],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [],
+      "quotes": [],
+      "expected_behavior": "Abstain.",
+      "notes": "No 'liquidated' or 'damages' text in any Bid2 parsed document (no Bid2 page used OCR)."
+    },
+    {
+      "id": "bid2-bid-bond",
+      "bid_id": "Bid2",
+      "question": "Is a bid bond required?",
+      "question_type": "unknown",
+      "review_status": "verified",
+      "answerable": false,
+      "expected_answer": "Not found in documents.",
+      "required_facts": [],
+      "required_items": [],
+      "material_omissions": [],
+      "sources": [],
+      "quotes": [],
+      "expected_behavior": "Abstain.",
+      "notes": "No 'bond' or 'guarantee' text in any Bid2 parsed document."
+    }
+  ]
+}

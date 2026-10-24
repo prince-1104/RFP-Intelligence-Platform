@@ -1,0 +1,56 @@
+# Assignment requirement checklist
+
+Updated 2026-10-24 after the Phase 7 live validation. This file supersedes the status columns of
+`ASSIGNMENT_COMPLIANCE_AUDIT.md`, which records the state before Phases 5–7. Evidence paths are
+relative to the repository root. Live evidence is in `docs/live_validation.md`.
+
+Statuses:
+
+- **Verified:** complete and verified, by a live run on Bid1 and Bid2 or by offline tests where
+  noted.
+- **Not verified:** implemented but not verified.
+- **Missing.**
+- **Blocked:** blocked by configuration or data.
+
+| Requirement | Status | Evidence / gap |
+|---|---|---|
+| A. Parse HTML and PDF with page and structure | Verified | `artifacts/assessment/*/parsed`; `tests/test_parsers.py` |
+| A. Extract tables | Verified | Native PDF and HTML tables. Scanned pages (Bid1 FINAL pp. 54–59) are OCR text without table structure |
+| A. Clean text (whitespace, wrapped lines, soft hyphens) | Verified | `chunking/normalize.py` and chunk tests |
+| A. Remove repeated page headers and footers | Missing | Headers such as "Request For Proposal 168884 JA-207652 …" stay in the text |
+| A. Metadata (bid, file, doc type, addendum, page, date) | Verified | Citations in every live output carry them |
+| A. Graceful failure for scanned, empty or corrupt files | Verified (offline) | Parser tests |
+| B. RFP-aware chunking with overlap | Verified | Chunk tests; README Phase 3 |
+| B. Embeddings + vector store + metadata | Verified | Local collection `bid_documents__79fea6c89a6d`, 533 points, used by every live run |
+| B. Incremental indexing | Verified (offline) | `tests/test_search_indexing.py`; not re-run this phase (no re-indexing) |
+| B. Hybrid search, filtering, reranking, query expansion | Verified | `artifacts/eval/retrieval_phase7.json`: 0 cross-bid leaks in 4 modes |
+| B. Citations (file, page or element, text) | Verified | Every Q&A citation is a verbatim span with a locator (`artifacts/qa_examples.json`) |
+| B. Search CLI / API | CLI verified; API not verified | CLI used live. API covered by offline tests only |
+| B. ≥15 query-to-passage pairs, both bids | Verified | 55 cases (`evaluation/assessment_retrieval.json`); `verify` OK |
+| B. Metrics for ≥2 configurations, table in the README | Verified | 4 modes; table in the README retrieval section |
+| B. Human approval of retrieval labels | Not verified | Automated grounding check only; `needs_human_labeling` lists open items |
+| C. Orchestrator, specialists, retrieval tool use, shared state | Verified | `artifacts/extraction_v2/traces/*.json` (agents: retrieval, identity, logistics, commercial, product, summary, validator, critic) |
+| C. Addendum reconciliation | Verified | Bid1 due date: 27-JUN-2024 14:00:00 → July 9, 2024 2:00 PM CST (Addendum 2). Bid2 has no addenda |
+| C. Validator with bounded re-extraction | Verified, with gaps | Retries ≤ 2 in every trace. It checks that the value is in its evidence, not that the value answers the field |
+| C. Parallel agent execution | Verified (offline) | Group concurrency test in `tests/test_extraction.py` |
+| C. "Not found in documents" and citation-only values | Verified | Extraction null notes; 5 correct Q&A abstentions |
+| C. Observability: steps, tool calls, tokens, latency in one trace | Verified | Extraction and Q&A traces; question text is hashed |
+| C. Error handling (timeout, bad JSON, empty retrieval) | Verified | Offline tests. A malformed live reply was handled without a crash |
+| C. Extraction mode and Q&A mode | Verified | `extract-bid`, `ask`, `ask-samples` run live |
+| D. 20 fields per bid, one JSON per bid, null with reason, `addendum_changes`, `validation` | Verified (structure) | `artifacts/extraction_v2/Bid1.json`, `Bid2.json` |
+| D. Extraction accuracy | Not verified (issues recorded) | Assistant review: Bid1 6 correct / 6 partial / 5 missed; Bid2 5 correct / 5 partial / 2 wrong / 4 missed. Pending human confirmation |
+| D. Per-field confidence | Not verified | Fixed value per status (0.86 / 0.74 / 0.35); documented as not calibrated |
+| Tech. Secrets from the environment, never logged | Verified | `scripts/verify_extraction.py` secret scan; README configuration section |
+| Tech. One command after setup | Missing | Parse, chunk, index and extract are separate commands |
+| Tech. Unit tests for parsing and search | Verified | 341 offline tests pass |
+| Tech. Unseen bid folder without code changes | Not verified | No bid-specific literals in `src/`; no third folder was available to run |
+| Deliverable. README, architecture diagram | Verified | README; `docs/architecture.md` (end-to-end, search, extraction, Q&A diagrams) |
+| Deliverable. JSON output per bid | Verified | `artifacts/extraction_v2/` |
+| Deliverable. Retrieval evaluation report | Verified | README table; `artifacts/eval/retrieval_phase7.json` |
+| Deliverable. ≥10 cited Q&A examples | Verified | `artifacts/qa_examples.json`: 11 correct, 2 partial, 5 correct abstentions (live) |
+| Deliverable. One full agent trace | Verified | `artifacts/extraction_v2/traces/extraction_Bid1.json` |
+| Deliverable. Demo video | Missing | Not recorded. A reproducible demo sequence is in the README |
+| Bonus. OCR | Verified | Bid1 FINAL pp. 54–59 |
+| Bonus. Token usage per run | Verified | Trace `token_usage`; no currency cost is computed |
+| Bonus. Docker | Not verified | `compose.yaml`; only the Qdrant service was used this phase |
+| Bonus. Web UI, bid comparison, go/no-go, semantic cache, CI | Missing | Optional |

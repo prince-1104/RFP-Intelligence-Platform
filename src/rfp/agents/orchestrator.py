@@ -68,6 +68,14 @@ def _dedupe(hits: list[EvidenceHit], prefix: str) -> list[EvidenceHit]:
     ]
 
 
+def _interleave(per_step: list[list[EvidenceHit]]) -> list[EvidenceHit]:
+    """Round-robin by rank so every query step reaches the model's first evidence slots."""
+    merged: list[EvidenceHit] = []
+    for rank in range(max((len(hits) for hits in per_step), default=0)):
+        merged.extend(hits[rank] for hits in per_step if rank < len(hits))
+    return merged
+
+
 def _evidence_refs(hits: list[EvidenceHit]) -> list[dict[str, str | int | None]]:
     refs: list[dict[str, str | int | None]] = []
     for hit in hits[:8]:
@@ -121,6 +129,7 @@ def _event(agent: str, task: str, started: str, started_at: float, **payload: ob
 
 
 def _confidence(status: str) -> float:
+    """Fixed value per validation status, required by the output schema; not a probability."""
     if status == "accepted":
         return 0.86
     if status == "not_found":
@@ -232,7 +241,7 @@ class Orchestrator:
         )
         for name in names:
             spec = CATALOG[name]
-            collected: list[EvidenceHit] = []
+            collected: list[list[EvidenceHit]] = []
             for step in steps_for(spec, attempt, reasons.get(name, [])):
                 started, stamp = clock(), time.perf_counter()
                 try:
@@ -268,7 +277,7 @@ class Orchestrator:
                     )
                     continue
                 result.search_ok += 1
-                collected.extend(hits)
+                collected.append(hits)
                 events.append(
                     _event(
                         "retrieval",
@@ -286,7 +295,7 @@ class Orchestrator:
                         decision=", ".join(response.warnings) or None,
                     )
                 )
-            evidence[name] = _dedupe(collected, _slug(name))
+            evidence[name] = _dedupe(_interleave(collected), _slug(name))
         result.evidence = evidence
         asked = [name for name in names if evidence[name]]
         drafts: dict[str, DraftField] = {}

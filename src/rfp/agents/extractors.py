@@ -1,5 +1,7 @@
 """Specialist field groups and the prompt that may only cite retrieved evidence ids."""
 
+import json
+import re
 from dataclasses import dataclass
 
 from rfp.agents.llm import ModelRequest, parse_json_object
@@ -11,23 +13,26 @@ GROUP_ORDER = ("identity", "logistics", "commercial", "product", "summary")
 
 GROUP_INSTRUCTIONS = {
     "identity": (
-        "Extract the official bid number, title, issuing organization and procurement contact. "
+        "Bid Number is the official solicitation number, Title the bid title, company_name the "
+        "issuing organization and contact_info the procurement contact. "
         "Copy identifiers, names, emails and phone numbers verbatim from the evidence."
     ),
     "logistics": (
-        "Extract deadlines, submission method, contract term, pre-bid meeting, installation and "
-        "delivery. When an addendum explicitly states a new due date, use that statement rather "
+        "Due Date is the submission deadline, Bid Submission Type the submission method, Term of "
+        "Bid the contract term, then Pre Bid Meeting, Installation and Delivery Date. When an "
+        "addendum explicitly states a new due date, use that statement rather "
         "than the original date, and mention the original date in notes. Do not treat a later "
         "addendum as an override unless its text says what changed."
     ),
     "commercial": (
-        "Extract bond, payment terms, extra forms, manufacturer registration and any cooperative "
-        "contract. A generic insurance or bond clause is not an amount. Use null when no amount, "
+        "Bid Bond Requirement, Payment Terms, Any Additional Documentation Required (extra forms), "
+        "MFG for Registration (manufacturer registration) and Contract or Cooperative to use. "
+        "A generic insurance or bond clause is not an amount. Use null when no amount, "
         "percentage or explicit 'not required' statement is present."
     ),
     "product": (
-        "Extract model numbers, part or SKU numbers, the product and quantity, and technical "
-        "specifications such as CPU, RAM, storage, display, battery and warranty. Copy them "
+        "Model_no, Part_no (part or SKU numbers), Product (product and quantity) and Product "
+        "Specification (CPU, RAM, storage, display, battery and warranty). Copy them "
         "verbatim. Specifications may be in a separate specs document rather than the main RFP."
     ),
     "summary": (
@@ -71,7 +76,14 @@ def _steps(
 def _catalog() -> dict[str, FieldSpec]:
     specs = [
         FieldSpec("Bid Number", "identity", _steps("official solicitation or RFP number")),
-        FieldSpec("Title", "identity", _steps("full title of the bid or request for proposal")),
+        FieldSpec(
+            "Title",
+            "identity",
+            _steps(
+                "full title of the bid or request for proposal",
+                "request for proposal solicitation title",
+            ),
+        ),
         FieldSpec(
             "Due Date",
             "logistics",
@@ -165,6 +177,7 @@ def _catalog() -> dict[str, FieldSpec]:
             "identity",
             (
                 QueryStep("procurement contact name email and phone", hard=True),
+                QueryStep("buyer name and email address", hard=True),
                 QueryStep(
                     "Who is the buyer for this solicitation and how can they be contacted?",
                     RetrievalMode.sparse,
@@ -273,8 +286,10 @@ def extraction_request(
         blocks.append("\n".join(lines))
     user = (
         f"Attempt: {attempt}\n"
-        "Return a JSON object with a fields object. For each field use value (string or null), "
-        "evidence_ids (array of the ids above), and notes. Copy values verbatim from the evidence. "
+        "Return a JSON object with a fields object whose keys are exactly "
+        f"{json.dumps(names)}. For each field use value (string or null), "
+        "evidence_ids (the ids listed under that field whose text states the value), and notes. "
+        "Copy values verbatim from the evidence. "
         "Use null and notes 'Not found in documents' when the evidence does not state the value. "
         "Do not invent citations, pages, or facts.\n\n" + "\n\n".join(blocks)
     )
@@ -307,13 +322,18 @@ def critic_request(
     )
 
 
+def _key(name: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", name.casefold())
+
+
 def drafts_from_model(names: list[str], payload: dict) -> dict[str, DraftField]:
     raw_fields = payload.get("fields")
     if not isinstance(raw_fields, dict):
         raise ValueError("fields")
+    loose = {_key(key): value for key, value in raw_fields.items() if isinstance(key, str)}
     drafts: dict[str, DraftField] = {}
     for name in names:
-        raw = raw_fields.get(name)
+        raw = raw_fields.get(name, loose.get(_key(name)))
         if not isinstance(raw, dict):
             drafts[name] = DraftField(name=name, value=None, notes="Model omitted this field")
             continue

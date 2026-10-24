@@ -15,6 +15,11 @@ DATE_RE = re.compile(
     r"|\d{1,2}/\d{1,2}/\d{4}",
     re.IGNORECASE,
 )
+MONTH_YEAR_RE = re.compile(
+    r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December)"
+    r"(?:\s+of)?\s+\d{4}\b",
+    re.IGNORECASE,
+)
 STOP = frozenset({"the", "and", "for", "with", "this", "that", "from", "are", "was", "were"})
 
 
@@ -126,6 +131,7 @@ def validate_field(
     if (
         draft.name in DATE_FIELDS
         and not date_phrases(draft.value)
+        and not MONTH_YEAR_RE.search(draft.value)
         and draft.value.casefold()
         not in {
             "none",

@@ -1,5 +1,6 @@
 """Apply an addendum only when its text establishes a change. A higher number is not enough."""
 
+import re
 from dataclasses import dataclass
 
 from rfp.agents.schemas import AddendumChange, DraftField, EvidenceHit
@@ -15,6 +16,12 @@ DUE_DATE_CUES = (
     "is amended to",
     "supersedes",
 )
+BASE_DUE_RE = re.compile(
+    r"\b(?:solicitation due|proposals? due|bids? due|due date|closing date|submission deadline"
+    r"|due no later than)\b",
+    re.IGNORECASE,
+)
+LABEL_WINDOW = 60
 
 
 @dataclass(frozen=True)
@@ -44,6 +51,17 @@ def _phrase_after_cue(text: str) -> str | None:
     return phrases[0] if phrases else None
 
 
+def _labelled_due_dates(text: str) -> list[str]:
+    """Dates that directly follow a due-date label; other dates in the RFP are not the deadline."""
+    flat = " ".join(text.split())
+    found = []
+    for label in BASE_DUE_RE.finditer(flat):
+        phrases = date_phrases(flat[label.end() : label.end() + LABEL_WINDOW])
+        if phrases:
+            found.append(phrases[0])
+    return found
+
+
 def reconcile_due_date(draft: DraftField, evidence: list[EvidenceHit]) -> ReconciliationResult:
     overriding = _cue_hits(evidence)
     if not overriding:
@@ -61,7 +79,7 @@ def reconcile_due_date(draft: DraftField, evidence: list[EvidenceHit]) -> Reconc
         phrase
         for hit in evidence
         if hit.document_type == DocumentType.rfp
-        for phrase in date_phrases(hit.text)
+        for phrase in _labelled_due_dates(hit.text)
     ]
     if len(unique) > 1:
         listed = "; ".join(f"addendum {hit.addendum_number}: {phrase}" for hit, phrase in unique)

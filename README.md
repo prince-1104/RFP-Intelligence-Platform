@@ -1,12 +1,14 @@
-# RFP Intelligence Platform — Phase 4
+# RFP Intelligence Platform
 
 Phase 2 adds document ingestion, PDF/HTML parsing, native tables and Tesseract OCR to the
 Phase 1 infrastructure. Phase 3 adds normalization, structure-aware chunks, canonical content,
 source occurrences and incremental generations. Phase 4 adds a hybrid RAG evidence search engine
 (dense + BM25 + exact identifiers, RRF, cross-encoder reranking, citations) with incremental
 Qdrant indexing, a REST API and CLI. Phase 5 adds a typed multi-agent extraction workflow
-on that search service. Phase 6 adds citation-grounded Q&A over one bid. A web UI remains
-optional and is not implemented.
+on that search service. Phase 6 adds citation-grounded Q&A over one bid. Phase 7 validates
+extraction, Q&A and retrieval live on both assessment bids (see
+[Live results and demo](#phase-7-live-results-and-demo)). A web UI remains optional and is not
+implemented.
 The repository was empty at Phase 1 implementation start.
 
 ## Architecture
@@ -40,7 +42,8 @@ Phase 1 UUID defaults remain available. Ingestion uses deterministic UUIDs for b
 identities. Statuses are constrained to pending/processing/completed/partially_completed/failed.
 Foreign keys prevent removal of referenced bids; object keys and non-null Celery task IDs are
 unique. Timestamps use server defaults; SQLAlchemy updates `updated_at` on ORM/Core updates.
-Direct SQL writers must update that field themselves. No extracted-field schema is invented.
+Direct SQL writers must update that field themselves. The 20 extracted fields are defined in
+`src/rfp/agents/schemas.py` (`REQUIRED_FIELDS`, `BidExtraction`).
 
 ## Prerequisites and configuration
 
@@ -59,8 +62,11 @@ Settings require valid `DATABASE_URL`, `REDIS_URL`, and `QDRANT_URL`. R2 can be 
 and during tests. To use it, set `R2_ACCOUNT_ID` (endpoint derived automatically),
 `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_BUCKET_NAME`. An explicit
 `R2_ENDPOINT_URL` must be a Cloudflare R2 HTTPS endpoint; `R2_REGION` defaults to `auto`.
-The adapter rejects incomplete configuration when instantiated. Provider/model/API-key settings
-are reserved and never used to call an LLM. `TESSERACT_CMD` identifies the executable for OCR;
+The adapter rejects incomplete configuration when instantiated. `extract-bid`, `ask` and
+`ask-samples` call an LLM using `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` (optional
+`LLM_BASE_URL`, `LLM_TIMEOUT_SECONDS`, `LLM_MAX_OUTPUT_TOKENS`). Put them only in the private
+`.env`. Missing values stop those commands with `llm_not_configured`, and no value is ever
+printed or written to outputs or traces. `TESSERACT_CMD` identifies the executable for OCR;
 host installations may need an absolute Windows path.
 
 For Qdrant Cloud, set `QDRANT_URL` to the cluster HTTPS endpoint and `QDRANT_API_KEY` in
@@ -502,6 +508,28 @@ These scripts refuse any non-loopback Qdrant URL or configured cloud credentials
 Labels are only applied to search output; they never influence retrieval. Items still needing
 human review are listed in its `needs_human_labeling` field.
 
+Results from
+`evaluate_retrieval.py run --modes dense,sparse,hybrid,hybrid_rerank --out artifacts\eval\retrieval_phase7.json`
+(2026-10-24, 55 cases of which 50 are scored, default rerank depth 20). They match the earlier
+run in `VERIFICATION.md`:
+
+| Configuration | Recall@5 | MRR@10 | nDCG@10 | hit@5 | p50 latency (ms) |
+|---|---|---|---|---|---|
+| dense (BGE-small) | 0.703 | 0.688 | 0.659 | 0.88 | 58 |
+| sparse (BM25) | 0.786 | 0.781 | 0.749 | 0.88 | 27 |
+| hybrid (RRF) | 0.736 | 0.795 | 0.741 | 0.88 | 44 |
+| hybrid + rerank | 0.772 | 0.769 | 0.765 | 0.88 | 1,675 |
+
+All modes had 0 errors, 0 cross-bid leaks and 0 citation errors, and all 3 unknown identifiers
+returned no evidence.
+
+- Sparse BM25 has the best Recall@5 on this small, identifier-heavy set.
+- Hybrid RRF has the best MRR@10.
+- Reranking gives the best nDCG@10, at about 1.7 s per query on CPU.
+
+`verify` is the automated label check: the required text must be present at each judged page or
+element. Human approval of the labels is still pending.
+
 ### Production
 
 ```powershell
@@ -583,13 +611,28 @@ supporting excerpt), `validation`, `trace_id`, `model`, `evidence_count` and `tr
 `confidence` is always `null`: there is no calibrated method for answer confidence, so no score
 is reported.
 
-The model reply is accepted only if every citation refers to a retrieved passage of this bid, every
-quote is found in that passage, and every date, number and identifier in the answer appears in
-the cited text. For proposal-deadline questions, an answer that ignores an explicit addendum
-revision, or picks one of two disagreeing addenda, is rejected. A rejected reply gets one
-correction request (`max_corrections=1`). If that also fails, the answer is
-`Not found in documents`, `validation.passed` is false, and the reasons are listed. Malformed
-model output is handled the same way. Provider errors (`llm_timeout`, `llm_provider_error`) and
+The model returns claims, each linked to quotes. A reply is accepted only if:
+
+- every quote is a contiguous span of a retrieved passage of this bid (`agents/quotes.py`; case,
+  whitespace, line breaks, typographic quotes and punctuation between words are tolerated, while
+  paraphrases and quotes stitched across separate text are rejected). The displayed `excerpt` is
+  the source text, not the model's wording;
+- every claim is lexically supported by its own quotes (`agents/grounding.py`): numbers, dates,
+  times, time zones, platforms, names, negations, scope words (only, unchanged) and requirement
+  words (must, shall, required) must appear in the linked quotes, not just elsewhere in the
+  passage. Only leading zeros are tolerated as a formatting difference;
+- deadline answers respect explicit addendum revisions;
+- for list questions (which affidavits, forms, ...), every item named in the retrieved evidence is
+  answered or listed under `completeness.unresolved` (`agents/checklist.py`). Lists are never
+  marked exhaustive.
+
+A rejected reply gets one correction request (`max_corrections=1`) that lists the reasons. On the
+final attempt, unsupported claims are dropped and reported in `validation.reasons` and
+`limitations` if at least one claim survives; otherwise the answer is `Not found in documents`.
+A non-verbatim quote is discarded rather than sinking its claim, but only when another quote in
+that claim is valid and supports it.
+Malformed model output is handled the same way. The grounding check is lexical, not semantic
+entailment: a claim made of supported words can still misread its quote. Provider errors (`llm_timeout`, `llm_provider_error`) and
 missing configuration (`llm_not_configured`) exit 1 without an answer.
 
 The trace (`artifacts/traces/qa_<trace_id>.json`, override with `--trace-dir`) records search
@@ -607,5 +650,93 @@ Cited examples are generated only with a live model:
 ```
 
 This writes `artifacts/qa/qa_samples.json` (a list of Q&A responses), `qa_samples.md` and one trace
-per question under `artifacts/qa/traces/`. It has no test mode. See `docs/qa_examples.md` for the
-format and status. The examples are pending until a live model is configured.
+per question under `artifacts/qa/traces/`. It has no test mode.
+
+Offline Q&A evaluation (no model or Qdrant calls) uses the reviewed set
+`evaluation/qa_reviewed.json`:
+
+```powershell
+.\.venv\Scripts\python scripts\evaluate_qa.py verify
+.\.venv\Scripts\python scripts\evaluate_qa.py score --samples artifacts\qa\qa_samples.json --out artifacts\eval\qa.json
+```
+
+See `docs/qa_examples.md` for the format, review status and latest results.
+
+## Phase 7: live results and demo
+
+All numbers below come from live `gpt-4o-mini` calls against local Qdrant on 2026-10-24.
+`docs/live_validation.md` has the per-field and per-question review, the defects found and fixed,
+and the commands. Verdicts are an assistant review against the parsed source text and are pending
+human confirmation. `ASSIGNMENT_CHECKLIST.md` maps each assignment requirement to its status.
+
+| Bid | Fields accepted / not found / unresolved | Reviewed correct / partial / wrong / missed / null ok |
+|---|---|---|
+| Bid1 | 12 / 8 / 0 | 6 / 6 / 0 / 5 / 3 |
+| Bid2 | 12 / 7 / 1 | 5 / 5 / 2 / 4 / 4 |
+
+Extraction JSON is in `artifacts/extraction_v2/Bid1.json` and `Bid2.json`. Traces are in
+`artifacts/extraction_v2/traces/extraction_<Bid>.json`. The automated check is
+`scripts/verify_extraction.py`. Its report, `artifacts/eval/extraction_v2_check.json`, shows:
+
+- schema valid;
+- 20 fields in each file;
+- no cross-bid sources;
+- retries at most 2;
+- no secrets in outputs or traces.
+
+Known extraction errors:
+
+- Bid2 Delivery Date repeats the due date.
+- Bid2 MFG for Registration contains form checkbox text.
+- Several product and contact fields are null although the source states them.
+
+Q&A: 18 live questions across both bids (`artifacts/qa_examples.json`, raw run in
+`artifacts/qa_phase7_final/`) produced:
+
+- 11 correct cited answers;
+- 2 partially correct answers;
+- 5 correct abstentions, including both cross-bid probes;
+- 0 wrong answers.
+
+Every citation names the document plus a PDF page or an HTML element id, with the verbatim
+excerpt. On the 14-case gold set, answer correctness is 9/14 with 3/3 correct abstentions
+(`artifacts/eval/qa_v6.json`).
+
+Offline checks on the final code:
+
+- `pytest -m "not integration"`: 341 passed, 6 integration tests deselected;
+- `ruff check` and `ruff format --check`: clean;
+- `mypy src/rfp`: no issues.
+
+These tests use fake models and do not measure live accuracy.
+
+### Reproducible demo sequence
+
+No demo video has been recorded. With local Qdrant running (`docker compose up -d qdrant`),
+the assessment bids already indexed, and the LLM keys in `.env`:
+
+```powershell
+.\.venv\Scripts\python scripts\evaluate_retrieval.py verify
+.\.venv\Scripts\python -m rfp.cli search --local --bid-id 5809c088-8514-58c3-a0e5-4d9e72adab0b --query "new due date" --top-k 3
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts\demo
+.\.venv\Scripts\python scripts\verify_extraction.py --outputs artifacts\demo
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --question "How soon after award must the laptops be delivered?"
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --question "What is Jasmine Alzate's email address?"
+.\.venv\Scripts\python scripts\evaluate_retrieval.py run --modes hybrid,hybrid_rerank
+```
+
+`search` takes the Bid1 UUID. `extract-bid` and `ask` take the folder labels `Bid1` and `Bid2`
+and derive the same UUIDs. The last `ask` shows bid isolation: Jasmine Alzate is the Bid1 buyer,
+so Bid2 answers `Not found in documents`.
+
+### Limitations
+
+- Model output varies between runs.
+- Grounding is lexical, not entailment.
+- The extraction validator checks that the evidence contains the value, not that the value
+  answers the field.
+- Extraction `confidence` is a fixed value per status (0.86 / 0.74 / 0.35), not a calibrated
+  probability.
+- A source for a chunk that spans two pages names only its first page.
+- Scanned pages are OCR text without tables.
+- Retrieval labels and all accuracy verdicts are not yet human-approved.

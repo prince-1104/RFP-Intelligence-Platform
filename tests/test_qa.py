@@ -155,8 +155,8 @@ def test_supported_answer_has_valid_citation():
     model = FakeModel(
         reply(
             "answered",
-            "A three year manufacturer warranty is required.",
-            ("three year", "three year manufacturer warranty"),
+            "Vendors must provide a three year manufacturer warranty.",
+            ("three year", "Vendors must provide a three year manufacturer warranty"),
         )
     )
     response, trace = run(search, model)
@@ -164,7 +164,7 @@ def test_supported_answer_has_valid_citation():
     assert response.validation.passed and response.validation.attempts == 1
     citation = response.citations[0]
     assert (citation.document, citation.page, citation.html_element_id) == ("RFP.pdf", 7, None)
-    assert citation.excerpt == "three year manufacturer warranty"
+    assert citation.excerpt == "Vendors must provide a three year manufacturer warranty"
     assert response.confidence is None
     assert response.trace_id == trace.trace_id
     assert all(r.filters.bid_ids == [BID] for r in search.requests)
@@ -212,12 +212,12 @@ def test_invented_quote_or_unsupported_fact_is_rejected():
     bad_quote = reply("answered", "Warranty is required.", ("three year", "five year warranty"))
     response, _ = run(search, FakeModel(bad_quote))
     assert response.status == "not_found"
-    assert any("quote is not in the cited passage" in r for r in response.validation.reasons)
+    assert any("not a verbatim span" in r for r in response.validation.reasons)
 
     bad_fact = reply("answered", "A 5 year, 24/7 warranty.", ("three year", "three year"))
     response, _ = run(search, FakeModel(bad_fact))
     assert response.status == "not_found"
-    assert any("does not appear" in r for r in response.validation.reasons)
+    assert any("'24/7' is not in the linked quote" in r for r in response.validation.reasons)
 
 
 def test_wrong_bid_evidence_is_never_used():

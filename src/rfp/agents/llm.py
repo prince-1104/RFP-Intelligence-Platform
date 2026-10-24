@@ -206,13 +206,13 @@ def parse_json_object(text: str) -> dict:
     if payload.startswith("```"):
         payload = payload.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     try:
-        value = json.loads(payload)
+        value = json.loads(payload, strict=False)
     except json.JSONDecodeError as exc:
         start, end = payload.find("{"), payload.rfind("}")
         if start < 0 or end <= start:
             raise ModelError("llm_malformed", "Model response was not JSON") from exc
         try:
-            value = json.loads(payload[start : end + 1])
+            value = json.loads(payload[start : end + 1], strict=False)
         except json.JSONDecodeError as inner:
             raise ModelError("llm_malformed", "Model response was not JSON") from inner
     if not isinstance(value, dict):

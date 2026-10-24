@@ -1,5 +1,8 @@
 # RFP Intelligence Platform — Assignment Compliance Audit
 
+> Historical audit from before Phases 5–7. The current status of each requirement is in
+> `ASSIGNMENT_CHECKLIST.md`; live results are in `docs/live_validation.md`.
+
 Audit date: 2026-10-24. Source of truth: `Assignment-AI Engineer.pdf` (7 pages; copy at `Statements (AI Engineer-Emplay Inc)/Assignment-Data-Statements (AI Engineer-Emplay Inc)/Assignment-AI Engineer.pdf`). This audit inspected the repository only. It did not change application code, tests, evaluation labels, or generated review artifacts, and it did not run `index-bid`, pytest, or `scripts/evaluate_retrieval.py`.
 
 Statuses:

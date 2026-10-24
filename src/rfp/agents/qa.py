@@ -1,10 +1,11 @@
 """Citation-grounded question answering over one bid.
 
-Retrieval goes through `SearchService.search` with a single-bid filter. The model sees only the
-question and the retrieved passages. Its reply is accepted only after every citation is matched
-to a retrieved passage, every quote is found in that passage, and every date, number and
-identifier in the answer appears in the cited text. Otherwise one bounded correction is
-requested, and if that also fails the answer is an abstention.
+Retrieval goes through `SearchService.search` with a single-bid filter. The model returns claims,
+each linked to quotes from numbered passages. A reply is accepted only when every quote is a
+contiguous span of its passage (`quotes.py`), every claim is lexically supported by its own
+quotes (`grounding.py`), deadline answers respect explicit addendum revisions, and list questions
+address every named item found in the evidence (`checklist.py`). Otherwise a bounded correction
+is requested; if that also fails the answer is an abstention.
 """
 
 import json
@@ -16,10 +17,20 @@ from collections.abc import Callable
 from typing import Literal
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
+from rfp.agents.checklist import LIST_NOUNS, candidates, list_keyword, mentions
 from rfp.agents.errors import ModelError
+from rfp.agents.grounding import claim_problems, facts
 from rfp.agents.llm import LanguageModel, ModelRequest, ModelResponse, account, parse_json_object
+from rfp.agents.quotes import verbatim
 from rfp.agents.reconciliation import reconcile_due_date
 from rfp.agents.retrieval import query_hash, retrieve
 from rfp.agents.schemas import DraftField, EvidenceHit, ModelMetadata, TokenUsage, TraceEvent
@@ -29,6 +40,9 @@ from rfp.schemas.parsed import Contract, DocumentType
 from rfp.schemas.search import RetrievalMode, SearchRequest, SearchResponse
 
 NOT_FOUND = "Not found in documents"
+LIST_LIMITATION = (
+    "List built from retrieved passages only; the documents were not checked exhaustively."
+)
 QAStatus = Literal["answered", "not_found", "conflict"]
 DEADLINE_TERMS = re.compile(
     r"\b(deadline|due|submission|submit|closing|extend|extended|extension)\b", re.IGNORECASE
@@ -38,23 +52,25 @@ SUBMISSION_TERMS = re.compile(
     re.IGNORECASE,
 )
 ADDENDUM_NUMBER = re.compile(r"\baddend(?:um|a)\s*(?:no\.?\s*|#\s*)?(\d+)\b", re.IGNORECASE)
-FACT = re.compile(r"\b[A-Z0-9]*\d[A-Z0-9]*(?:[-/.:,][A-Z0-9]+)*\b", re.IGNORECASE)
 
 
 class QAConfig(Contract):
     top_k: int = Field(default=8, ge=1, le=20)
     addendum_top_k: int = Field(default=5, ge=1, le=20)
+    list_top_k: int = Field(default=8, ge=1, le=20)
     mode: RetrievalMode = RetrievalMode.hybrid_rerank
-    max_evidence: int = Field(default=10, ge=1, le=20)
+    max_evidence: int = Field(default=12, ge=1, le=24)
     max_corrections: int = Field(default=1, ge=0, le=2)
-    excerpt_chars: int = Field(default=1200, ge=100, le=4000)
+    excerpt_chars: int = Field(default=1500, ge=100, le=4000)
     max_question_chars: int = Field(default=1000, ge=10, le=4000)
 
 
 class QACitation(Contract):
+    citation_id: str
     evidence_id: str
     document: str = Field(min_length=1)
     page: int | None = Field(default=None, ge=1)
+    page_end: int | None = Field(default=None, ge=1)
     html_element_id: str | None = None
     document_type: DocumentType
     addendum_number: int | None = None
@@ -65,6 +81,25 @@ class QACitation(Contract):
         if (self.page is not None) == bool(self.html_element_id):
             raise ValueError("A citation needs a PDF page or an HTML locator, not both")
         return self
+
+
+class QAClaim(Contract):
+    text: str = Field(min_length=1)
+    citation_ids: list[str] = Field(min_length=1)
+
+
+class UnresolvedItem(Contract):
+    item: str
+    reason: str
+
+
+class Completeness(Contract):
+    list_question: bool
+    candidates: list[str] = Field(default_factory=list)
+    covered: list[str] = Field(default_factory=list)
+    unresolved: list[UnresolvedItem] = Field(default_factory=list)
+    omitted: list[str] = Field(default_factory=list)
+    exhaustive: Literal[False] = False
 
 
 class CitationCheck(Contract):
@@ -85,7 +120,10 @@ class QAResponse(Contract):
     question: str
     answer: str = Field(min_length=1)
     status: QAStatus
+    claims: list[QAClaim] = Field(default_factory=list)
     citations: list[QACitation]
+    completeness: Completeness | None = None
+    limitations: list[str] = Field(default_factory=list)
     # No calibrated method exists for answers, so no numeric score is reported.
     confidence: float | None = None
     validation: QAValidation
@@ -96,10 +134,14 @@ class QAResponse(Contract):
     @model_validator(mode="after")
     def consistent(self) -> "QAResponse":
         if self.status == "not_found":
-            if self.answer != NOT_FOUND or self.citations:
+            if self.answer != NOT_FOUND or self.citations or self.claims:
                 raise ValueError("not_found answers must be the abstention text with no citations")
-        elif not self.citations:
-            raise ValueError("answered and conflict responses require citations")
+        else:
+            if not self.citations or not self.claims:
+                raise ValueError("answered and conflict responses require cited claims")
+            known = {citation.citation_id for citation in self.citations}
+            if any(cid not in known for claim in self.claims for cid in claim.citation_ids):
+                raise ValueError("every claim must reference a listed citation")
         if self.status == "conflict" and len(_distinct(self.citations)) < 2:
             raise ValueError("conflict responses must cite at least two different sources")
         if self.status != "not_found" and not self.validation.passed:
@@ -120,15 +162,58 @@ class QATrace(Contract):
     model: ModelMetadata
 
 
-class ModelCitation(Contract):
+class ModelPart(BaseModel):
+    # Unknown keys in a model reply are ignored; only the fields below are ever used.
+    model_config = ConfigDict(extra="ignore")
+
+
+class ModelCitation(ModelPart):
     evidence_id: str
     quote: str
 
 
-class ModelReply(Contract):
-    status: QAStatus
-    answer: str
+class ModelClaim(ModelPart):
+    text: str
     citations: list[ModelCitation] = Field(default_factory=list)
+
+
+class ModelUnresolved(ModelPart):
+    item: str
+    reason: str = ""
+
+
+class ModelReply(ModelPart):
+    status: QAStatus
+    claims: list[ModelClaim] = Field(default_factory=list)
+    unresolved: list[ModelUnresolved] = Field(default_factory=list)
+    answer: str | None = None
+    citations: list[ModelCitation] = Field(default_factory=list)
+
+    @field_validator("unresolved", mode="before")
+    @classmethod
+    def plain_items(cls, value: object) -> object:
+        if isinstance(value, list):
+            return [{"item": item} if isinstance(item, str) else item for item in value]
+        return value
+
+    @model_validator(mode="after")
+    def single_claim_form(self) -> "ModelReply":
+        if not self.claims and self.answer and self.status != "not_found":
+            self.claims = [ModelClaim(text=self.answer, citations=self.citations)]
+        return self
+
+
+class Checked(Contract):
+    claims: list[QAClaim] = Field(default_factory=list)
+    citations: list[QACitation] = Field(default_factory=list)
+    checks: list[CitationCheck] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    # Reasons that apply to the whole reply, so dropping individual claims cannot fix them.
+    reply_reasons: list[str] = Field(default_factory=list)
+    dropped: list[str] = Field(default_factory=list)
+    discarded: list[str] = Field(default_factory=list)
+    completeness: Completeness | None = None
+    quotes: list[dict[str, str | int | None]] = Field(default_factory=list)
 
 
 def _distinct(citations: list[QACitation]) -> set[tuple[str, int | None, str | None]]:
@@ -139,7 +224,7 @@ QueryPlan = tuple[str, RetrievalMode, list[DocumentType], list[int], int]
 
 
 def plan_queries(question: str, config: QAConfig) -> list[QueryPlan]:
-    """The question itself first; an addendum-scoped lexical query when revisions can matter."""
+    """The question first; addendum-only and list-item lexical queries when they can matter."""
     plan: list[QueryPlan] = [(question, config.mode, [], [], config.top_k)]
     numbers = sorted({int(n) for n in ADDENDUM_NUMBER.findall(question)})
     if numbers:
@@ -156,57 +241,108 @@ def plan_queries(question: str, config: QAConfig) -> list[QueryPlan]:
         plan.append(
             (question, RetrievalMode.sparse, [DocumentType.addendum], [], config.addendum_top_k)
         )
+    if asks_due_date(question):
+        plan.append(("closing date due date", RetrievalMode.sparse, [DocumentType.bid_page], [], 4))
+    keyword = list_keyword(question)
+    if keyword is not None:
+        plural = next(word for word, single in LIST_NOUNS.items() if single == keyword)
+        plan.append((f"{keyword} {plural}", RetrievalMode.sparse, [], [], config.list_top_k))
     return plan
+
+
+def _where(hit: EvidenceHit) -> str:
+    source = hit.sources[0]
+    if source.page is None:
+        return f"html #{source.html_element_id}"
+    if source.page_end and source.page_end != source.page:
+        return f"pages {source.page}-{source.page_end}"
+    return f"page {source.page}"
 
 
 def _evidence_block(hits: list[EvidenceHit], limit: int) -> str:
     lines = []
     for hit in hits:
         source = hit.sources[0]
-        where = f"page {source.page}" if source.page else f"html #{source.html_element_id}"
         addendum = f" addendum {source.addendum_number}" if source.addendum_number else ""
-        text = " ".join(hit.text.split())
+        text = hit.text.strip()
         if len(text) > limit:
             text = text[: limit - 3] + "..."
         lines.append(
-            f"[{hit.evidence_id}] {source.file} {where} ({source.document_type.value}{addendum})"
+            f"[{hit.evidence_id}] {source.file} {_where(hit)} "
+            f"({source.document_type.value}{addendum})"
         )
         lines.append(text)
+        lines.append("")
     return "\n".join(lines)
 
 
 SYSTEM = (
     "You answer questions about one procurement bid using only the numbered passages. "
-    'Reply with JSON only: {"status": "answered" | "not_found" | "conflict", '
-    '"answer": "...", "citations": [{"evidence_id": "E1", "quote": "..."}]}. '
-    "Each quote must be copied exactly from the cited passage. Every date, number and "
-    "identifier in the answer must appear in a quote. Keep the answer to 1-3 sentences. "
-    f'If the passages do not answer the question, use status not_found and answer "{NOT_FOUND}" '
-    "with no citations. When an addendum explicitly revises an earlier value, answer with the "
-    "revised value and cite the addendum. When sources disagree and no passage states which one "
-    "controls, use status conflict, cite both sources and say what each says. Never invent "
-    "documents, pages, quotes or facts."
+    "Reply with JSON only:\n"
+    '{"status": "answered" | "not_found" | "conflict",\n'
+    ' "claims": [{"text": "one short factual sentence",\n'
+    '             "citations": [{"evidence_id": "E1", "quote": "exact text copied from E1"}]}],\n'
+    ' "unresolved": [{"item": "...", "reason": "..."}]}\n'
+    "Rules:\n"
+    "- Each quote must be copied character for character from one passage: a single contiguous "
+    "span, no ellipses, no rewording, no added punctuation.\n"
+    "- Each claim may only state what its own quotes say. Every date, time, time zone, number, "
+    "name, platform and qualifier (such as 'only' or 'unchanged') in a claim must appear in its "
+    "quotes. Write dates and times exactly as the quote writes them (keep 06/10/2024 as "
+    "06/10/2024). Do not convert times, infer time zones, or add details from elsewhere.\n"
+    "- Words such as must, shall or required may only appear in a claim when its quote says so.\n"
+    "- If a claim needs several facts, cite every quote that supports them. When a label and its "
+    "value are separated in a passage (for example table cells), cite them as two separate "
+    "quotes instead of joining them.\n"
+    f'- If the passages do not answer the question, use status "not_found" with no claims '
+    f'(the answer will be "{NOT_FOUND}").\n'
+    "- When an addendum explicitly revises an earlier value, state the revised value and cite "
+    "the addendum.\n"
+    "- When sources disagree and no passage says which controls, use status conflict and cite "
+    "each source.\n"
+    "- For list questions, address every item listed under 'Items to address': include it as a "
+    "cited claim, or put it in unresolved with the reason (for example, the passages do not say "
+    "whether it must be submitted). Do not claim a list is complete.\n"
+    "Never invent documents, pages, quotes or facts."
 )
 
 
-def answer_request(question: str, hits: list[EvidenceHit], config: QAConfig) -> ModelRequest:
+def _items_block(items: dict[str, list[str]]) -> str:
+    if not items:
+        return ""
+    listed = "\n".join(f"- {name} (seen in {', '.join(ids)})" for name, ids in items.items())
+    return f"\n\nItems to address (named in the passages):\n{listed}"
+
+
+def answer_request(
+    question: str, hits: list[EvidenceHit], items: dict[str, list[str]], config: QAConfig
+) -> ModelRequest:
     return ModelRequest(
         purpose="qa:answer",
         system=SYSTEM,
-        user=f"Question: {question}\n\nPassages:\n{_evidence_block(hits, config.excerpt_chars)}",
+        user=(
+            f"Question: {question}{_items_block(items)}\n\n"
+            f"Passages:\n{_evidence_block(hits, config.excerpt_chars)}"
+        ),
     )
 
 
 def correction_request(
-    question: str, hits: list[EvidenceHit], reasons: list[str], config: QAConfig
+    question: str,
+    hits: list[EvidenceHit],
+    items: dict[str, list[str]],
+    reasons: list[str],
+    config: QAConfig,
 ) -> ModelRequest:
     listed = "\n".join(f"- {reason}" for reason in reasons)
     return ModelRequest(
         purpose="qa:correct",
         system=SYSTEM,
         user=(
-            f"Question: {question}\n\nYour previous reply was rejected:\n{listed}\n"
-            "Fix the citations or quotes, or answer not_found.\n\n"
+            f"Question: {question}{_items_block(items)}\n\n"
+            f"Your previous reply was rejected:\n{listed}\n"
+            "Copy quotes exactly from the passage text below, drop any detail your quotes do not "
+            "state, address every listed item, or answer not_found.\n\n"
             f"Passages:\n{_evidence_block(hits, config.excerpt_chars)}"
         ),
     )
@@ -216,85 +352,155 @@ def parse_reply(text: str) -> ModelReply:
     payload = parse_json_object(text)
     try:
         return ModelReply.model_validate(payload)
-    except ValueError as exc:
+    except (ValueError, ValidationError) as exc:
         raise ModelError("llm_malformed", "Model reply did not match the answer schema") from exc
-
-
-def _facts(answer: str) -> list[str]:
-    found = list(date_phrases(answer))
-    for match in FACT.finditer(answer):
-        token = match.group(0).strip(".,:")
-        if sum(ch.isdigit() for ch in token) >= 1 and len(token) >= 2:
-            found.append(token)
-    return found
-
-
-def check_reply(
-    question: str, reply: ModelReply, hits: list[EvidenceHit]
-) -> tuple[list[QACitation], list[CitationCheck], list[str]]:
-    """Deterministic grounding. Returns rendered citations, per-citation checks and reasons."""
-    if reply.status == "not_found":
-        return [], [], []
-    by_id = {hit.evidence_id: hit for hit in hits}
-    citations: list[QACitation] = []
-    checks: list[CitationCheck] = []
-    reasons: list[str] = []
-    if not reply.answer.strip() or reply.answer.strip() == NOT_FOUND:
-        reasons.append("A factual status needs a factual answer")
-    if not reply.citations:
-        reasons.append("A factual answer has no citation")
-    cited: list[EvidenceHit] = []
-    for item in reply.citations:
-        hit = by_id.get(item.evidence_id)
-        if hit is None:
-            checks.append(
-                CitationCheck(evidence_id=item.evidence_id, valid=False, reason="fabricated")
-            )
-            reasons.append(f"Citation {item.evidence_id} is not a retrieved passage")
-            continue
-        source = hit.sources[0]
-        quote = item.quote.strip().removesuffix("...").strip()
-        problem = locator_problem(source)
-        if problem is None and source.bid_id != hit.bid_id:
-            problem = "citation belongs to another bid"
-        if problem is None and not quote:
-            problem = "empty quote"
-        if problem is None and not contained(quote, hit.text):
-            problem = "quote is not in the cited passage"
-        checks.append(
-            CitationCheck(evidence_id=item.evidence_id, valid=problem is None, reason=problem)
-        )
-        if problem:
-            reasons.append(f"Citation {item.evidence_id}: {problem}")
-            continue
-        cited.append(hit)
-        citations.append(
-            QACitation(
-                evidence_id=hit.evidence_id,
-                document=source.file,
-                page=source.page,
-                html_element_id=source.html_element_id,
-                document_type=source.document_type,
-                addendum_number=source.addendum_number,
-                excerpt=" ".join(quote.split()),
-            )
-        )
-    support = "\n".join(hit.text for hit in cited)
-    for fact in _facts(reply.answer):
-        if cited and not contained(fact, support):
-            reasons.append(f"'{fact}' does not appear in the cited passages")
-    if reply.status == "conflict" and len(_distinct(citations)) < 2:
-        reasons.append("A conflict needs at least two different cited sources")
-    if reply.status == "answered" and asks_due_date(question) and date_phrases(reply.answer):
-        draft = DraftField(name="Due Date", value=reply.answer, notes="qa")
-        decision = reconcile_due_date(draft, hits)
-        if decision.change is not None and decision.reject_reason:
-            reasons.append(f"Addendum check: {decision.reject_reason}")
-    return citations, checks, reasons
 
 
 def asks_due_date(question: str) -> bool:
     return bool(DEADLINE_TERMS.search(question) and SUBMISSION_TERMS.search(question))
+
+
+def _completeness(
+    question: str,
+    claims: list[QAClaim],
+    unresolved: list[UnresolvedItem],
+    items: dict[str, list[str]],
+) -> Completeness | None:
+    if list_keyword(question) is None:
+        return None
+    text = " ".join(claim.text for claim in claims)
+    covered = [name for name in items if mentions(name, text)]
+    marked = [name for name in items if any(mentions(name, u.item) for u in unresolved)]
+    omitted = [name for name in items if name not in covered and name not in marked]
+    return Completeness(
+        list_question=True,
+        candidates=list(items),
+        covered=covered,
+        unresolved=unresolved,
+        omitted=omitted,
+    )
+
+
+def check_reply(
+    question: str,
+    reply: ModelReply,
+    hits: list[EvidenceHit],
+    items: dict[str, list[str]] | None = None,
+) -> Checked:
+    """Deterministic quote, claim, addendum and checklist checks."""
+    items = items or {}
+    if reply.status == "not_found":
+        return Checked()
+    by_id = {hit.evidence_id: hit for hit in hits}
+    result = Checked()
+    keys: dict[tuple[str, str], str] = {}
+    if not reply.claims:
+        result.reply_reasons.append("A factual status needs at least one claim")
+    for claim in reply.claims:
+        claim_text = " ".join(claim.text.split())
+        if not claim_text or claim_text == NOT_FOUND:
+            result.reply_reasons.append("A factual claim is empty")
+            continue
+        if any(existing.text == claim_text for existing in result.claims):
+            continue
+        claim_reasons: list[str] = []
+        unquoted: list[str] = []
+        cited: list[tuple[EvidenceHit, str]] = []
+        if not claim.citations:
+            claim_reasons.append(f"Claim '{claim_text[:80]}' has no citation")
+        for item in claim.citations:
+            hit = by_id.get(item.evidence_id)
+            if hit is None:
+                result.checks.append(
+                    CitationCheck(evidence_id=item.evidence_id, valid=False, reason="fabricated")
+                )
+                claim_reasons.append(f"Citation {item.evidence_id} is not a retrieved passage")
+                continue
+            source = hit.sources[0]
+            problem = locator_problem(source)
+            if problem is None and source.bid_id != hit.bid_id:
+                problem = "citation belongs to another bid"
+            excerpt = None if problem else verbatim(item.quote, hit.text)
+            if problem is None and excerpt is None:
+                problem = "quote is not a verbatim span of the cited passage"
+                present = [fact for fact in facts(item.quote) if contained(fact, hit.text)]
+                if present:
+                    listed = ", ".join(f"'{fact}'" for fact in dict.fromkeys(present))
+                    problem += f"; {item.evidence_id} does contain {listed} - quote those spans"
+            result.checks.append(
+                CitationCheck(evidence_id=item.evidence_id, valid=problem is None, reason=problem)
+            )
+            result.quotes.append(
+                {
+                    "evidence_id": item.evidence_id,
+                    "quote": item.quote[:200],
+                    "valid": int(not problem),
+                }
+            )
+            if excerpt is None and problem and problem.startswith("quote is not a verbatim"):
+                unquoted.append(f"Citation {item.evidence_id}: {problem}")
+                continue
+            if problem or excerpt is None:
+                claim_reasons.append(f"Citation {item.evidence_id}: {problem}")
+                continue
+            cited.append((hit, excerpt))
+        if unquoted and not cited:
+            claim_reasons.extend(unquoted)
+        elif unquoted:
+            result.reasons.extend(unquoted)
+            result.discarded.extend(unquoted)
+        if cited and not claim_reasons:
+            strict = any(mentions(name, claim_text) for name in items)
+            for problem in claim_problems(
+                claim_text,
+                [excerpt for _, excerpt in cited],
+                question,
+                [hit.sources[0].file for hit, _ in cited],
+                strict_requirements=strict,
+                required_items=list(items),
+            ):
+                claim_reasons.append(f"Claim '{claim_text[:80]}': {problem}")
+        if claim_reasons:
+            result.reasons.extend(claim_reasons)
+            result.dropped.append(claim_text)
+            continue
+        ids = []
+        for hit, excerpt in cited:
+            key = (hit.evidence_id, excerpt)
+            if key not in keys:
+                keys[key] = f"C{len(keys) + 1}"
+                source = hit.sources[0]
+                result.citations.append(
+                    QACitation(
+                        citation_id=keys[key],
+                        evidence_id=hit.evidence_id,
+                        document=source.file,
+                        page=source.page,
+                        page_end=source.page_end,
+                        html_element_id=source.html_element_id,
+                        document_type=source.document_type,
+                        addendum_number=source.addendum_number,
+                        excerpt=excerpt,
+                    )
+                )
+            ids.append(keys[key])
+        result.claims.append(QAClaim(text=claim_text, citation_ids=list(dict.fromkeys(ids))))
+    if reply.status == "conflict" and len(_distinct(result.citations)) < 2:
+        result.reply_reasons.append("A conflict needs at least two different cited sources")
+    answer = " ".join(claim.text for claim in result.claims)
+    if reply.status == "answered" and asks_due_date(question) and date_phrases(answer):
+        draft = DraftField(name="Due Date", value=answer, notes="qa")
+        decision = reconcile_due_date(draft, hits)
+        if decision.change is not None and decision.reject_reason:
+            result.reply_reasons.append(f"Addendum check: {decision.reject_reason}")
+    result.reasons = result.reply_reasons + result.reasons
+    unresolved = [
+        UnresolvedItem(item=" ".join(u.item.split()), reason=" ".join(u.reason.split()))
+        for u in reply.unresolved
+        if u.item.strip()
+    ]
+    result.completeness = _completeness(question, result.claims, unresolved, items)
+    return result
 
 
 def _event(agent: str, task: str, started: str, stamp: float, **payload: object) -> TraceEvent:
@@ -317,6 +523,7 @@ def _refs(hits: list[EvidenceHit]) -> list[dict[str, str | int | None]]:
             "evidence_id": hit.evidence_id,
             "file": hit.sources[0].file,
             "page": hit.sources[0].page,
+            "page_end": hit.sources[0].page_end,
             "html_element_id": hit.sources[0].html_element_id,
         }
         for hit in hits
@@ -393,20 +600,37 @@ def ask(
     provider = str(getattr(model, "provider", "unknown"))
     model_name = str(getattr(model, "model", "unknown"))
     hits = gather_evidence(text, bid_uuid, search, config, events)
+    items = candidates(text, hits)
+    list_question = list_keyword(text) is not None
 
     def finish(
-        status: QAStatus,
-        answer: str,
-        citations: list[QACitation],
-        validation: QAValidation,
+        status: QAStatus, checked: Checked | None, validation: QAValidation
     ) -> tuple[QAResponse, QATrace]:
         metadata = ModelMetadata(provider=provider, model=model_name)
+        answered = status != "not_found" and checked is not None
+        limitations = [LIST_LIMITATION] if list_question and answered else []
+        if answered and checked and checked.completeness and checked.completeness.omitted:
+            omitted = ", ".join(checked.completeness.omitted)
+            limitations.append(f"Named in retrieved evidence but not addressed: {omitted}.")
+        if answered and checked and checked.dropped:
+            limitations.append(
+                f"{len(checked.dropped)} claim(s) were removed because their quotes did not "
+                "support them; see validation.reasons."
+            )
+        if answered and checked and checked.discarded:
+            limitations.append(
+                f"{len(checked.discarded)} non-verbatim quote(s) were discarded; the remaining "
+                "citations support each claim."
+            )
         response = QAResponse(
             bid_id=bid_label,
             question=text,
-            answer=answer,
+            answer=" ".join(c.text for c in checked.claims) if answered and checked else NOT_FOUND,
             status=status,
-            citations=citations,
+            claims=checked.claims if answered and checked else [],
+            citations=checked.citations if answered and checked else [],
+            completeness=checked.completeness if answered and checked else None,
+            limitations=limitations,
             validation=validation,
             trace_id=trace_id,
             model=metadata,
@@ -431,31 +655,29 @@ def ask(
     if not hits:
         return finish(
             "not_found",
-            NOT_FOUND,
-            [],
+            None,
             QAValidation(passed=True, attempts=0, reasons=["No evidence retrieved for this bid"]),
         )
 
-    request = answer_request(text, hits, config)
-    reasons: list[str] = []
-    checks: list[CitationCheck] = []
-    citations: list[QACitation] = []
+    request = answer_request(text, hits, items, config)
+    checked = Checked()
     attempts = 0
     while attempts <= config.max_corrections:
         attempts += 1
+        last = attempts > config.max_corrections
         started, stamp = clock(), time.perf_counter()
         completion: ModelResponse = model.complete(request)
         account(tokens, completion)
         provider, model_name = completion.provider, completion.model
+        reply: ModelReply | None
         try:
             reply = parse_reply(completion.text)
+            checked = check_reply(text, reply, hits, items)
         except ModelError as exc:
             reply = None
-            reasons = [f"{exc.code}: {exc.message}"]
-            checks = []
-        if reply is not None:
-            citations, checks, reasons = check_reply(text, reply, hits)
-        valid_ids = {check.evidence_id for check in checks if check.valid}
+            checked = Checked(reasons=[f"{exc.code}: {exc.message}"])
+        omitted = checked.completeness.omitted if checked.completeness else []
+        retry_reasons = checked.reasons + [f"Item not addressed: {name}" for name in omitted]
         events.append(
             _event(
                 "qa",
@@ -468,34 +690,51 @@ def ask(
                 provider=completion.provider,
                 model=completion.model,
                 decision=None if reply is None else reply.status,
-                reasons=reasons,
-                evidence=_refs([hit for hit in hits if hit.evidence_id in valid_ids]),
+                reasons=retry_reasons,
+                evidence=checked.quotes,
             )
         )
-        if reply is not None and not reasons:
+        if reply is not None and not checked.reasons and (not omitted or last):
             if reply.status == "not_found":
                 return finish(
                     "not_found",
-                    NOT_FOUND,
-                    [],
+                    None,
                     QAValidation(passed=True, attempts=attempts, reasons=["Model abstained"]),
                 )
             return finish(
                 reply.status,
-                " ".join(reply.answer.split()),
-                citations,
-                QAValidation(passed=True, attempts=attempts, checks=checks),
+                checked,
+                QAValidation(passed=True, attempts=attempts, checks=checked.checks),
             )
-        request = correction_request(text, hits, reasons, config)
+        salvage = (
+            last
+            and reply is not None
+            and reply.status == "answered"
+            and checked.claims
+            and (checked.dropped or checked.discarded)
+            and not checked.reply_reasons
+        )
+        if salvage:
+            return finish(
+                "answered",
+                checked,
+                QAValidation(
+                    passed=True,
+                    attempts=attempts,
+                    checks=checked.checks,
+                    reasons=[f"Dropped unsupported claim: {claim}" for claim in checked.dropped]
+                    + [f"Discarded non-verbatim quote: {item}" for item in checked.discarded],
+                ),
+            )
+        request = correction_request(text, hits, items, retry_reasons, config)
     return finish(
         "not_found",
-        NOT_FOUND,
-        [],
+        None,
         QAValidation(
             passed=False,
             attempts=attempts,
-            checks=checks,
-            reasons=["Abstained after failed citation validation", *reasons],
+            checks=checked.checks,
+            reasons=["Abstained after failed citation validation", *checked.reasons],
         ),
     )
 

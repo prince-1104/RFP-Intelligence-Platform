@@ -117,6 +117,7 @@ class SourceRef(Contract):
     document_type: DocumentType
     addendum_number: int | None = None
     page: int | None = Field(default=None, ge=1)
+    page_end: int | None = Field(default=None, ge=1)
     html_element_id: str | None = None
     bid_id: UUID
 

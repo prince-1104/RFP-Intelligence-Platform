@@ -25,6 +25,15 @@ Search calls share one client lock. Model calls for separate groups run in paral
 After the initial attempt plus two retries it stays null, with the rejection in `notes`.
 Other fields are kept.
 
+Each field's query steps are merged round-robin by rank, so secondary queries (addendum-only,
+specs-only, label-style sparse) reach the first eight passages shown to the model. The prompt
+names the exact JSON keys; reply keys that differ only in case or separators (`term_of_bid`)
+are still matched.
+
+The output `confidence` is required by the assignment schema. It is a fixed value per
+validation status (accepted 0.86, not found 0.74, unresolved 0.35), not a calibrated
+probability, and should be read as a status code.
+
 `python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts/extraction` reads loopback
 Qdrant only. A remote host or a URL with credentials is refused. Test mode (`--llm-mode test`)
 returns "Not found in documents" for every field unless `--fixture` supplies scripted responses.
@@ -34,7 +43,9 @@ That mode is for tests. It is not a live extraction.
 
 `ask` answers one question about one bid. Retrieval uses the same bid-scoped adapter, plus an
 addendum-only sparse query for deadline or addendum questions. The model must cite passage ids and
-copy quotes verbatim. `check_reply` rejects unknown ids, quotes not in the passage, answer facts
-missing from cited text, single-source conflicts, and deadline answers that contradict an explicit
-addendum revision. One correction is allowed, then the answer is `Not found in documents`. No
-numeric confidence is reported.
+return claims linked to verbatim quotes. `check_reply` rejects unknown ids, quotes that are not a
+contiguous span of the passage (`quotes.py`), claims whose details are missing from their own
+quotes (`grounding.py`), single-source conflicts, deadline answers that contradict an explicit
+addendum revision, and list answers that skip items named in the evidence (`checklist.py`). One
+correction is allowed; then unsupported claims are dropped, or the answer is
+`Not found in documents`. Q&A answers report no numeric confidence (`confidence` is `null`).

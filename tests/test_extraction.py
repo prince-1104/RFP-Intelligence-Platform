@@ -9,9 +9,9 @@ import pytest
 
 from rfp import cli
 from rfp.agents.errors import ModelError
-from rfp.agents.extractors import CATALOG
+from rfp.agents.extractors import CATALOG, extraction_request, parse_drafts
 from rfp.agents.llm import ModelRequest, ModelResponse
-from rfp.agents.orchestrator import run_extraction
+from rfp.agents.orchestrator import _interleave, run_extraction
 from rfp.agents.reconciliation import reconcile_due_date, reconcile_field
 from rfp.agents.retrieval import hits_from_response, retrieve
 from rfp.agents.schemas import (
@@ -277,6 +277,78 @@ def test_cross_bid_source_is_rejected():
     )
     assert not result.passed
     assert any("Cross-bid" in reason for reason in result.reasons)
+
+
+def test_original_due_date_is_the_labelled_deadline_not_the_first_date():
+    base = _hit(
+        "base",
+        "rfp.pdf",
+        "rfp.pdf",
+        DocumentType.rfp,
+        "First Advertisement Date/Issue Date 26-MAY-2024 08:00:00 Pre-Proposal Meeting "
+        "10-JUN-2024 14:00:00 Solicitation Due 27-JUN-2024 14:00:00",
+        page=2,
+    )
+    changed = _hit(
+        "add",
+        "addendum-2.pdf",
+        "addendum-2.pdf",
+        DocumentType.addendum,
+        "The new due date for this RFP will be July 9, 2024 at 2:00 PM CST",
+        page=1,
+        addendum=2,
+    )
+    draft = DraftField(name="Due Date", value="July 9, 2024 at 2:00 PM CST", evidence_ids=["add"])
+    result = reconcile_due_date(draft, [base, changed])
+    assert result.change is not None
+    assert result.change.original_value == "27-JUN-2024 14:00:00"
+    unlabelled = base.model_copy(update={"text": "Issue Date 26-MAY-2024 08:00:00"})
+    result = reconcile_due_date(draft, [unlabelled, changed])
+    assert result.change is not None and result.change.original_value is None
+
+
+def test_month_year_delivery_date_is_a_date_when_quoted():
+    hit = _hit(
+        "d1",
+        "addendum-1.pdf",
+        "addendum-1.pdf",
+        DocumentType.addendum,
+        "Delivery requests are anticipated to begin in September of 2024.",
+        addendum=1,
+    )
+    draft = DraftField(name="Delivery Date", value="September of 2024", evidence_ids=["d1"])
+    assert validate_field(draft, [hit]).status == "accepted"
+    vague = draft.model_copy(update={"value": "after award"})
+    assert "Date field is not a date stated in the evidence" in validate_field(vague, [hit]).reasons
+
+
+def test_reply_keys_are_matched_loosely_and_prompt_names_exact_keys():
+    names = ["Term of Bid", "contact_info", "Title"]
+    reply = json.dumps(
+        {
+            "fields": {
+                "term_of_bid": {"value": "Initial Term: 3", "evidence_ids": ["t1"], "notes": ""},
+                "Contact Info": {"value": None, "evidence_ids": [], "notes": "Not found"},
+                "Issuing Organization": {"value": "Dallas ISD", "evidence_ids": ["x"]},
+            }
+        }
+    )
+    drafts = parse_drafts(names, reply)
+    assert drafts["Term of Bid"].value == "Initial Term: 3"
+    assert drafts["contact_info"].notes == "Not found"
+    assert drafts["Title"].notes == "Model omitted this field"
+    request = extraction_request("identity", {}, names, 0, {}, ExtractionConfig())
+    assert json.dumps(names) in request.user
+
+
+def test_every_query_step_reaches_the_first_evidence_slots():
+    first = [
+        _hit(f"a{i}", "rfp.pdf", "rfp.pdf", DocumentType.rfp, f"primary {i}") for i in range(9)
+    ]
+    second = [_hit("b0", "add.pdf", "add.pdf", DocumentType.addendum, "secondary", addendum=1)]
+    merged = _interleave([first, second])
+    assert [hit.evidence_id for hit in merged[:3]] == ["a0", "b0", "a1"]
+    assert len(merged) == 10
 
 
 def test_addendum_due_date_requires_text_and_ignores_number_alone():

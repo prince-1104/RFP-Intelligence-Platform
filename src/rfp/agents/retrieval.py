@@ -36,6 +36,7 @@ def _source(citation: Citation) -> SourceRef | None:
         document_type=citation.document_type,
         addendum_number=citation.addendum_number,
         page=page,
+        page_end=(citation.page_end or page) if pdf else None,
         html_element_id=html_id,
         bid_id=citation.bid_id,
     )

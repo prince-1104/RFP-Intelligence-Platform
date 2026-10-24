@@ -1,0 +1,20 @@
+[
+  {"bid_id": "Bid1", "question": "What is the final proposal due date after all addenda?", "purpose": "deadline (addendum-revised)"},
+  {"bid_id": "Bid1", "question": "Who is the buyer for this RFP and what is their email address?", "purpose": "contact"},
+  {"bid_id": "Bid1", "question": "What types of devices does this RFP cover?", "purpose": "scope"},
+  {"bid_id": "Bid1", "question": "What wireless and Bluetooth standards must the devices support?", "purpose": "technical"},
+  {"bid_id": "Bid1", "question": "What must resellers submit regarding factory-authorized repair and maintenance?", "purpose": "eligibility"},
+  {"bid_id": "Bid1", "question": "What is the contract term and how many renewals are allowed?", "purpose": "commercial"},
+  {"bid_id": "Bid1", "question": "According to Addendum 1, when does Dallas ISD anticipate requesting quotes from awarded vendors?", "purpose": "addendum change"},
+  {"bid_id": "Bid1", "question": "What liquidated damages per day apply for late delivery?", "purpose": "absent answer"},
+  {"bid_id": "Bid1", "question": "What is PORFP number E20P4600040 for?", "purpose": "bid isolation (Bid2 identifier asked of Bid1)"},
+  {"bid_id": "Bid2", "question": "When are proposals due, including the time?", "purpose": "deadline"},
+  {"bid_id": "Bid2", "question": "Who is the procurement officer and how can they be contacted?", "purpose": "contact"},
+  {"bid_id": "Bid2", "question": "Which laptop model and how many units are being purchased?", "purpose": "scope"},
+  {"bid_id": "Bid2", "question": "What processor is specified for the laptops?", "purpose": "technical"},
+  {"bid_id": "Bid2", "question": "Who is eligible to submit a proposal?", "purpose": "eligibility"},
+  {"bid_id": "Bid2", "question": "How soon after award must the laptops be delivered?", "purpose": "commercial"},
+  {"bid_id": "Bid2", "question": "Were any addenda issued that changed the due date?", "purpose": "addendum change (none expected)"},
+  {"bid_id": "Bid2", "question": "What liquidated damages apply for late delivery?", "purpose": "absent answer"},
+  {"bid_id": "Bid2", "question": "What is Jasmine Alzate's email address?", "purpose": "bid isolation (Bid1 contact asked of Bid2)"}
+]
