@@ -779,3 +779,73 @@ Offline: 365 passed with `pytest -m "not integration"`; ruff and mypy are clean.
 assistant review and needs human confirmation. Two Bid1 fields are worse than in Phase 7 (Term
 of Bid, MFG for Registration). Bid2's affidavits are still missed in the final run. Details are
 in `docs/live_validation.md`.
+
+## Phase 9: evidence-based review and final corrections
+
+`docs/final_accuracy_review.md` gives, for every field of both bids:
+- the extracted and expected values;
+- the source page and passage;
+- whether the citation is valid;
+- a verdict and the reason.
+
+Verdicts were re-checked against the parsed source text by the assistant. They are labelled as
+model-assisted or automated, and no human review has taken place.
+
+General fixes, with regression tests in `tests/test_final_accuracy.py`:
+
+- **Bid Number rule.** A listing "Reference Number" is never the Bid Number. If the evidence
+  labels a solicitation, bid, RFP, RFQ, IFB or ITB number, the value must be one of those.
+  Otherwise it must be an identifier that appears in both the bid listing page and the documents.
+  Other labelled identifiers are kept as a cited alias note. For Bid2, BPM044557 is the Bid Number
+  and the documents' "Fixed Price #E20P4600040" is recorded as an alias.
+- **Restatements.** Term, Delivery, Installation, Product, Product Specification and Summary may
+  restate the source. Every number must appear in the cited text, and at least 80% of the words
+  must too. A summary that copies 25 or more words from one passage is rejected.
+- **Omissions.** Term must keep the renewal options that the source mentions next to it. Product
+  must keep a quantity when the cited table has a Qty column. A value rejected only for an
+  omission is kept with a "Possibly incomplete" note if the retries do not improve it.
+- **Wrong-kind values.** The following are rejected:
+  - document-type headings as Title;
+  - checkbox instructions as required documents;
+  - subcontractor payment clauses as Payment Terms.
+  A reseller qualification is accepted as MFG when no manufacturer is named.
+- **Grounding.**
+  - Email addresses split by PDF line breaks are joined for matching. The source text and its
+    locator are unchanged.
+  - Verbatim citations to a passage in the same prompt are repaired.
+  - Placeholder values ("N/A", "not specified") are dropped.
+- **Stability.**
+  - Retry prompts and traces show the rejected value.
+  - OpenAI extraction and critic calls use JSON mode and a fixed seed.
+  - Retries stay bounded at 2.
+
+| Bid | Accepted / not found / unresolved | Model-assisted correct / partial / wrong / missed / null ok |
+|---|---|---|
+| Bid1 Phase 8 → Phase 9 | 16/4/0 → 16/3/1 | 7/8/1/1/3 → 9/7/0/0/4 |
+| Bid2 Phase 8 → Phase 9 | 15/5/0 → 16/4/0 | 10/5/0/1/4 → 11/5/0/0/4 |
+
+The Phase 8 counts are re-scored with the Phase 9 criteria, so they differ slightly from the
+table above. Bid1's unresolved field is Payment Terms: the documents state no buyer payment
+terms, and the only candidate (a subcontractor clause) is rejected.
+
+Output is in `artifacts/extraction_v4/` and a same-code repeat is in
+`artifacts/extraction_v4_repeat/`. The automated check is `artifacts/eval/extraction_v4_check.json`.
+
+Variation: the first-round searches were identical in both runs (31 of 31 per bid), so the
+differences come from model generation. The final run and its repeat gave identical values for
+15 of 20 Bid1 fields and 19 of 20 Bid2 fields. The two earlier Phase 9 runs agreed on 16 of 20
+fields for each bid. Across the five mixed-code Phase 8 runs, only 7 fields matched.
+
+Q&A and retrieval were spot-checked, and no label errors were found. They were not rerun.
+
+Offline checks: 388 passed (6 integration tests skipped). `ruff check`, `ruff format --check`
+and `mypy src/rfp` are clean, and retrieval `verify` is OK. A secret scan of all 331 artifact and
+doc files found no leaks.
+
+Remaining partial fields include:
+- Bid1 Documents, MFG and Product Specification;
+- Bid2 Product (flagged incomplete) and Product Specification;
+- both summaries.
+
+The full list and root causes are in the review. These fields, every verdict and the retrieval
+labels still need human review.

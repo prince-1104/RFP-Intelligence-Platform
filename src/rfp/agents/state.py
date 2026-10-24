@@ -23,6 +23,9 @@ class FieldState:
     retry_count: int = 0
     search_errors: list[str] = field(default_factory=list)
     status: FieldStatus = "draft"
+    fallback: tuple[DraftField, list[EvidenceHit], list[str]] | None = None
+    """A supported value rejected only as incomplete, kept in case no retry does better."""
+    incomplete: list[str] = field(default_factory=list)
 
 
 @dataclass

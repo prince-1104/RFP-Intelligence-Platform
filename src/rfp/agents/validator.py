@@ -8,9 +8,12 @@ from rfp.agents.semantics import (
     MONTH_YEAR_RE,
     RELATIVE_RE,
     STOP,
+    bid_number_problems,
+    join_split_emails,
     normalize,
     semantic_problems,
 )
+from rfp.schemas.parsed import DocumentType
 
 DATE_FIELDS = {"Due Date", "Pre Bid Meeting", "Delivery Date"}
 RELATIVE_DATE_FIELDS = {"Delivery Date"}
@@ -33,42 +36,65 @@ def date_phrases(text: str) -> list[str]:
 
 
 def _support(value: str, texts: list[str]) -> bool:
-    blob = "\n".join(texts)
+    blob = join_split_emails("\n".join(texts))
     if contained(value, blob):
         return True
     tokens = [
-        token
+        token.rstrip(".,;:")
         for token in re.findall(r"[a-z0-9][a-z0-9./+-]{2,}", normalize(value))
-        if token not in STOP
+        if token.rstrip(".,;:") not in STOP
     ]
     if not tokens:
         return False
     haystack = normalize(blob)
-    # PDF text can break dotted tokens such as email domains ("md .us").
-    squashed = re.sub(r"\s+", "", haystack)
-    return all(
-        token in haystack or ("." in token.strip(".") and token in squashed) for token in tokens
-    )
+    return all(token in haystack for token in tokens)
 
 
-SUMMARY_COVERAGE = 0.8
+PARAPHRASE_COVERAGE = 0.8
+PARAPHRASE_FIELDS = frozenset(
+    {
+        "Term of Bid",
+        "Bid Submission Type",
+        "Installation",
+        "Bid Bond Requirement",
+        "Payment Terms",
+        "Any Additional Documentation Required",
+        "MFG for Registration",
+        "Contract or Cooperative to use",
+        "Product",
+        "Bid Summary",
+    }
+)
+NUMBER_RE = re.compile(r"\d+(?:[.,/:-]\d+)*")
+PARAPHRASE_GLUE = frozenset(
+    {"each", "total", "plus", "also", "including", "option", "options", "optional", "then"}
+)
+"""Connective words a restatement adds; they carry no fact that the source must state."""
 
 
-def _summary_support(value: str, texts: list[str]) -> bool:
-    """Most content words of an abstractive summary must come from the cited text.
+def _paraphrase_support(value: str, texts: list[str]) -> bool:
+    """A faithful restatement: every number is in the cited text, and most content words
+    (compared by their first six letters, so "renewals" matches "renewal") are too.
 
-    Numbers are checked separately and must all appear in the cited evidence.
+    Used only for descriptive fields. Identifiers, dates, names, contacts, titles and
+    specifications must still be copied.
     """
     haystack = normalize("\n".join(texts))
+    for number in NUMBER_RE.findall(value):
+        if re.search(rf"(?<![\d.]){re.escape(number)}(?!\d)", haystack) is None:
+            return False
     tokens = [
         token.strip(".,;:()")
         for token in re.findall(r"[a-z][a-z'-]{3,}", normalize(value))
-        if token not in STOP
+        if token not in STOP and token.strip(".,;:()") not in PARAPHRASE_GLUE
     ]
     if not tokens:
         return False
     present = sum(1 for token in tokens if token[:6] in haystack)
-    return present / len(tokens) >= SUMMARY_COVERAGE
+    return present / len(tokens) >= PARAPHRASE_COVERAGE
+
+
+COPIED_SUMMARY_WORDS = 25
 
 
 def locator_problem(source: SourceRef) -> str | None:
@@ -142,7 +168,7 @@ def validate_field(
     texts = [hit.text for hit in chosen]
     supported = bool(chosen) and (
         _support(draft.value, texts)
-        or (draft.name == "Bid Summary" and _summary_support(draft.value, texts))
+        or (draft.name in PARAPHRASE_FIELDS and _paraphrase_support(draft.value, texts))
     )
     if chosen and not supported:
         reasons.append("Cited evidence does not support the value")
@@ -160,6 +186,20 @@ def validate_field(
         reasons.append("Date field is not a date stated in the evidence")
     if supported:
         reasons.extend(semantic_problems(draft.name, draft.value, texts))
+    if supported and draft.name == "Bid Number":
+        listing = [
+            hit.text
+            for hit in evidence
+            if any(source.document_type == DocumentType.bid_page for source in hit.sources)
+        ]
+        reasons.extend(bid_number_problems(draft.value, [hit.text for hit in evidence], listing))
+    if (
+        supported
+        and draft.name == "Bid Summary"
+        and len(draft.value.split()) > COPIED_SUMMARY_WORDS
+        and any(contained(draft.value, text) for text in texts)
+    ):
+        reasons.append("Bid Summary copies one passage; summarize the bid in your own sentences")
     if (
         draft.name in IDENTIFIER_FIELDS
         and chosen

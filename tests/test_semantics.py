@@ -263,12 +263,19 @@ def test_prompt_defines_every_field():
 
 
 def test_retry_after_unsupported_paraphrase_asks_for_verbatim_wording():
-    hits = {"Term of Bid": [_hit("term-of-bid-1", "Initial Term: 3 Renewal 1: 1 Renewal 2: 1")]}
-    reasons = {"Term of Bid": ["Cited evidence does not support the value"]}
-    retry = extraction_request("logistics", hits, ["Term of Bid"], 1, reasons, ExtractionConfig())
+    hits = {"Bid Number": [_hit("bid-number-1", "Solicitation Number AB-12345")]}
+    reasons = {"Bid Number": ["Cited evidence does not support the value"]}
+    retry = extraction_request("identity", hits, ["Bid Number"], 1, reasons, ExtractionConfig())
     assert "word for word" in retry.user
-    first = extraction_request("logistics", hits, ["Term of Bid"], 0, {}, ExtractionConfig())
+    first = extraction_request("identity", hits, ["Bid Number"], 0, {}, ExtractionConfig())
     assert "word for word" not in first.user
+    term = {"Term of Bid": [_hit("term-of-bid-1", "Initial Term: 3 Renewal 1: 1 Renewal 2: 1")]}
+    term_reasons = {"Term of Bid": ["Cited evidence does not support the value"]}
+    descriptive = extraction_request(
+        "logistics", term, ["Term of Bid"], 1, term_reasons, ExtractionConfig()
+    )
+    assert "complete value" in descriptive.user
+    assert "word for word" not in descriptive.user
 
 
 def request_text(name):

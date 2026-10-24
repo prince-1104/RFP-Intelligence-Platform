@@ -24,6 +24,7 @@ from rfp.agents.schemas import (  # noqa: E402
     ExtractionConfig,
     ExtractionTrace,
 )
+from rfp.agents.semantics import join_split_emails  # noqa: E402
 from rfp.agents.validator import contained, normalize  # noqa: E402
 from rfp.evaluation.qa import load_pages  # noqa: E402
 
@@ -63,6 +64,7 @@ def cited_text(pages, bid: str, file: str, page: int | None) -> str | None:
 
 
 def support(value: str, text: str) -> tuple[str, float]:
+    text = join_split_emails(text)
     if contained(value, text):
         return "verbatim", 1.0
     tokens = TOKEN.findall(normalize(value))

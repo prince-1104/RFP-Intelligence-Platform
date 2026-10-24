@@ -41,7 +41,7 @@ from rfp.agents.schemas import (
     TraceEvent,
     ValidationCounts,
 )
-from rfp.agents.semantics import grounded_notes
+from rfp.agents.semantics import grounded_notes, identifier_aliases, only_incomplete
 from rfp.agents.state import ExtractionState
 from rfp.agents.trace import Tracer, clock
 from rfp.agents.validator import contained, validate_field
@@ -67,6 +67,36 @@ def _borrow_shown(
             if evidence_id not in own and evidence_id in shown
         ]
         evidence[name] = evidence[name] + borrowed
+
+
+def _repair_citations(
+    evidence: dict[str, list[EvidenceHit]], drafts: dict[str, DraftField], asked: list[str]
+) -> list[str]:
+    """Point a verbatim value at the shown passage that contains it.
+
+    When none of the cited passages contains the value but a passage shown in the same
+    prompt does, the model copied the value and mislabelled its source. The first such
+    passage in prompt order becomes the citation; the validator still checks it.
+    """
+    shown = [hit for name in asked for hit in evidence[name][:8]]
+    repaired: list[str] = []
+    for name in asked:
+        draft = drafts[name]
+        # Short values such as a bare brand name occur in too many passages to relocate.
+        if not draft.value or len(draft.value.strip()) < 6:
+            continue
+        by_id = {hit.evidence_id: hit for hit in evidence[name]}
+        cited = [by_id[item] for item in draft.evidence_ids if item in by_id]
+        if any(contained(draft.value, hit.text) for hit in cited):
+            continue
+        source = next((hit for hit in shown if contained(draft.value, hit.text)), None)
+        if source is None:
+            continue
+        if source.evidence_id not in by_id:
+            evidence[name] = evidence[name] + [source]
+        drafts[name] = draft.model_copy(update={"evidence_ids": [source.evidence_id]})
+        repaired.append(name)
+    return repaired
 
 
 def _dedupe(hits: list[EvidenceHit], prefix: str) -> list[EvidenceHit]:
@@ -246,14 +276,22 @@ class Orchestrator:
         attempt: int,
     ) -> None:
         reasons: dict[str, list[str]] = {}
+        rejected: dict[str, str] = {}
         for unit in units:
             for name in unit:
-                validation = state.fields[name].validation
+                slot = state.fields[name]
+                validation = slot.validation
                 reasons[name] = list(validation.reasons) if validation is not None else []
+                if slot.status == "rejected" and slot.draft is not None and slot.draft.value:
+                    rejected[name] = slot.draft.value
 
         def worker(names: list[str]) -> AttemptResult:
             return self._attempt(
-                state.bid_uuid, names, attempt, {name: reasons[name] for name in names}
+                state.bid_uuid,
+                names,
+                attempt,
+                {name: reasons[name] for name in names},
+                {name: rejected[name] for name in names if name in rejected},
             )
 
         for result in _run_units(units, worker, self.config.concurrency):
@@ -266,6 +304,7 @@ class Orchestrator:
         names: list[str],
         attempt: int,
         reasons: dict[str, list[str]],
+        rejected: dict[str, str] | None = None,
     ) -> AttemptResult:
         events: list[TraceEvent] = []
         evidence: dict[str, list[EvidenceHit]] = {}
@@ -348,9 +387,12 @@ class Orchestrator:
                     name=name, value=None, notes="Not found in documents", status="not_found"
                 )
         model_error: str | None = None
+        repaired: list[str] = []
         if asked:
             group = CATALOG[asked[0]].group
-            request = extraction_request(group, evidence, asked, attempt, reasons, self.config)
+            request = extraction_request(
+                group, evidence, asked, attempt, reasons, self.config, rejected
+            )
             started, stamp = clock(), time.perf_counter()
             completion: ModelResponse | None = None
             try:
@@ -360,6 +402,7 @@ class Orchestrator:
                 result.model_name = completion.model
                 drafts.update(parse_drafts(asked, completion.text))
                 _borrow_shown(evidence, drafts, asked)
+                repaired = _repair_citations(evidence, drafts, asked)
             except (ModelError, ValueError) as exc:
                 model_error = exc.code if isinstance(exc, ModelError) else "llm_malformed"
                 for name in asked:
@@ -377,7 +420,10 @@ class Orchestrator:
                     provider=None if completion is None else completion.provider,
                     model=None if completion is None else completion.model,
                     error=model_error,
-                    decision="model omitted or failed" if model_error else "drafts returned",
+                    decision="model omitted or failed"
+                    if model_error
+                    else "drafts returned"
+                    + (f"; citation repaired for {', '.join(repaired)}" if repaired else ""),
                 )
             )
         result.drafts = drafts
@@ -418,7 +464,10 @@ class Orchestrator:
                     )
             result.validations[name] = validation
             excerpt = None
-            if not validation.passed and evidence[name]:
+            rejected_value = drafts[name].value
+            if not validation.passed and rejected_value:
+                excerpt = "rejected value: " + rejected_value[:240]
+            elif not validation.passed and evidence[name]:
                 excerpt = " ".join(evidence[name][0].text.split())[:240]
             events.append(
                 _event(
@@ -525,6 +574,8 @@ class Orchestrator:
             slot.draft = result.drafts[name]
             slot.validation = validation
             slot.status = validation.status
+            if validation.status == "rejected" and only_incomplete(validation.reasons):
+                slot.fallback = (slot.draft, slot.evidence, list(validation.reasons))
             if attempt > 0:
                 slot.retry_count = attempt
             state.remember_documents(slot.evidence)
@@ -541,6 +592,13 @@ class Orchestrator:
             if skip_summary and name == "Bid Summary":
                 continue
             slot = state.fields[name]
+            if slot.status in {"rejected", "not_found"} and slot.fallback is not None:
+                slot.draft, slot.evidence, slot.incomplete = slot.fallback
+                slot.status = "accepted"
+                slot.validation = FieldValidation(
+                    name=name, passed=True, status="accepted", support="contained"
+                )
+                continue
             if slot.status != "rejected":
                 continue
             reasons = slot.validation.reasons if slot.validation else ["Validation failed"]
@@ -582,6 +640,10 @@ class Orchestrator:
                 cited = [hit.text for hit in slot.evidence if hit.evidence_id in draft.evidence_ids]
                 change = next((item for item in state.addendum_changes if item.field == name), None)
                 notes = grounded_notes(draft.notes, cited, _change_note(change))
+                if name == "Bid Number":
+                    notes = " ".join(filter(None, [notes, _alias_note(draft.value, slot.evidence)]))
+                if slot.incomplete:
+                    notes = "Possibly incomplete: " + "; ".join(slot.incomplete) + "."
                 fields[name] = FieldOutput(
                     value=draft.value,
                     sources=sources,
@@ -627,6 +689,23 @@ def _change_note(change: AddendumChange | None) -> str | None:
             f"{change.original_value}."
         )
     return f"{addendum} states {change.revised_value}."
+
+
+def _alias_note(value: str, evidence: list[EvidenceHit]) -> str | None:
+    """Other labelled identifiers for the same solicitation, each with its locator."""
+    hits = [hit for hit in evidence if hit.sources]
+    parts = []
+    for index, matched in identifier_aliases(value, [hit.text for hit in hits]):
+        source = hits[index].sources[0]
+        pages = cited_pages(source, hits[index].text, matched.split()[-1].lstrip("#"))
+        if source.page is not None:
+            where = f"{source.file}, page {pages[0] if pages else source.page}"
+        else:
+            where = f"{source.file}, #{source.html_element_id}"
+        parts.append(f"{matched} ({where})")
+    if not parts:
+        return None
+    return "The documents also identify this solicitation as " + "; ".join(parts) + "."
 
 
 def _sources(draft: DraftField, evidence: list[EvidenceHit]) -> list[OutputSource]:

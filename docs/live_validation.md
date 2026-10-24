@@ -1,4 +1,4 @@
-# Live end-to-end validation (Phases 7 and 8)
+# Live end-to-end validation (Phases 7, 8 and 9)
 
 Run date 2026-10-24. Every result below comes from a live model call (`openai` / `gpt-4o-mini`,
 configured through the existing `build_live_model()` client) against the local loopback Qdrant
@@ -8,6 +8,72 @@ the configured model provider was contacted. Offline test results are reported s
 The accuracy verdicts are an assistant review of each value against the parsed source text in
 `artifacts/assessment/<Bid>/parsed`. A human reviewer has not confirmed them yet. Automated
 checks (schema, citation support, secrets) are listed separately from these verdicts.
+
+## Phase 9: evidence-based review and final corrections
+
+The per-field review, the Bid Number rule, the gap investigations, the variation study and the
+Q&A and retrieval spot checks are in [`final_accuracy_review.md`](final_accuracy_review.md).
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts\extraction_v4 --trace-dir artifacts\extraction_v4\traces
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid2 --output artifacts\extraction_v4 --trace-dir artifacts\extraction_v4\traces
+.\.venv\Scripts\python scripts\verify_extraction.py --outputs artifacts\extraction_v4 --traces artifacts\extraction_v4\traces --out artifacts\eval\extraction_v4_check.json
+.\.venv\Scripts\python scripts\evaluate_retrieval.py verify
+```
+
+The same two extraction commands wrote `artifacts/extraction_v4_repeat` from the same code to
+measure variation. Earlier Phase 9 runs are kept:
+
+| Folder | What it shows |
+|---|---|
+| `extraction_v4_first_attempt` | First Phase 9 code. Bid2 Product passed because of "MD529", the Bid2 alias was missing, and Bid1 Payment kept the subcontractor clause |
+| `extraction_v4_second_attempt` | Bid1 Term and Bid2 Product became unresolved, and Bid2 Title was null, because retries repeated the rejected value |
+| `extraction_v4_third_attempt` and `_repeat` | Same-code pair. The Bid2 Model_no citation slip appeared in one run only |
+
+The Phase 7 (`extraction_v2`) and Phase 8 (`extraction_v3*`) folders are unchanged.
+
+| Run | Bid | Accepted | Not found | Unresolved | Model calls | Tokens in / out |
+|---|---|---|---|---|---|---|
+| Phase 9 (`extraction_v4`) | Bid1 | 16 | 3 | 1 | 26 | 41,983 / 2,653 |
+| Phase 9 | Bid2 | 16 | 4 | 0 | 25 | 42,454 / 2,236 |
+
+Bid1's unresolved field is Payment Terms. The only candidate was the clause on vendors paying
+their subcontractors, which the new rule rejects. The documents state no buyer payment terms.
+
+Model-assisted re-score (not human-reviewed) using the Phase 9 criteria:
+
+| Verdict | Bid1 v3 | Bid1 v4 | Bid2 v3 | Bid2 v4 |
+|---|---|---|---|---|
+| correct | 7 | 9 | 10 | 11 |
+| partial | 8 | 7 | 5 | 5 |
+| wrong | 1 | 0 | 0 | 0 |
+| missed | 1 | 0 | 1 | 0 |
+| correctly null | 3 | 4 | 4 | 4 |
+
+Automated checks (`artifacts/eval/extraction_v4_check.json`):
+- both outputs are schema-valid with the 20 names in order;
+- no source comes from the other bid;
+- both traces are `completed` with retries of at most 2;
+- of the 32 accepted values, 23 are verbatim on their cited pages and 6 more have every token
+  there. The other 3 are restatements the validator accepted: Bid1 Term (token share 0.6) and the
+  two summaries (0.88 and 0.9);
+- the Bid2 contact email now scores 1.0;
+- a secret scan of 331 artifact and doc files found no leaks.
+
+Code changes, all general and with no bid values in production logic:
+- the Bid Number rule and cited aliases;
+- restatement support for descriptive fields;
+- omission checks (Term renewals, Product quantity);
+- rejection of document-type headings, copied summaries and subcontractor payment clauses;
+- split-email joining;
+- citation repair for verbatim values;
+- placeholder removal in object replies;
+- the rejected value shown in retry prompts and traces;
+- incomplete values kept with a flag;
+- JSON mode and a seed for OpenAI extraction calls.
+
+Q&A and retrieval were not rerun. Their code paths are unchanged: Q&A requests do not use the new
+JSON-mode flag.
 
 ## Phase 8: field-meaning validation and recovered fields
 

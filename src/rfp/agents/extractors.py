@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from rfp.agents.llm import ModelRequest, parse_json_object
 from rfp.agents.schemas import REQUIRED_FIELDS, DraftField, EvidenceHit, ExtractionConfig
+from rfp.agents.validator import PARAPHRASE_FIELDS
 from rfp.schemas.parsed import DocumentType
 from rfp.schemas.search import RetrievalMode
 
@@ -49,7 +50,8 @@ FIELD_DEFINITIONS = {
     ),
     "Title": (
         "The name of this solicitation, such as the cover or listing title. A form or "
-        "document-type heading alone is not a title."
+        "document-type heading alone is not a title. On a bid listing page the title often "
+        "follows the solicitation number."
     ),
     "Due Date": "Date and time responses must be received by.",
     "Bid Submission Type": (
@@ -73,11 +75,13 @@ FIELD_DEFINITIONS = {
     ),
     "Payment Terms": "When and how the buyer pays invoices.",
     "Any Additional Documentation Required": (
-        "Affidavits, forms, certificates or attachments the response must include."
+        "Affidavits, forms, certificates or attachments the response or award requires. "
+        "An instruction to tick a box on a form is not a separate document."
     ),
     "MFG for Registration": (
         "The manufacturer the bidder must be authorized by, registered with or a reseller for. "
-        "Business-entity checkboxes are not manufacturer requirements."
+        "When no manufacturer is named, the manufacturer or authorized-reseller qualification "
+        "the bidder must meet. Business-entity checkboxes are not manufacturer requirements."
     ),
     "Contract or Cooperative to use": (
         "The master contract, cooperative or purchasing agreement this purchase uses."
@@ -312,6 +316,16 @@ def steps_for(spec: FieldSpec, attempt: int, reasons: list[str]) -> tuple[QueryS
                 hard=True,
             ),
         )
+    if attempt > 0 and "heading" in text:
+        steps.insert(
+            0,
+            QueryStep(
+                spec.steps[0].query,
+                RetrievalMode.hybrid_rerank,
+                (DocumentType.bid_page,),
+                hard=True,
+            ),
+        )
     if attempt > 1 and reasons:
         steps.append(
             QueryStep(
@@ -365,6 +379,7 @@ def extraction_request(
     attempt: int,
     reasons: dict[str, list[str]],
     config: ExtractionConfig,
+    rejected: dict[str, str] | None = None,
 ) -> ModelRequest:
     blocks = []
     for name in names:
@@ -372,10 +387,17 @@ def extraction_request(
         lines = [f"Field: {name}", f"Definition: {FIELD_DEFINITIONS[name]}"]
         if reasons.get(name):
             lines.append("Previous rejection: " + "; ".join(reasons[name]))
+            if rejected and rejected.get(name):
+                lines.append(
+                    f"Rejected value: {rejected[name][:300]!r}. Do not return it again unchanged."
+                )
             if any("does not support" in reason for reason in reasons[name]):
                 lines.append(
-                    "Copy the value word for word from one passage below; do not paraphrase, "
-                    "summarize or add words."
+                    "State the complete value from one passage below, keeping its numbers and "
+                    "key words; do not add facts."
+                    if name in PARAPHRASE_FIELDS
+                    else "Copy the value word for word from one passage below; do not "
+                    "paraphrase, summarize or add words."
                 )
         if not hits:
             lines.append("Evidence: none")
@@ -394,8 +416,12 @@ def extraction_request(
         f"{json.dumps(names)}. For each field use value (string or null), "
         "evidence_ids (a list of the ids, from any field in this request, whose text states "
         "the value), and notes. "
-        "Copy values verbatim from the evidence. "
-        "Use null and notes 'Not found in documents' when the evidence does not state the value. "
+        + (
+            "Write the summary in your own sentences; do not copy a passage. "
+            if group == "summary"
+            else "Copy values verbatim from the evidence. "
+        )
+        + "Use null and notes 'Not found in documents' when the evidence does not state the value. "
         "Do not invent citations, pages, or facts.\n\n" + "\n\n".join(blocks)
     )
     return ModelRequest(
@@ -406,6 +432,7 @@ def extraction_request(
             + " Respond with JSON only."
         ),
         user=user,
+        json_object=True,
     )
 
 
@@ -426,6 +453,7 @@ def critic_request(
             "Rank and confidence are not support."
         ),
         user=f"Field: {name}\nValue: {draft.value}\nEvidence:\n{body}",
+        json_object=True,
     )
 
 
@@ -458,12 +486,20 @@ def _evidence_ids(name: str, ids: object) -> list[str]:
     return result
 
 
+PLACEHOLDERS = frozenset(
+    {"not found in documents", "not found", "not stated", "n/a", "none", "null"}
+)
+
+
 def _value(raw: object) -> str | None:
-    """A string value; an object or list reply is joined from its non-empty parts."""
+    """A string value; an object or list reply is joined from its non-empty, stated parts."""
     if isinstance(raw, dict):
         raw = [item for item in raw.values() if isinstance(item, str | int | float)]
     if isinstance(raw, list):
-        raw = ", ".join(str(item).strip() for item in raw if str(item).strip())
+        parts = [str(item).strip() for item in raw]
+        raw = ", ".join(
+            part for part in parts if part and part.casefold().rstrip(".") not in PLACEHOLDERS
+        )
     if not isinstance(raw, str) or raw.strip().casefold() in {"", "null", "none"}:
         return None
     return " ".join(raw.split())

@@ -27,11 +27,17 @@ LLM_KEYS = (
 )
 
 
+SEED = 7
+"""Best-effort reproducibility only; the provider does not guarantee identical replies."""
+
+
 @dataclass(frozen=True)
 class ModelRequest:
     purpose: str
     system: str
     user: str
+    json_object: bool = False
+    """Ask the provider for a JSON object reply and a fixed sampling seed, where documented."""
 
 
 @dataclass(frozen=True)
@@ -140,21 +146,29 @@ class OpenAICompatibleModel:
         self.timeout_seconds = timeout_seconds
         self.max_output_tokens = max_output_tokens
 
+    def payload(self, request: ModelRequest) -> dict[str, object]:
+        body: dict[str, object] = {
+            "model": self.model,
+            "temperature": 0,
+            "max_tokens": self.max_output_tokens,
+            "messages": [
+                {"role": "system", "content": request.system},
+                {"role": "user", "content": request.user},
+            ],
+        }
+        # JSON mode and seed are documented for OpenAI; other compatible servers may reject them.
+        if request.json_object and self.provider == "openai":
+            body["response_format"] = {"type": "json_object"}
+            body["seed"] = SEED
+        return body
+
     def complete(self, request: ModelRequest) -> ModelResponse:
         started = time.perf_counter()
         try:
             response = httpx.post(
                 f"{self.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self._api_key}"},
-                json={
-                    "model": self.model,
-                    "temperature": 0,
-                    "max_tokens": self.max_output_tokens,
-                    "messages": [
-                        {"role": "system", "content": request.system},
-                        {"role": "user", "content": request.user},
-                    ],
-                },
+                json=self.payload(request),
                 timeout=self.timeout_seconds,
             )
         except httpx.TimeoutException as exc:
