@@ -1,7 +1,8 @@
 # Assignment requirement checklist
 
-Updated 2026-10-24 after the Phase 9 evidence-based review and live re-run. This file supersedes
-the status columns of `ASSIGNMENT_COMPLIANCE_AUDIT.md`, which records the state before Phases 5–9.
+Updated 2026-10-24 after Phase 10 (end-to-end `process-bid` command and unseen-bid tests). This
+file supersedes the status columns of `ASSIGNMENT_COMPLIANCE_AUDIT.md`, which records the state
+before Phases 5–10.
 Evidence paths are relative to the repository root.
 
 Live evidence is in `docs/live_validation.md`. The per-field review is in
@@ -42,12 +43,12 @@ Statuses:
 | C. Error handling (timeout, bad JSON, empty retrieval) | Verified | Offline tests. A malformed live reply was handled without a crash |
 | C. Extraction mode and Q&A mode | Verified | `extract-bid`, `ask`, `ask-samples` run live |
 | D. 20 fields per bid, one JSON per bid, null with reason, `addendum_changes`, `validation` | Verified (structure) | `artifacts/extraction_v4/Bid1.json`, `Bid2.json`; `artifacts/eval/extraction_v4_check.json` |
-| D. Extraction accuracy | Not verified (issues recorded) | Model-assisted review of `extraction_v4` in `docs/final_accuracy_review.md`: Bid1 9 correct / 7 partial / 0 wrong / 0 missed / 4 null ok; Bid2 11 / 5 / 0 / 0 / 4. Phase 8 re-scored with the same criteria: 7/8/1/1/3 and 10/5/0/1/4. Partial fields and run-to-run variation remain. Pending human confirmation |
+| D. Extraction accuracy | Not verified (issues recorded) | Model-assisted review of `extraction_v4` in `docs/final_accuracy_review.md`: Bid1 9 correct / 7 partial / 0 wrong / 0 missed / 4 null ok; Bid2 11 / 5 / 0 / 0 / 4. Phase 8 re-scored with the same criteria: 7/8/1/1/3 and 10/5/0/1/4. Phase 10 `process-bid` runs: Bid1 9/7/1/0/3, then 8/8/0/0/4 after the Model_no fix; Bid2 10/6/0/0/4. No improvement over Phase 9; partial fields and run-to-run variation remain. Pending human confirmation |
 | D. Per-field confidence | Not verified | Fixed value per status (0.86 / 0.74 / 0.35); documented as not calibrated |
 | Tech. Secrets from the environment, never logged | Verified | `scripts/verify_extraction.py` secret scan; README configuration section |
-| Tech. One command after setup | Missing | Parse, chunk, index and extract are separate commands |
-| Tech. Unit tests for parsing and search | Verified | 388 offline tests pass (`pytest -m "not integration"`) |
-| Tech. Unseen bid folder without code changes | Not verified | No bid-specific literals in `src/`; no third folder was available to run |
+| Tech. One command after setup | Verified | `python -m rfp.cli process-bid --input <folder> --output <new folder>` runs validate, parse, chunk, index (loopback Qdrant), extract and verify, writes `run_summary.json`, and exits 0 / 3 (partial) / 1 (stage failed) / 2 (refused). Live on Bid1 (exit 3: no host Tesseract for 6 scanned pages) and Bid2 (exit 0): `artifacts/pipeline_v1/`, `artifacts/pipeline_v2/`. Setup still needs local Qdrant, `init-models` and LLM keys |
+| Tech. Unit tests for parsing and search | Verified | 402 offline tests pass (`pytest -m "not integration"`) |
+| Tech. Unseen bid folder without code changes | Verified offline only | `tests/test_pipeline.py` runs `process-bid` on a synthetic bid (fictional water authority, RFP + addendum + listing page) with real parsers, chunker and indexer and a deterministic evidence-bound fake model. No real unseen bid was available, so live accuracy on an unseen bid is not measured. No bid-specific literals in `src/` |
 | Deliverable. README, architecture diagram | Verified | README; `docs/architecture.md` (end-to-end, search, extraction, Q&A diagrams) |
 | Deliverable. JSON output per bid | Verified | `artifacts/extraction_v4/` (Phase 7 output kept in `artifacts/extraction_v2/`, Phase 8 in `artifacts/extraction_v3/`) |
 | Deliverable. Retrieval evaluation report | Verified | README table; `artifacts/eval/retrieval_phase8.json` |

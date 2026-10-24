@@ -7,8 +7,10 @@ source occurrences and incremental generations. Phase 4 adds a hybrid RAG eviden
 Qdrant indexing, a REST API and CLI. Phase 5 adds a typed multi-agent extraction workflow
 on that search service. Phase 6 adds citation-grounded Q&A over one bid. Phase 7 validates
 extraction, Q&A and retrieval live on both assessment bids (see
-[Live results and demo](#phase-7-live-results-and-demo)). A web UI remains optional and is not
-implemented.
+[Live results and demo](#phase-7-live-results-and-demo)). Phase 10 adds `process-bid`, one command
+that takes a local bid folder through every stage (see
+[End-to-end command](#phase-10-end-to-end-command-process-bid)). A web UI remains optional and is
+not implemented.
 The repository was empty at Phase 1 implementation start.
 
 ## Architecture
@@ -849,3 +851,154 @@ Remaining partial fields include:
 
 The full list and root causes are in the review. These fields, every verdict and the retrieval
 labels still need human review.
+
+## Phase 10: end-to-end command (`process-bid`)
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli process-bid --input <bid-folder> --output <new-output-folder> [--bid-id <label>]
+```
+
+`process-bid` runs the existing services in order and stops at the first stage that fails:
+
+| Stage | Existing code it calls | What it checks |
+|---|---|---|
+| validate | `ingestion.discovery.discover` | The folder exists and holds PDF or HTML files. Links, oversized files and other types are refused and listed |
+| parse | `cli.parse_folder` (PyMuPDF, pdfplumber, BeautifulSoup, Tesseract) | Every artifact carries the requested bid UUID. Failed or partial documents are listed with their page warnings |
+| chunk | `chunking.local.chunk_folder` | At least one chunk was produced |
+| index | `search.indexing.load_local_artifacts` and `IndexingService.index` | Only this bid's generations go to loopback Qdrant. The run fails if the collection already holds active evidence for the same bid id from documents that are not in the folder |
+| extract | `agents.runner.execute` (the Phase 5–9 orchestrator) | The workflow completed and at least one field passed validation |
+| verify | `evaluation.extraction_check.check_bid` (shared with `scripts/verify_extraction.py`) | The output has the 20 fields in order; no citation names a file outside the bid; every accepted value is on its cited page; retries are bounded; no secret appears in the outputs |
+
+**Input.** One folder per bid, with subfolders allowed. Supported types are `.pdf`, `.html` and
+`.htm`. Hidden, temporary and linked files are skipped. Unsupported files are listed in the
+summary and make the run `partial`. The bid label defaults to the folder name and must be a short
+label (letters, digits, `.`, `_`, `-`). The bid UUID is derived from the label, exactly as
+`parse-folder` and `extract-bid` derive it.
+
+**Configuration.**
+- Local Qdrant must be running (`docker compose up -d qdrant`).
+- The embedding models must be cached (`python -m rfp.cli init-models`).
+- Live extraction needs `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` in `.env`.
+- `--llm-mode test` runs offline. It never invents a value: every field is "Not found", or it
+  replays `--fixture` responses.
+- `--collection NAME` writes to `NAME__<profile>` instead of `bid_documents__<profile>`. Use it
+  to keep a trial run out of the main index.
+- `--tesseract-cmd` points to Tesseract for scanned pages.
+- Settings come from the command line, not `.env`, for the same reason as `parse-folder`.
+
+**Outputs** (all inside `--output`, which must be new or empty):
+
+```
+<output>/
+  run_summary.json            status, exit code, per-stage counts and errors, relative output paths
+  <label>.json                the 20-field extraction (BidExtraction schema)
+  traces/extraction_<label>.json
+  verification.json           per-field citation support, problems and notes
+  index.json                  indexing report (collection, generations, points)
+  parsed/  chunks/            Phase 2 and Phase 3 artifacts for this run
+```
+
+**Exit codes:**
+- 0: every stage succeeded.
+- 3: completed, but partial. A document failed or parsed partially, a file was refused, or a
+  field was left unresolved.
+- 1: a stage failed. Later stages are skipped and `run_summary.json` names the stage and the error
+  code.
+- 2: the request was refused before anything was written. This covers a missing folder, no
+  PDF/HTML, a non-empty output folder, output inside the input or `evaluation/`, a remote Qdrant
+  URL, or a UUID given as the label.
+
+**Safety.**
+- Only a loopback Qdrant URL is accepted.
+- Nothing is written to R2, PostgreSQL or Qdrant Cloud, and nothing is queued.
+- Existing output folders are never overwritten.
+- Error messages are codes or fixed text, never document content.
+- `.env` secret values are checked against the outputs.
+- No bid identifiers, file names or answers appear in the command's code.
+
+**Unseen-bid tests** (synthetic, offline):
+
+```powershell
+.\.venv\Scripts\python -m pytest tests\test_pipeline.py -q
+```
+
+`tests/unseen_bid.py` builds a fictional bid: Harborview County Water Authority, RFP
+HC-2026-118. It has two PDFs (an RFP and Addendum No. 1, which moves the due date) and one HTML
+listing page. The tests run the real parsers, chunker and indexer against an in-memory Qdrant with
+fake embeddings. The model is a deterministic fake that answers only from the passages it is
+shown.
+
+They cover:
+- schema validity, values, citations and pages;
+- the addendum's due-date change;
+- an invented value staying unknown;
+- isolation from another bid in the same collection;
+- stale documents after a file is removed;
+- no overwrite;
+- unsupported, malformed and missing inputs;
+- malformed model output, an index failure and remote Qdrant.
+
+These tests show the pipeline works on a bid it was not built for. They are not evidence of
+live-model accuracy on a real unseen bid.
+
+**Live regression on the assessment bids** (2026-10-24, `gpt-4o-mini`, separate local collection
+`pipeline_check`). The main `bid_documents` collection was not touched. Output is in
+`artifacts/pipeline_v1/` and, for the Bid1 rerun after the Model_no fix, in
+`artifacts/pipeline_v2/`.
+
+| Run | Exit | Accepted / not found / unresolved | Model-assisted correct / partial / wrong / missed / null ok |
+|---|---|---|---|
+| Bid1 `extraction_v4` (Phase 9) | — | 16 / 3 / 1 | 9 / 7 / 0 / 0 / 4 |
+| Bid1 `pipeline_v1` | 3 (partial parse, no host OCR) | 17 / 3 / 0 | 9 / 7 / 1 / 0 / 3 |
+| Bid1 `pipeline_v2` (after the Model_no fix) | 3 (partial parse, no host OCR) | 16 / 4 / 0 | 8 / 8 / 0 / 0 / 4 |
+| Bid2 `extraction_v4` (Phase 9) | — | 16 / 4 / 0 | 11 / 5 / 0 / 0 / 4 |
+| Bid2 `pipeline_v1` | 0 | 16 / 4 / 0 | 10 / 6 / 0 / 0 / 4 |
+
+Both bids pass verification: schema valid, no foreign citations, every accepted value on its
+cited page. The Bid1 addendum change (27-JUN-2024 14:00:00 → July 9, 2024 at 2:00 PM CST) is
+reconciled as in v4. Accuracy did not improve over Phase 9.
+
+The run-to-run changes are model variation:
+- Bid1 Installation was cut before "deployment services".
+- Bid1 MFG gave the requirement sentence in `pipeline_v1` and the heading in `pipeline_v2`.
+- Bid2 Documents listed one of the two affidavits.
+
+`pipeline_v1` also exposed a general defect: Bid1 Model_no was "Tier 1 Small Student
+Chromebook Laptop (Touch)", because the rule only required a digit. Model_no now needs a code,
+such as a run of two or more digits or a token that mixes letters and digits. `pipeline_v2`
+returns null for it.
+
+The synthetic fixture exposed another: an optional time zone in `DATE_RE` matched lowercase
+words, so "3:00 PM Proposals" became "3:00 PM Propo". The time zone must now be an uppercase word.
+
+The host has no Tesseract, so Bid1 FINAL pages 54–59 failed OCR and the run is reported as
+partial. No extracted field cites those pages.
+
+Q&A and retrieval: the code paths are unchanged. Offline checks show no regression:
+- `evaluate_qa.py score` reproduces `artifacts/eval/qa_v7.json` exactly;
+- gold `verify` and retrieval `verify` pass;
+- `verify_extraction.py` reproduces `extraction_v4_check.json` exactly after the helpers moved
+  into `rfp.evaluation.extraction_check`.
+
+**Demo (Windows PowerShell, from the repository root):**
+
+```powershell
+docker compose up -d qdrant
+.\.venv\Scripts\python -m rfp.cli init-models
+.\.venv\Scripts\python -m pytest tests\test_pipeline.py -q
+.\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid2 --output artifacts\demo_process\Bid2 --collection pipeline_check
+Get-Content artifacts\demo_process\Bid2\run_summary.json
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --question "How soon after award must the laptops be delivered?"
+```
+
+`ask` searches the main `bid_documents` collection, which already holds Bid2. To ask questions
+about a new bid, run `process-bid` without `--collection` so the bid is indexed into the main
+collection. Each `process-bid` run needs a new `--output` folder.
+
+**Limitations:**
+- Live values vary between runs, so partial fields remain.
+- A single synthetic fixture does not prove generalization.
+- No real unseen bid was available to test.
+- Only the due date is reconciled from addenda.
+- OCR needs Tesseract on the machine that runs the command.
+- `ask` has no `--collection` option yet.

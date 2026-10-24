@@ -1,4 +1,4 @@
-# Live end-to-end validation (Phases 7, 8 and 9)
+# Live end-to-end validation (Phases 7 to 10)
 
 Run date 2026-10-24. Every result below comes from a live model call (`openai` / `gpt-4o-mini`,
 configured through the existing `build_live_model()` client) against the local loopback Qdrant
@@ -8,6 +8,58 @@ the configured model provider was contacted. Offline test results are reported s
 The accuracy verdicts are an assistant review of each value against the parsed source text in
 `artifacts/assessment/<Bid>/parsed`. A human reviewer has not confirmed them yet. Automated
 checks (schema, citation support, secrets) are listed separately from these verdicts.
+
+## Phase 10: end-to-end `process-bid` on the assessment bids
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid1 --output artifacts\pipeline_v1\Bid1 --collection pipeline_check
+.\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid2 --output artifacts\pipeline_v1\Bid2 --collection pipeline_check
+# after the Model_no rule change:
+.\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid1 --output artifacts\pipeline_v2\Bid1 --collection pipeline_check
+```
+
+The bids were re-parsed on the host, chunked, and indexed into the separate local collection
+`pipeline_check__79fea6c89a6d` (503 points). The main collection (533 points) was not changed.
+The second Bid1 run found all 4 generations unchanged and re-embedded nothing.
+
+The host has no Tesseract, so 6 scanned pages of Bid1 FINAL (pp. 54–59) failed OCR. The parse and
+chunk stages are therefore `partial` and Bid1 exits 3; Bid2 exits 0. No field cites those pages.
+
+Model-assisted verdicts (not human-reviewed), using the Phase 9 definitions. Only fields that
+differ from `extraction_v4` are listed:
+
+| Field | `extraction_v4` | `pipeline_v1` | `pipeline_v2` |
+|---|---|---|---|
+| Bid1 Installation | correct (full white-glove sentence) | partial: cut before "deployment services" | partial: same |
+| Bid1 Delivery Date | partial ("Starting in September of 2024") | partial ("September 2024") | partial: same |
+| Bid1 Payment Terms | unresolved, no value (correctly null) | not found (correctly null) | not found (correctly null) |
+| Bid1 MFG | partial (heading) | correct: the reseller certification sentence (FINAL p3) | partial (heading) |
+| Bid1 Contract | correct | correct (full sentence naming CTPA, p20) | correct |
+| Bid1 Model_no | correctly null | **wrong**: "Tier 1 Small Student Chromebook Laptop (Touch)", a price-sheet tier (pp. 36, 39) | correctly null |
+| Bid1 Product | correct | correct: all 12 price-sheet lines with "1 Each" (pp. 34–35) | correct (p34) |
+| Bid1 Product Specification | partial | partial: still starts partway through Tier 1 | partial |
+| Bid2 Documents | correct (both affidavits) | partial: Mercury Affidavit only | — |
+| Bid2 Part_no | correct (SI# CC7802) | correct (210-BLYZ, specs p2), the alternative the review left to a human | — |
+| Bid2 Product | partial, flagged | partial: adds "…as of June 1, 2023", still no quantity | — |
+
+Totals (correct / partial / wrong / missed / correctly null):
+- Bid1: v4 9/7/0/0/4; `pipeline_v1` 9/7/1/0/3; `pipeline_v2` 8/8/0/0/4.
+- Bid2: v4 11/5/0/0/4; `pipeline_v1` 10/6/0/0/4.
+
+The reruns are not more accurate than Phase 9. The differences are model variation, apart from
+the Model_no error. That error led to the Model_no code rule, and `pipeline_v2` then returned
+null. The Bid1 addendum change (27-JUN-2024 14:00:00 → July 9, 2024 at 2:00 PM CST) is the same
+in every run.
+
+Automated checks (`verification.json` in each run folder):
+- schema valid;
+- 20 fields in order;
+- no foreign citations;
+- every accepted value is on its cited pages;
+- retries at most 2.
+
+Restatement notes: Bid1 Term 0.6 and Summary 0.88; Bid2 Summary 0.9. Bid2 Part_no also cites a
+specs page without the value. The secret scan of 383 artifact and doc files found no leaks.
 
 ## Phase 9: evidence-based review and final corrections
 

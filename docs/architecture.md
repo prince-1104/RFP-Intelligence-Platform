@@ -1,6 +1,9 @@
-# RFP platform architecture through Phase 7
+# RFP platform architecture through Phase 10
 
 ## End-to-end workflow
+
+`process-bid` (Phase 10, below) runs this whole chain for one local folder. The individual
+commands remain available.
 
 ```mermaid
 flowchart LR
@@ -258,3 +261,43 @@ questions also search addenda and the bid page; list questions add an
 item-keyword search. Answer confidence is not reported because no calibrated method exists. The CLI
 layer is `qa_runner.py`; offline scoring is `src/rfp/evaluation/qa.py` with
 `scripts/evaluate_qa.py` and the reviewed set `evaluation/qa_reviewed.json`.
+
+## Phase 10 end-to-end pipeline
+
+```mermaid
+flowchart LR
+  Folder[Bid folder] --> Validate[validate: discover, refuse links and other types]
+  Validate --> Parse[parse: parse_folder]
+  Parse --> Chunk[chunk: chunk_folder]
+  Chunk --> Index[index: load_local_artifacts + IndexingService, loopback Qdrant]
+  Index --> Stale{Active points for this bid from other documents?}
+  Stale -- yes --> Fail[stage failed, exit 1]
+  Stale -- no --> Extract[extract: runner.execute, orchestrator]
+  Extract --> Verify[verify: check_bid on this run's parsed pages]
+  Verify --> Summary[run_summary.json, exit 0 / 3]
+```
+
+`src/rfp/pipeline.py` contains no parsing, chunking, retrieval or extraction logic. It calls the
+existing functions in order and records a `Stage` (status, duration, counts, error code) for
+each. A stage either succeeds, is `partial` (it produced usable output but something was refused,
+failed or left unresolved), or fails; after a failure the later stages are skipped. Exceptions
+become error codes. Exception text is never copied, because it can contain document content.
+
+Checks added between stages:
+- every parsed artifact and chunk generation must carry the bid UUID derived from the label;
+- after indexing, the collection must hold no active points for that bid UUID from documents
+  outside the folder (for example a file removed since an earlier run);
+- verification uses only the parsed pages from this run, so a citation to any other file fails.
+
+The extraction runner gained two optional arguments, an injected model and the document list. The
+verification helpers moved from `scripts/verify_extraction.py` to
+`rfp.evaluation.extraction_check`, and the script imports them. No other component changed.
+
+Requests are refused before anything is written when:
+- the output folder exists and has content;
+- the output is inside the input, `evaluation/` or `data/assessment/`;
+- the Qdrant URL is not loopback;
+- the folder has no PDF or HTML.
+
+`--collection` redirects indexing and search to another base name. The live regression on the
+assessment bids used it, so the main collection was not changed.

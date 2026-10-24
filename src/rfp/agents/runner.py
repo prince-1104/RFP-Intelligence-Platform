@@ -145,12 +145,14 @@ def execute(
     fixture: Path | None,
     search,
     config: ExtractionConfig | None = None,
+    model: LanguageModel | None = None,
+    documents: list[str] | None = None,
 ) -> tuple[int, dict]:
     safe_url = assert_local_qdrant(qdrant_url)
     label, bid_uuid = resolve_bid(bid)
     destination = assert_output_dir(output)
     traces = assert_output_dir(trace_dir or destination.parent / "traces")
-    model = model_for(llm_mode, fixture)
+    model = model or model_for(llm_mode, fixture)
     if search is None:
         from rfp.cli import local_settings
         from rfp.search.wiring import search_service
@@ -162,7 +164,7 @@ def execute(
         search,
         model,
         config,
-        documents=source_inventory(label),
+        documents=source_inventory(label) if documents is None else documents,
     )
     trace = ExtractionTrace.model_validate(
         {

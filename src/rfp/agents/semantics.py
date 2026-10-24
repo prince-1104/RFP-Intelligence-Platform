@@ -13,8 +13,8 @@ from dataclasses import dataclass
 DATE_RE = re.compile(
     r"\d{1,2}-[A-Za-z]{3}-\d{4}(?:\s+\d{2}:\d{2}:\d{2})?"
     r"|(?:January|February|March|April|May|June|July|August|September|October|November|December)"
-    r"\s+\d{1,2},\s+\d{4}(?:\s+at\s+\d{1,2}:\d{2}\s*[AP]M(?:\s*[A-Z]{2,5})?)?"
-    r"|\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?(?:\s*[A-Z]{2,5})?)?"
+    r"\s+\d{1,2},\s+\d{4}(?:\s+at\s+\d{1,2}:\d{2}\s*[AP]M(?:\s*(?-i:[A-Z]{2,5})\b)?)?"
+    r"|\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?(?:\s*(?-i:[A-Z]{2,5})\b)?)?"
     r"|\d{1,2}/\d{1,2}/\d{4}",
     re.IGNORECASE,
 )
@@ -67,6 +67,8 @@ class FieldRule:
 
 
 NOT_IDENTIFIER = rf"^\s*(?:{DATE_RE.pattern}|{PHONE_RE.pattern}|{EMAIL_RE.pattern})\s*$"
+# A run of two or more digits, or one token that mixes letters and digits.
+CODE_TOKEN = r"\d{2,}|\b(?=[a-z-]*\d)(?=[\d-]*[a-z])[a-z\d][a-z\d-]*\b"
 DOCUMENT_HEADING = (
     r"^\s*(?:purchase order\s+)?(?:request for (?:proposals?|quotes?|quotations?|qualifications|"
     r"information|bids?)|invitation (?:for|to) bids?|bid (?:form|document))"
@@ -141,8 +143,11 @@ RULES: dict[str, FieldRule] = {
         r"interlocal|gsa|schedule",
     ),
     "Model_no": FieldRule(
-        needs=r"\d",
-        needs_problem="A model number must contain a digit",
+        needs=CODE_TOKEN,
+        needs_problem=(
+            "A model number needs a code such as 5550 or UM-40; a numbered tier or line item "
+            "is not a model"
+        ),
         reject=NOT_IDENTIFIER,
         reject_problem="A date, phone number or email address is not a model number",
     ),

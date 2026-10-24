@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import re
 import sys
 import uuid
 from pathlib import Path
@@ -29,6 +30,12 @@ def local_settings(qdrant_url: str = LOCAL_QDRANT) -> Settings:
         "qdrant_api_key": SecretStr(""),
     }
     return Settings(**values)
+
+
+def collection_name(value: str) -> str:
+    if not re.fullmatch(r"[a-z][a-z0-9_]{2,40}", value):
+        raise argparse.ArgumentTypeError("use 3-41 lowercase letters, digits or underscores")
+    return value
 
 
 def _location(citation: dict) -> str:
@@ -220,6 +227,47 @@ def run_ask_samples(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_process(args: argparse.Namespace) -> int:
+    from pydantic import ValidationError
+
+    from rfp.agents.errors import ExtractionError, ModelError
+    from rfp.agents.schemas import ExtractionConfig
+    from rfp.pipeline import EXIT_INVALID, PipelineError, process_bid
+    from rfp.search.wiring import local_indexing_service, search_service
+
+    settings = local_settings(args.qdrant_url)
+    if args.collection:
+        settings.qdrant_collection = args.collection
+    if args.tesseract_cmd:
+        settings.tesseract_cmd = args.tesseract_cmd
+
+    def services(current: Settings):
+        return local_indexing_service(current, args.cache_dir), search_service(current).search
+
+    updates: dict[str, Any] = {"critic_enabled": args.llm_mode == "live"}
+    if args.retries is not None:
+        updates["max_retries"] = args.retries
+    try:
+        code, summary = process_bid(
+            args.input,
+            args.output,
+            settings=settings,
+            services=services,
+            bid=args.bid_id,
+            llm_mode=args.llm_mode,
+            fixture=args.fixture,
+            config=ExtractionConfig.model_validate(updates),
+        )
+    except (PipelineError, ExtractionError, ModelError) as exc:
+        _print_error(exc.code, exc.message)
+        return EXIT_INVALID
+    except ValidationError:
+        _print_error("invalid_extraction_request", "Invalid extraction settings")
+        return EXIT_INVALID
+    print(json.dumps(summary, ensure_ascii=True))
+    return code
+
+
 def run_search(args: argparse.Namespace) -> int:
     from rfp.schemas.search import RetrievalMode, SearchFilters, SearchRequest
     from rfp.search.wiring import search_service
@@ -382,6 +430,26 @@ def main(argv: list[str] | None = None) -> int:
     extract.add_argument("--top-k", type=int)
     extract.add_argument("--retries", type=int)
     extract.add_argument("--concurrency", type=int)
+    process = commands.add_parser(
+        "process-bid",
+        help="Parse, chunk, index (local Qdrant), extract and verify one bid folder",
+    )
+    process.add_argument("--input", type=Path, required=True)
+    process.add_argument("--bid-id", help="Short label; defaults to the folder name")
+    process.add_argument("--output", type=Path, required=True)
+    process.add_argument("--qdrant-url", default=LOCAL_QDRANT)
+    process.add_argument(
+        "--collection",
+        type=collection_name,
+        help="Base collection name (default bid_documents); keeps a run out of the main index",
+    )
+    process.add_argument("--cache-dir", type=Path)
+    process.add_argument("--tesseract-cmd", help="Tesseract executable for scanned pages")
+    process.add_argument("--llm-mode", choices=["live", "test"], default="live")
+    process.add_argument(
+        "--fixture", type=Path, help="JSON list of model responses for --llm-mode test"
+    )
+    process.add_argument("--retries", type=int)
     ask = commands.add_parser(
         "ask", help="Answer a question about one bid with validated citations (local Qdrant)"
     )
@@ -420,6 +488,8 @@ def main(argv: list[str] | None = None) -> int:
             return run_search(args)
         if args.command == "extract-bid":
             return run_extract(args)
+        if args.command == "process-bid":
+            return run_process(args)
         if args.command == "ask":
             return run_ask(args)
         if args.command == "ask-samples":
