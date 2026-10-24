@@ -4,7 +4,8 @@ Phase 2 adds document ingestion, PDF/HTML parsing, native tables and Tesseract O
 Phase 1 infrastructure. Phase 3 adds normalization, structure-aware chunks, canonical content,
 source occurrences and incremental generations. Phase 4 adds a hybrid RAG evidence search engine
 (dense + BM25 + exact identifiers, RRF, cross-encoder reranking, citations) with incremental
-Qdrant indexing, a REST API and CLI. Agents, extraction and the UI remain later phases.
+Qdrant indexing, a REST API and CLI. Phase 5 adds a typed multi-agent extraction workflow
+on that search service. A web UI remains optional and is not implemented.
 The repository was empty at Phase 1 implementation start.
 
 ## Architecture
@@ -27,7 +28,7 @@ src/rfp/
   ingestion/       discovery, parsers, OCR, process isolation and persistence
   chunking/        normalization, token estimates, structured chunks and incremental persistence
   search/          embeddings, cache, Qdrant indexing, hybrid retrieval, reranking, citations
-  agents/          reserved
+  agents/          extraction orchestrator, specialists, reconciliation, validation, traces
   evaluation/      labeled retrieval judgments and metrics (Recall@5, MRR@10, nDCG@10)
 evaluation/        labeled assessment retrieval dataset (55 cases, both bids)
 scripts/           local-only evaluation, reranker parity, latency and memory benchmarks
@@ -546,3 +547,23 @@ addendum, generation/occurrence IDs), additional citations for identical text el
 components (dense, sparse, identifier rank, RRF, reranker, identifier bonus, final) and identifier
 matches. Responses include normalized/expanded queries, candidate counts, timings, profile and
 warnings such as `identifier_evidence_not_found` or `degraded`.
+
+## Phase 5: multi-agent extraction
+
+Extraction calls the Phase 4 search service. It does not ingest or index. The orchestrator is
+in-process Python (`src/rfp/agents/`), not a separate agent framework. See
+`src/rfp/agents/README.md` and `docs/architecture.md`.
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts\extraction
+```
+
+The command uses loopback Qdrant only (`--qdrant-url`, default `http://127.0.0.1:6333`) and
+refuses a remote host. Live mode reads `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` from the
+environment or private `.env` and exits if they are missing. It writes
+`artifacts/extraction/Bid1.json` and `artifacts/traces/extraction_Bid1.json`. A field that fails
+validation is retried at most twice. Other fields are kept. Exit 0 means the JSON is valid,
+including fields left unresolved. Exit 1 means the search target is unsafe, the model is not
+configured, or retrieval never succeeded. Exit 2 means the arguments are invalid.
+
+`--llm-mode test` does not call a provider and does not invent values. Use it only in tests.

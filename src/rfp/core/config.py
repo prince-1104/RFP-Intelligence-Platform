@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     llm_provider: str = ""
     llm_model: str = ""
     llm_api_key: SecretStr = SecretStr("")
+    llm_base_url: str = ""
+    llm_timeout_seconds: float = Field(default=60, ge=1, le=300)
+    llm_max_output_tokens: int = Field(default=2500, ge=100, le=16000)
+    extraction_max_retries: int = Field(default=2, ge=0, le=5)
+    extraction_concurrency: int = Field(default=4, ge=1, le=8)
+    extraction_top_k: int = Field(default=12, ge=1, le=50)
     dependency_timeout_seconds: float = Field(default=2, ge=0.1, le=30)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 

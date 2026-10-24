@@ -122,6 +122,43 @@ def _print_error(code: str, message: str) -> None:
     print(json.dumps({"error": code, "message": message}), file=sys.stderr)
 
 
+def run_extract(args: argparse.Namespace) -> int:
+    from pydantic import ValidationError
+
+    from rfp.agents.errors import ExtractionError, ModelError
+    from rfp.agents.runner import execute
+    from rfp.agents.schemas import ExtractionConfig
+
+    updates: dict[str, Any] = {"critic_enabled": args.llm_mode == "live"}
+    if args.top_k is not None:
+        updates["top_k"] = args.top_k
+        updates["hard_top_k"] = max(args.top_k, 20)
+    if args.retries is not None:
+        updates["max_retries"] = args.retries
+    if args.concurrency is not None:
+        updates["concurrency"] = args.concurrency
+    try:
+        config = ExtractionConfig.model_validate(updates)
+        code, summary = execute(
+            bid=args.bid_id,
+            output=args.output,
+            trace_dir=args.trace_dir,
+            qdrant_url=args.qdrant_url,
+            llm_mode=args.llm_mode,
+            fixture=args.fixture,
+            search=None,
+            config=config,
+        )
+    except (ExtractionError, ModelError) as exc:
+        _print_error(exc.code, exc.message)
+        return 2 if exc.code in {"invalid_bid_id", "invalid_fixture", "invalid_llm_mode"} else 1
+    except ValidationError:
+        _print_error("invalid_extraction_request", "Invalid extraction settings")
+        return 2
+    print(json.dumps(summary, ensure_ascii=True))
+    return code
+
+
 def run_search(args: argparse.Namespace) -> int:
     from rfp.schemas.search import RetrievalMode, SearchFilters, SearchRequest
     from rfp.search.wiring import search_service
@@ -269,6 +306,21 @@ def main(argv: list[str] | None = None) -> int:
         "--local", action="store_true", help="Ignore .env; use local Qdrant and model cache"
     )
     search.add_argument("--qdrant-url", default=LOCAL_QDRANT)
+    extract = commands.add_parser(
+        "extract-bid",
+        help="Extract the 20 assignment fields for one indexed bid (local Qdrant only)",
+    )
+    extract.add_argument("--bid-id", required=True)
+    extract.add_argument("--output", type=Path, required=True)
+    extract.add_argument("--trace-dir", type=Path)
+    extract.add_argument("--qdrant-url", default=LOCAL_QDRANT)
+    extract.add_argument("--llm-mode", choices=["live", "test"], default="live")
+    extract.add_argument(
+        "--fixture", type=Path, help="JSON list of model responses for --llm-mode test"
+    )
+    extract.add_argument("--top-k", type=int)
+    extract.add_argument("--retries", type=int)
+    extract.add_argument("--concurrency", type=int)
     args = parser.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="replace")
@@ -288,6 +340,8 @@ def main(argv: list[str] | None = None) -> int:
             return run_index_folder(args)
         if args.command == "search":
             return run_search(args)
+        if args.command == "extract-bid":
+            return run_extract(args)
     except InvalidSearchRequest as exc:
         _print_error(exc.code, exc.message)
         return 2

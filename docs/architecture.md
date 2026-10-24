@@ -175,5 +175,31 @@ which case the response is flagged `degraded` with a warning.
 difference ≤ 1, server ≥ 1.10) before indexing or searching.
 
 Structured logs record timings, candidate counts, score components, profile and a query hash, not
-query text, document text, signed URLs or secrets. Phase 4 returns evidence only: no answer
-generation, extraction, agents or reconciliation.
+query text, document text, signed URLs or secrets. Phase 4 returns evidence only.
+
+## Phase 5 extraction
+
+```mermaid
+flowchart LR
+  Goal[extract-bid] --> Orchestrator
+  Orchestrator --> Retrieval
+  Retrieval --> Search[SearchService.search]
+  Orchestrator --> Identity[Identity specialist]
+  Orchestrator --> Logistics[Logistics specialist]
+  Orchestrator --> Commercial[Commercial specialist]
+  Orchestrator --> Product[Product specialist]
+  Identity --> Validator
+  Logistics --> Reconcile[Addendum reconciliation]
+  Commercial --> Validator
+  Product --> Validator
+  Reconcile --> Validator
+  Validator -->|reject, max 2 retries| Orchestrator
+  Validator --> Summary[Summary specialist]
+  Summary --> JSON[Bid JSON and trace]
+```
+
+`extract-bid` is read-only against loopback Qdrant. Independent field groups call the model
+concurrently. Search calls on the shared client are serialized. The validator accepts a value
+only when the cited hit belongs to the bid and the value is supported by that hit's text.
+Addendum number alone does not override a field. Live model calls use `LLM_PROVIDER`,
+`LLM_MODEL` and `LLM_API_KEY`. Missing credentials stop the command.
