@@ -159,6 +159,67 @@ def run_extract(args: argparse.Namespace) -> int:
     return code
 
 
+ASK_REQUEST_ERRORS = {
+    "invalid_bid_id",
+    "invalid_fixture",
+    "invalid_llm_mode",
+    "invalid_questions",
+    "unsafe_output_path",
+}
+
+
+def run_ask(args: argparse.Namespace) -> int:
+    from rfp.agents.errors import ExtractionError, ModelError
+    from rfp.agents.qa import QAConfig
+    from rfp.agents.qa_runner import execute_ask
+
+    try:
+        config = QAConfig.model_validate({"top_k": args.top_k} if args.top_k is not None else {})
+        response, trace_path = execute_ask(
+            bid=args.bid_id,
+            question=args.question,
+            qdrant_url=args.qdrant_url,
+            llm_mode=args.llm_mode,
+            fixture=args.fixture,
+            trace_dir=args.trace_dir,
+            output=args.output,
+            config=config,
+        )
+    except (ExtractionError, ModelError) as exc:
+        _print_error(exc.code, exc.message)
+        return 2 if exc.code in ASK_REQUEST_ERRORS else 1
+    except ValueError as exc:
+        if str(exc) == "invalid_question":
+            _print_error("invalid_question", "Question must be 1-1000 characters")
+            return 2
+        raise
+    payload = response.model_dump(mode="json")
+    payload["trace_path"] = str(trace_path) if trace_path else None
+    print(json.dumps(payload, ensure_ascii=True))
+    return 0
+
+
+def run_ask_samples(args: argparse.Namespace) -> int:
+    from rfp.agents.errors import ExtractionError, ModelError
+    from rfp.agents.llm import build_live_model
+    from rfp.agents.qa_runner import generate_samples, load_questions, local_search
+
+    try:
+        questions = load_questions(args.questions)
+        model = build_live_model()
+        summary = generate_samples(
+            questions=questions,
+            output_dir=args.output,
+            search=local_search(args.qdrant_url),
+            model=model,
+        )
+    except (ExtractionError, ModelError) as exc:
+        _print_error(exc.code, exc.message)
+        return 2 if exc.code in ASK_REQUEST_ERRORS else 1
+    print(json.dumps(summary, ensure_ascii=True))
+    return 0
+
+
 def run_search(args: argparse.Namespace) -> int:
     from rfp.schemas.search import RetrievalMode, SearchFilters, SearchRequest
     from rfp.search.wiring import search_service
@@ -321,6 +382,23 @@ def main(argv: list[str] | None = None) -> int:
     extract.add_argument("--top-k", type=int)
     extract.add_argument("--retries", type=int)
     extract.add_argument("--concurrency", type=int)
+    ask = commands.add_parser(
+        "ask", help="Answer a question about one bid with validated citations (local Qdrant)"
+    )
+    ask.add_argument("--bid-id", required=True)
+    ask.add_argument("--question", required=True)
+    ask.add_argument("--qdrant-url", default=LOCAL_QDRANT)
+    ask.add_argument("--llm-mode", choices=["live", "test"], default="live")
+    ask.add_argument("--fixture", type=Path, help="JSON list of model responses for test mode")
+    ask.add_argument("--top-k", type=int)
+    ask.add_argument("--trace-dir", type=Path, default=Path("artifacts/traces"))
+    ask.add_argument("--output", type=Path, help="Also write the response JSON to this file")
+    samples = commands.add_parser(
+        "ask-samples", help="Generate cited Q&A examples with the configured live model"
+    )
+    samples.add_argument("--questions", type=Path, default=Path("examples/qa_questions.json"))
+    samples.add_argument("--output", type=Path, default=Path("artifacts/qa"))
+    samples.add_argument("--qdrant-url", default=LOCAL_QDRANT)
     args = parser.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="replace")
@@ -342,6 +420,10 @@ def main(argv: list[str] | None = None) -> int:
             return run_search(args)
         if args.command == "extract-bid":
             return run_extract(args)
+        if args.command == "ask":
+            return run_ask(args)
+        if args.command == "ask-samples":
+            return run_ask_samples(args)
     except InvalidSearchRequest as exc:
         _print_error(exc.code, exc.message)
         return 2

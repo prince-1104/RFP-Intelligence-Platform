@@ -29,3 +29,12 @@ Other fields are kept.
 Qdrant only. A remote host or a URL with credentials is refused. Test mode (`--llm-mode test`)
 returns "Not found in documents" for every field unless `--fixture` supplies scripted responses.
 That mode is for tests. It is not a live extraction.
+
+## Q&A (`qa.py`, `qa_runner.py`)
+
+`ask` answers one question about one bid. Retrieval uses the same bid-scoped adapter, plus an
+addendum-only sparse query for deadline or addendum questions. The model must cite passage ids and
+copy quotes verbatim. `check_reply` rejects unknown ids, quotes not in the passage, answer facts
+missing from cited text, single-source conflicts, and deadline answers that contradict an explicit
+addendum revision. One correction is allowed, then the answer is `Not found in documents`. No
+numeric confidence is reported.

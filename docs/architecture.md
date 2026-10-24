@@ -1,4 +1,4 @@
-# RFP platform architecture through Phase 4
+# RFP platform architecture through Phase 6
 
 The API, operator CLI and Celery worker share Settings, the SQLAlchemy model/engine factory,
 the existing R2 Storage protocol and application logging conventions.
@@ -203,3 +203,26 @@ concurrently. Search calls on the shared client are serialized. The validator ac
 only when the cited hit belongs to the bid and the value is supported by that hit's text.
 Addendum number alone does not override a field. Live model calls use `LLM_PROVIDER`,
 `LLM_MODEL` and `LLM_API_KEY`. Missing credentials stop the command.
+
+## Phase 6 Q&A
+
+```mermaid
+flowchart LR
+  Ask[ask] --> Plan[Query plan]
+  Plan -->|question, hybrid_rerank| Search[SearchService.search, bid filter]
+  Plan -->|deadline or addendum question, sparse, addenda only| Search
+  Search --> Evidence[Bid-scoped passages E1..En]
+  Evidence -->|none| Abstain[Not found in documents]
+  Evidence --> Model[LanguageModel]
+  Model --> Check[Deterministic citation check]
+  Check -->|reject, one correction| Model
+  Check -->|still rejected| Abstain
+  Check --> Answer[answered or conflict with citations]
+```
+
+`src/rfp/agents/qa.py` reuses the extraction retrieval adapter, model client, locator checks and
+due-date reconciliation. The check rejects citations outside the retrieved set, quotes not found in
+the cited passage, answer facts (dates, numbers, identifiers) missing from the cited text, a
+`conflict` with fewer than two distinct sources, and a deadline answer that disagrees with an
+explicit addendum revision or picks between disagreeing addenda. Answer confidence is not
+reported because no calibrated method exists. The CLI layer is `src/rfp/agents/qa_runner.py`.

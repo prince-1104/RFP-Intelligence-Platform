@@ -51,7 +51,7 @@ def _support(value: str, texts: list[str]) -> bool:
     return all(token in haystack for token in tokens)
 
 
-def _locator_problem(source: SourceRef) -> str | None:
+def locator_problem(source: SourceRef) -> str | None:
     pdf = source.relative_path.lower().endswith(".pdf")
     if source.bid_id is None:
         return "citation is missing a bid"
@@ -114,7 +114,7 @@ def validate_field(
             continue
         chosen.append(hit)
         for source in hit.sources:
-            problem = _locator_problem(source)
+            problem = locator_problem(source)
             if problem:
                 reasons.append(problem)
             if source.bid_id != hit.bid_id:

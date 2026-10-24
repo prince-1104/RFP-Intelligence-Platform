@@ -181,6 +181,7 @@ class TraceEvent(Contract):
     ended_at: str
     duration_ms: float = Field(ge=0)
     query: str | None = None
+    query_hash: str | None = None
     mode: str | None = None
     top_k: int | None = None
     doc_types: list[str] = Field(default_factory=list)

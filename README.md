@@ -5,7 +5,8 @@ Phase 1 infrastructure. Phase 3 adds normalization, structure-aware chunks, cano
 source occurrences and incremental generations. Phase 4 adds a hybrid RAG evidence search engine
 (dense + BM25 + exact identifiers, RRF, cross-encoder reranking, citations) with incremental
 Qdrant indexing, a REST API and CLI. Phase 5 adds a typed multi-agent extraction workflow
-on that search service. A web UI remains optional and is not implemented.
+on that search service. Phase 6 adds citation-grounded Q&A over one bid. A web UI remains
+optional and is not implemented.
 The repository was empty at Phase 1 implementation start.
 
 ## Architecture
@@ -567,3 +568,44 @@ including fields left unresolved. Exit 1 means the search target is unsafe, the 
 configured, or retrieval never succeeded. Exit 2 means the arguments are invalid.
 
 `--llm-mode test` does not call a provider and does not invent values. Use it only in tests.
+
+## Phase 6: citation-grounded Q&A
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid1 --question "What is the final proposal deadline after all addenda?"
+```
+
+`ask` searches loopback Qdrant only, always filtered to the one bid, and sends the retrieved
+passages to the configured model (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`). It prints one JSON
+object: `bid_id`, `question`, `answer`, `status` (`answered`, `not_found` or `conflict`),
+`citations` (document, PDF page or HTML element id, document type, addendum number and the
+supporting excerpt), `validation`, `trace_id`, `model`, `evidence_count` and `trace_path`.
+`confidence` is always `null`: there is no calibrated method for answer confidence, so no score
+is reported.
+
+The model reply is accepted only if every citation refers to a retrieved passage of this bid, every
+quote is found in that passage, and every date, number and identifier in the answer appears in
+the cited text. For proposal-deadline questions, an answer that ignores an explicit addendum
+revision, or picks one of two disagreeing addenda, is rejected. A rejected reply gets one
+correction request (`max_corrections=1`). If that also fails, the answer is
+`Not found in documents`, `validation.passed` is false, and the reasons are listed. Malformed
+model output is handled the same way. Provider errors (`llm_timeout`, `llm_provider_error`) and
+missing configuration (`llm_not_configured`) exit 1 without an answer.
+
+The trace (`artifacts/traces/qa_<trace_id>.json`, override with `--trace-dir`) records search
+modes, evidence locators, model token counts and validation decisions. It stores a hash and the
+length of the question, not the question or passage text. `--output FILE` also writes the
+response. Writing under `evaluation/` or `data/assessment/` is refused. Exit codes: 0 response
+returned (including `not_found`), 1 unsafe target, configuration or provider failure, 2 invalid
+arguments. `--llm-mode test` with `--fixture` replays scripted replies for tests. It is labelled
+`provider: fake` and is not a real answer.
+
+Cited examples are generated only with a live model:
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli ask-samples --questions examples\qa_questions.json --output artifacts\qa
+```
+
+This writes `artifacts/qa/qa_samples.json` (a list of Q&A responses), `qa_samples.md` and one trace
+per question under `artifacts/qa/traces/`. It has no test mode. See `docs/qa_examples.md` for the
+format and status. The examples are pending until a live model is configured.

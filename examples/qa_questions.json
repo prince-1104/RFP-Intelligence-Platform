@@ -1,0 +1,16 @@
+[
+  {"bid_id": "Bid1", "question": "What is the final proposal submission deadline after all addenda?", "purpose": "assignment: addendum-revised deadline"},
+  {"bid_id": "Bid1", "question": "What changed in Addendum 2?", "purpose": "assignment: addendum changes"},
+  {"bid_id": "Bid1", "question": "Is a bid bond or proposal guarantee required?", "purpose": "assignment: bid bond"},
+  {"bid_id": "Bid1", "question": "Is there a pre-proposal conference, and when is it?", "purpose": "pre-bid meeting"},
+  {"bid_id": "Bid1", "question": "What is the RFP number?", "purpose": "identifier"},
+  {"bid_id": "Bid1", "question": "Who is the point of contact for questions about this RFP?", "purpose": "contact"},
+  {"bid_id": "Bid1", "question": "What warranty is required for the computing devices?", "purpose": "warranty"},
+  {"bid_id": "Bid2", "question": "Which affidavits must vendors submit with their proposal?", "purpose": "assignment: affidavits"},
+  {"bid_id": "Bid2", "question": "When are proposals due?", "purpose": "due date"},
+  {"bid_id": "Bid2", "question": "What extended warranty is required for the Dell laptops?", "purpose": "assignment: warranty"},
+  {"bid_id": "Bid2", "question": "How much RAM must each laptop have?", "purpose": "specification"},
+  {"bid_id": "Bid2", "question": "How many laptops are being purchased?", "purpose": "quantity"},
+  {"bid_id": "Bid2", "question": "What liquidated damages apply for late delivery?", "purpose": "likely unanswerable: abstention"},
+  {"bid_id": "Bid2", "question": "Is a bid bond required?", "purpose": "bid bond"}
+]
