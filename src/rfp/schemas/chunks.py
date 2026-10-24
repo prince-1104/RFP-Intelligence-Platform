@@ -52,7 +52,9 @@ class ChunkConfig(Contract):
         estimated = self.token_counter == "utf8_bytes_v1"
         if estimated != (self.tokenizer_identifier == "utf8-bytes-div4-v1"):
             raise ValueError("tokenizer_identifier does not match token_counter")
-        if not estimated and not re.fullmatch(r"hf:[^@\s]+@[a-f0-9]{16}", self.tokenizer_identifier):
+        if not estimated and not re.fullmatch(
+            r"hf:[^@\s]+@[a-f0-9]{16}", self.tokenizer_identifier
+        ):
             raise ValueError("Model tokenizer identifier must be hf:<model>@<16 hex>")
         return self
 
@@ -102,11 +104,13 @@ class TableRows(Contract):
             raise ValueError("Table row range must match preserved rows")
         if (self.column_start is None) != (self.column_end is None) or (
             self.column_start is not None
+            and self.column_end is not None
             and (self.column_end < self.column_start or self.row_start != self.row_end)
         ):
             raise ValueError("Column range requires a single row and start <= end")
         if (self.cell_part is None) != (self.cell_parts is None) or (
             self.cell_part is not None
+            and self.cell_parts is not None
             and (self.cell_part > self.cell_parts or self.column_start != self.column_end)
         ):
             raise ValueError("Cell parts require a single column and part <= parts")

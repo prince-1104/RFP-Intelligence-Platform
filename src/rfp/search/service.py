@@ -143,7 +143,9 @@ class SearchService:
             "sparse": use_sparse,
             "reranker": mode == RetrievalMode.hybrid_rerank,
         }
-        missing = [name for name, used in needed.items() if used and name not in self.runtime.loaded()]
+        missing = [
+            name for name, used in needed.items() if used and name not in self.runtime.loaded()
+        ]
         for name in missing:
             try:
                 getattr(self.runtime, name)
@@ -381,7 +383,9 @@ class SearchService:
         reranker = self.runtime.reranker
         # Identical text scores identically, so each distinct text is scored once.
         texts = list(dict.fromkeys(c.payload.get("text", "") for c in head))
-        output = self.runtime.infer(lambda: reranker.rerank(plan.normalized, texts), "reranker_failed")
+        output = self.runtime.infer(
+            lambda: reranker.rerank(plan.normalized, texts), "reranker_failed"
+        )
         if len(output.scores) != len(texts):
             raise SearchServiceError("Reranker output size mismatch", "reranker_failed")
         by_text = dict(zip(texts, output.scores, strict=True))

@@ -70,15 +70,23 @@ def token_windows(
     spans: list[tuple[int, int]] = []
     split_word = False
     index = 0
+    # Predicates below are consumed by largest()/smallest() within the same iteration, so
+    # capturing the loop variables is safe (B023).
     while index < len(words):
         start = words[index][0]
         last = largest(
-            index, len(words) - 1, lambda j: measure(text[start : words[j][1]]) <= budget
+            index,
+            len(words) - 1,
+            lambda j: measure(text[start : words[j][1]]) <= budget,  # noqa: B023
         )
         if last < index:
             word_end = words[index][1]
             cut = max(
-                largest(start + 1, word_end, lambda end: measure(text[start:end]) <= budget),
+                largest(
+                    start + 1,
+                    word_end,
+                    lambda end: measure(text[start:end]) <= budget,  # noqa: B023
+                ),
                 start + 1,
             )
             spans.append((start, cut))
@@ -96,7 +104,9 @@ def token_windows(
             # Restart at the earliest word whose suffix fits the overlap, strictly after this
             # window's first word so progress is guaranteed.
             index = smallest(
-                first + 1, last + 1, lambda k: overlap_measure(text[words[k][0] : end]) <= overlap
+                first + 1,
+                last + 1,
+                lambda k: overlap_measure(text[words[k][0] : end]) <= overlap,  # noqa: B023
             )
     return spans, split_word
 

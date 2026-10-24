@@ -28,7 +28,9 @@ src/rfp/
   chunking/        normalization, token estimates, structured chunks and incremental persistence
   search/          embeddings, cache, Qdrant indexing, hybrid retrieval, reranking, citations
   agents/          reserved
-  evaluation/      reserved
+  evaluation/      labeled retrieval judgments and metrics (Recall@5, MRR@10, nDCG@10)
+evaluation/        labeled assessment retrieval dataset (55 cases, both bids)
+scripts/           local-only evaluation, reranker parity, latency and memory benchmarks
 tests/             offline unit and migration tests
 ```
 
@@ -453,7 +455,7 @@ Search returns cited evidence, never answers. Design details are in `docs/archit
 | Sparse | FastEmbed `Qdrant/bm25` with Qdrant IDF modifier |
 | Identifiers | Exact payload match branch for codes such as `PX-420`, `RFP-2026-014` |
 | Fusion | Application weighted RRF, k=60, candidate depth 40 per branch |
-| Reranker | FastEmbed `Xenova/ms-marco-MiniLM-L-6-v2` cross-encoder, depth 40 |
+| Reranker | FastEmbed `Xenova/ms-marco-MiniLM-L-6-v2` cross-encoder, depth 20, batch size 1 |
 | Output | top_k 5 (max 50), duplicates collapsed with all citations attached |
 
 Modes: `dense`, `sparse`, `hybrid` (dense + sparse + identifier RRF) and `hybrid_rerank`
@@ -474,7 +476,29 @@ docker compose up -d qdrant
 `index-folder` reads Phase 3 `ChunkingResult` JSON (one generation per bid/path; the current
 chunk configuration wins over stale artifacts), caches embeddings in `.cache/embeddings` and is
 idempotent: a rerun reports every generation `unchanged` without recomputation. Changing a model
-or BM25 parameter creates a new profile-specific collection and cache namespace.
+or BM25 parameter creates a new profile-specific collection and cache namespace. Reports give
+`superseded_points_deactivated` and `superseded_points_deleted` (recounted in Qdrant); a delete
+that leaves stale points fails the generation with `superseded_delete_unverified`, and a rerun
+retries it.
+
+### Retrieval evaluation and reranker benchmarks (local only)
+
+These scripts refuse any non-loopback Qdrant URL or configured cloud credentials and never read
+`.env`. They need the assessment bids indexed in local Qdrant.
+
+```powershell
+.\.venv\Scripts\python scripts\evaluate_retrieval.py verify      # labels grounded in artifacts
+.\.venv\Scripts\python scripts\evaluate_retrieval.py run --out artifacts\eval\report.json
+.\.venv\Scripts\python scripts\evaluate_retrieval.py run --modes hybrid_rerank --rerank-depth 10
+.\.venv\Scripts\python scripts\rerank_parity.py parity           # batched vs one pair per call
+.\.venv\Scripts\python scripts\rerank_parity.py bench --stride 4 # p50/p95 per depth and batch
+.\.venv\Scripts\python scripts\rerank_parity.py memory --stride 4  # fresh process per config
+```
+
+`evaluation/assessment_retrieval.json` holds 55 cases (50 answerable, 3 unknown identifiers,
+2 unanswerable) with document, one-based page or HTML element ID and required text per judgment.
+Labels are only applied to search output; they never influence retrieval. Items still needing
+human review are listed in its `needs_human_labeling` field.
 
 ### Production
 

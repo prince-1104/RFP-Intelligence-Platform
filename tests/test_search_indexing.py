@@ -100,7 +100,8 @@ def test_incremental_new_generation_supersedes_only_its_source(settings):
     report = indexer.index([generation(changed)])
     outcome = report.outcomes[0]
     assert outcome.status == "completed"
-    assert outcome.superseded_points_removed == len(spec_old.occurrences)
+    assert outcome.superseded_points_deactivated == len(spec_old.occurrences)
+    assert outcome.superseded_points_deleted == len(spec_old.occurrences)
     points = all_points(client, report.collection)
     generations = {p.payload["chunk_generation_id"] for p in points}
     assert str(spec_old.generation_id) not in generations
@@ -108,6 +109,66 @@ def test_incremental_new_generation_supersedes_only_its_source(settings):
     untouched = [r for r in results if r.relative_path != "specs/pumps.pdf"]
     for result in untouched:
         assert str(result.generation_id) in generations
+
+
+def _replace_specs(settings, **search):
+    configured = settings.model_copy(update={"search": settings.search.model_copy(update=search)})
+    indexer, _, client = services(configured)
+    results = sample_bid()
+    indexer.index([generation(r) for r in results])
+    old = next(r for r in results if r.relative_path == "specs/pumps.pdf")
+    new = chunked(pdf_document(BID_A, "specs/pumps.pdf", [["Pump model PX-700 replaces it."]]))
+    return indexer, client, old, new
+
+
+def _source_points(client, collection):
+    return [
+        p for p in all_points(client, collection) if p.payload["relative_path"] == "specs/pumps.pdf"
+    ]
+
+
+def test_superseded_delete_that_removes_nothing_fails_and_rerun_recovers(settings):
+    indexer, client, old, new = _replace_specs(settings)
+    with patch.object(client, "delete", return_value=None):
+        report = indexer.index([generation(new)])
+    outcome = report.outcomes[0]
+    assert outcome.status == "failed" and outcome.error_code == "superseded_delete_unverified"
+    assert outcome.superseded_points_deactivated == len(old.occurrences)
+    assert outcome.superseded_points_deleted == 0
+    # Searchable state is still correct: only the replacement is active.
+    active = {
+        p.payload["chunk_generation_id"]
+        for p in _source_points(client, report.collection)
+        if p.payload["index_active"]
+    }
+    assert active == {str(new.generation_id)}
+
+    rerun = indexer.index([generation(new)]).outcomes[0]
+    assert rerun.status == "unchanged"
+    assert rerun.superseded_points_deactivated == 0
+    assert rerun.superseded_points_deleted == len(old.occurrences)
+    remaining = {
+        p.payload["chunk_generation_id"] for p in _source_points(client, report.collection)
+    }
+    assert remaining == {str(new.generation_id)}
+
+
+def test_retained_superseded_points_are_reported_as_deactivated_not_deleted(settings):
+    indexer, client, old, new = _replace_specs(settings, delete_superseded_points=False)
+    report = indexer.index([generation(new)])
+    outcome = report.outcomes[0]
+    assert outcome.status == "completed"
+    assert outcome.superseded_points_deactivated == len(old.occurrences)
+    assert outcome.superseded_points_deleted == 0
+    retained = [
+        p
+        for p in _source_points(client, report.collection)
+        if p.payload["chunk_generation_id"] == str(old.generation_id)
+    ]
+    assert len(retained) == len(old.occurrences)
+    assert not any(p.payload["index_active"] for p in retained)
+    rerun = indexer.index([generation(new)]).outcomes[0]
+    assert rerun.status == "unchanged" and rerun.superseded_points_deactivated == 0
 
 
 def test_multi_batch_upsert_is_not_reported_as_a_retry(settings):

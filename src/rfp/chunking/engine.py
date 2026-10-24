@@ -212,14 +212,18 @@ def _row_parts(
 
     def render(start: int, end: int, cells: list[str | None] | None = None) -> str:
         return _table_text(
-            headers[start:end] if headers else None, [cells if cells is not None else row[start:end]]
+            headers[start:end] if headers else None,
+            [cells if cells is not None else row[start:end]],
         )
 
     parts: list[RowPart] = []
     column = 0
+    # The predicates are consumed within the same iteration, so capturing ``column`` is safe.
     while column < len(row):
         last = largest(
-            column + 1, len(row), lambda end: counter.count(render(column, end)) <= config.max_tokens
+            column + 1,
+            len(row),
+            lambda end: counter.count(render(column, end)) <= config.max_tokens,  # noqa: B023
         )
         if last > column:
             parts.append(RowPart(render(column, last), column + 1, last))
@@ -230,7 +234,7 @@ def _row_parts(
             cell,
             config.max_tokens,
             config.overlap_tokens,
-            lambda value: counter.count(render(column, column + 1, [value])),
+            lambda value: counter.count(render(column, column + 1, [value])),  # noqa: B023
             counter.count,
         )
         warnings = ("token_budget_word_split",) if split_word else ()
@@ -495,6 +499,7 @@ def chunk_document(
                     headers=headers,
                     rows=rows,
                     section=section,
+                    page=page,
                 ) -> None:
                     emit(
                         [

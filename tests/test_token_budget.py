@@ -114,9 +114,7 @@ def test_rerank_scores_each_distinct_text_once_and_reports_windowing(settings):
 
 def real_counter() -> ModelTokenCounter:
     try:
-        counter = counter_for(
-            "model_tokenizer_v1", ChunkConfig().tokenizer_identifier, REAL_CACHE
-        )
+        counter = counter_for("model_tokenizer_v1", ChunkConfig().tokenizer_identifier, REAL_CACHE)
     except TokenizerUnavailable:
         pytest.skip("BGE tokenizer is not cached locally (run init-models)")
     assert isinstance(counter, ModelTokenCounter)
@@ -129,9 +127,12 @@ def test_real_bge_chunks_fit_the_budget_and_are_never_truncated():
 
     inference, _ = load_tokenizer(tokens.model_dir("BAAI/bge-small-en-v1.5", REAL_CACHE))
     prose = " ".join(
-        f"Clause {i}.{i % 7} requires PX-{i:04d} at $1,{i:03d}.50 within {i} days." for i in range(300)
+        f"Clause {i}.{i % 7} requires PX-{i:04d} at $1,{i:03d}.50 within {i} days."
+        for i in range(300)
     )
-    cell = "\n".join(f"• Requirement {i}: Intel i5, 16GB DDR5, SKU 210-B{i:03d}" for i in range(200))
+    cell = "\n".join(
+        f"• Requirement {i}: Intel i5, 16GB DDR5, SKU 210-B{i:03d}" for i in range(200)
+    )
     table = ParsedTable(
         table_id="t",
         table_index=1,

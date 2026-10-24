@@ -37,14 +37,16 @@ class SearchConfig(Contract):
     allow_model_download: bool = False
     onnx_threads: int | None = Field(default=None, ge=1, le=64)
     embed_batch_size: int = Field(default=32, ge=1, le=1024)
-    rerank_batch_size: int = Field(default=32, ge=1, le=1024)
+    # Measured on 4-core CPU ONNX (VERIFICATION.md): each extra pair per batch adds ~60 MB of
+    # arena memory and no throughput, because every pair pads to the longest in its batch.
+    rerank_batch_size: int = Field(default=1, ge=1, le=1024)
     rerank_window_overlap_tokens: int = Field(default=50, ge=0, le=256)
     max_concurrent_inference: int = Field(default=2, ge=1, le=32)
     inference_timeout_seconds: float = Field(default=60, ge=1, le=600)
     default_top_k: int = Field(default=5, ge=1, le=100)
     max_top_k: int = Field(default=50, ge=1, le=200)
     candidate_depth: int = Field(default=40, ge=1, le=500)
-    rerank_depth: int = Field(default=40, ge=1, le=500)
+    rerank_depth: int = Field(default=20, ge=1, le=500)
     rrf_k: int = Field(default=60, ge=1, le=1000)
     dense_weight: float = Field(default=1.0, ge=0, le=10)
     sparse_weight: float = Field(default=1.0, ge=0, le=10)

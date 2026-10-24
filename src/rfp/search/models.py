@@ -5,7 +5,7 @@ import importlib.metadata
 import logging
 import math
 import threading
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, TypeVar
@@ -84,6 +84,66 @@ class Reranker(Protocol):
 
     def rerank(self, query: str, documents: Sequence[str]) -> RerankScores: ...
     def identity(self) -> Identity: ...
+
+
+class PairCounter(Protocol):
+    def count(self, text: str) -> int: ...
+    def pair_count(self, query: str, document: str) -> int: ...
+
+
+def rerank_bounded(
+    query: str,
+    documents: Sequence[str],
+    score: Callable[[str, list[str]], Iterable[float]],
+    counter: PairCounter,
+    max_tokens: int,
+    overlap_tokens: int,
+    batch_size: int,
+) -> RerankScores:
+    """Score every document with at most ``batch_size`` pairs per model call.
+
+    A cross-encoder scores each pair independently (padding is masked), so batching may only
+    change scores by floating-point noise. Pairs are sorted by token length so each batch pads
+    to a similar length; scores are returned in input order.
+    """
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive")
+    if not documents:
+        return RerankScores([])
+    inputs: list[tuple[int, int, int, int]] = []  # (pair tokens, owner, start, end)
+    windowed = truncated = 0
+    longest = 0
+    query_tokens = counter.count(query)
+    for index, document in enumerate(documents):
+        length = counter.pair_count(query, document)
+        longest = max(longest, length)
+        # A query that leaves no room for document text cannot be windowed meaningfully.
+        if length <= max_tokens or query_tokens > max_tokens // 2:
+            truncated += int(length > max_tokens)
+            inputs.append((length, index, 0, len(document)))
+            continue
+        windowed += 1
+        spans, _ = token_windows(
+            document,
+            max_tokens,
+            overlap_tokens,
+            lambda value: counter.pair_count(query, value),
+            counter.count,
+        )
+        for start, end in spans:
+            inputs.append((counter.pair_count(query, document[start:end]), index, start, end))
+    # Stable sort: equal lengths keep input order, so batch composition is deterministic.
+    inputs.sort(key=lambda item: item[0])
+    scores = [-math.inf] * len(documents)
+    for offset in range(0, len(inputs), batch_size):
+        batch = inputs[offset : offset + batch_size]
+        texts = [documents[owner][start:end] for _, owner, start, end in batch]
+        raw = [float(value) for value in score(query, texts)]
+        if len(raw) != len(batch) or not all(math.isfinite(value) for value in raw):
+            raise InferenceFailed(code="reranker_failed")
+        for (_, owner, _, _), value in zip(batch, raw, strict=True):
+            scores[owner] = max(scores[owner], value)
+    return RerankScores(scores, windowed, truncated, longest)
 
 
 def validate_dense(vector: Any, dim: int) -> list[float]:
@@ -296,41 +356,15 @@ class FastEmbedReranker:
         self.overlap_tokens = config.rerank_window_overlap_tokens
 
     def rerank(self, query: str, documents: Sequence[str]) -> RerankScores:
-        inputs: list[str] = []
-        owners: list[int] = []
-        windowed = truncated = 0
-        longest = 0
-        query_tokens = self._counter.count(query)
-        for index, document in enumerate(documents):
-            length = self._counter.pair_count(query, document)
-            longest = max(longest, length)
-            # A query that leaves no room for document text cannot be windowed meaningfully.
-            if length <= self.max_tokens or query_tokens > self.max_tokens // 2:
-                truncated += int(length > self.max_tokens)
-                inputs.append(document)
-                owners.append(index)
-                continue
-            windowed += 1
-            spans, _ = token_windows(
-                document,
-                self.max_tokens,
-                self.overlap_tokens,
-                lambda value: self._counter.pair_count(query, value),
-                self._counter.count,
-            )
-            for start, end in spans:
-                inputs.append(document[start:end])
-                owners.append(index)
-        # Shorter inputs first so each batch pads to similar lengths; order is restored below.
-        order = sorted(range(len(inputs)), key=lambda i: len(inputs[i]))
-        raw = list(
-            self._model.rerank(query, [inputs[i] for i in order], batch_size=self.batch_size)
+        return rerank_bounded(
+            query,
+            documents,
+            lambda text, batch: self._model.rerank(text, batch, batch_size=len(batch)),
+            self._counter,
+            self.max_tokens,
+            self.overlap_tokens,
+            self.batch_size,
         )
-        scores = [-math.inf] * len(documents)
-        for position, score in zip(order, raw, strict=True):
-            owner = owners[position]
-            scores[owner] = max(scores[owner], float(score))
-        return RerankScores(scores, windowed, truncated, longest)
 
     def identity(self) -> Identity:
         return {
@@ -452,6 +486,6 @@ def init_models(config: SearchConfig, include_reranker: bool = True) -> dict[str
     }
     if include_reranker:
         reranker = FastEmbedReranker(config, allow_download=True)
-        reranker.rerank("warm-up", ["warm-up"]).scores
+        reranker.rerank("warm-up", ["warm-up"])
         result["reranker"] = reranker.identity()
     return result

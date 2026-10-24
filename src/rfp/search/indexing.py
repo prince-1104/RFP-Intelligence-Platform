@@ -53,7 +53,9 @@ class GenerationOutcome:
     dense_computed: int = 0
     sparse_computed: int = 0
     truncated_inputs: int = 0
-    superseded_points_removed: int = 0
+    superseded_points_deactivated: int = 0
+    # Counted from Qdrant after the delete, not assumed from the request.
+    superseded_points_deleted: int = 0
     # Highest attempt number any upsert batch needed (1 = no retry), not the number of batches.
     attempts: int = 0
     upsert_batches: int = 0
@@ -75,7 +77,8 @@ class GenerationOutcome:
             "dense_computed": self.dense_computed,
             "sparse_computed": self.sparse_computed,
             "truncated_inputs": self.truncated_inputs,
-            "superseded_points_removed": self.superseded_points_removed,
+            "superseded_points_deactivated": self.superseded_points_deactivated,
+            "superseded_points_deleted": self.superseded_points_deleted,
             "attempts": self.attempts,
             "upsert_batches": self.upsert_batches,
             "upsert_retries": self.upsert_retries,
@@ -256,7 +259,7 @@ class IndexingService:
         if active_count == expected and total_count == expected:
             outcome.status = "unchanged"
             outcome.point_count = expected
-            outcome.superseded_points_removed = self._supersede(manager, generation)
+            self._supersede(manager, generation, outcome)
             return
 
         timer = time.monotonic()
@@ -322,7 +325,7 @@ class IndexingService:
         )
         if self._count(manager, [*generation_filter, _match("index_active", True)]) != expected:
             raise IndexingFailed("Activation verification failed", "index_activation_failed")
-        outcome.superseded_points_removed = self._supersede(manager, generation)
+        self._supersede(manager, generation, outcome)
         outcome.point_count = expected
         outcome.status = "completed"
         log_event(
@@ -393,35 +396,52 @@ class IndexingService:
                     raise
                 self.sleep(min(2**attempt, 8))
 
-    def _supersede(self, manager: CollectionManager, generation: GenerationInput) -> int:
+    def _supersede(
+        self, manager: CollectionManager, generation: GenerationInput, outcome: GenerationOutcome
+    ) -> None:
         """Retire other generations for the same source only after replacement verification."""
         source = [
             _match("bid_id", str(generation.bid_id)),
             _match("relative_path", generation.relative_path),
         ]
         others = [_match("chunk_generation_id", str(generation.generation_id))]
-        stale = self._count(manager, source, must_not=others)
-        if not stale:
-            return 0
-        qdrant_call(
-            lambda: self.client.set_payload(
-                manager.name,
-                payload={"index_active": False},
-                points=models.Filter(must=source, must_not=others),
-                wait=True,
-            )
-        )
-        if self.config.delete_superseded_points:
+        active = self._count(manager, [*source, _match("index_active", True)], must_not=others)
+        if active:
             qdrant_call(
-                lambda: self.client.delete(
+                lambda: self.client.set_payload(
                     manager.name,
-                    points_selector=models.FilterSelector(
-                        filter=models.Filter(must=source, must_not=others)
-                    ),
+                    payload={"index_active": False},
+                    points=models.Filter(must=source, must_not=others),
                     wait=True,
                 )
             )
-        return stale
+        outcome.superseded_points_deactivated = active
+        stale = self._count(manager, source, must_not=others)
+        if not stale:
+            return
+        if not self.config.delete_superseded_points:
+            log_event(
+                logger,
+                "superseded_points_retained",
+                generation_id=str(generation.generation_id),
+                points=stale,
+            )
+            return
+        qdrant_call(
+            lambda: self.client.delete(
+                manager.name,
+                points_selector=models.FilterSelector(
+                    filter=models.Filter(must=source, must_not=others)
+                ),
+                wait=True,
+            )
+        )
+        remaining = self._count(manager, source, must_not=others)
+        outcome.superseded_points_deleted = stale - remaining
+        if remaining:
+            raise IndexingFailed(
+                "Superseded points remain after deletion", "superseded_delete_unverified"
+            )
 
     def _discard_staging(self, manager: CollectionManager, generation: GenerationInput) -> None:
         # Invisible staging points only; previously active evidence is never touched here.

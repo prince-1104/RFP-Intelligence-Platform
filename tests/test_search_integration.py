@@ -45,6 +45,28 @@ def test_live_index_payload_indexes_and_search(live):
     assert response.results[0].citation.page_start == 1
 
 
+def test_live_supersession_deletes_previous_generation_on_server(live):
+    from search_fakes import chunked, pdf_document
+
+    _, client, indexer, _ = live
+    results = sample_bid()
+    first = indexer.index([generation(r) for r in results])
+    old = next(r for r in results if r.relative_path == "specs/pumps.pdf")
+    new = chunked(pdf_document(BID_A, "specs/pumps.pdf", [["Pump model PX-800 text."]]))
+    outcome = indexer.index([generation(new)]).outcomes[0]
+    assert outcome.status == "completed"
+    assert outcome.superseded_points_deleted == len(old.occurrences)
+    source = models.Filter(
+        must=[
+            models.FieldCondition(
+                key="relative_path", match=models.MatchValue(value=old.relative_path)
+            )
+        ]
+    )
+    points, _ = client.scroll(first.collection, scroll_filter=source, limit=100, with_payload=True)
+    assert {p.payload["chunk_generation_id"] for p in points} == {str(new.generation_id)}
+
+
 def test_live_server_version_is_compatible(live):
     from qdrant_client.common.version_check import is_compatible
 

@@ -416,6 +416,111 @@ date), "USB 3.1 requirement for display monitor" (Addendum 1, page 1), "warranty
 devices" (RFP page 4 table rows, then Addendum 1). `--doc-type` filters for addendum, rfp and
 bid_page each returned only matching documents. CPU reranking took 4–18 s per query.
 
+## Retrieval-quality hardening (local only)
+
+Local Qdrant 1.19.2 (`127.0.0.1:6333`), local artifacts and `.cache/fastembed` only. Scripts use
+`scripts/local_guard.py`, which rejects non-loopback Qdrant and any cloud credentials. Nothing was
+written to R2, Qdrant Cloud or PostgreSQL; no jobs were queued; `index-bid` was not run.
+Host: 4 logical CPUs, 7.8 GB RAM, shared with other workloads (one parity run coincided with
+100% CPU and <600 MB free; latency/memory runs below were taken after load dropped to ~15%).
+
+**Superseded points were not deleted (fixed).** The local collection held 276 inactive points of
+the replaced Bid1 chunking-1.0 generation although the index report claimed
+`superseded_points_removed: 276`. Qdrant logs for that run show activate/deactivate payload
+calls and no `points/delete`; the delete code and its `True` default are unchanged since the
+first commit and a scratch-collection reproduction with current code does delete. The exact
+reason the delete branch was skipped in that run (most likely `delete_superseded_points`
+disabled for that process) cannot be proven from the retained evidence. The defect that hid it
+was real: the report counted deactivated points as removed. `_supersede` now reports
+`superseded_points_deactivated` and `superseded_points_deleted` (recounted after the delete) and
+fails the generation with `superseded_delete_unverified` if stale points remain; searchable state
+is already correct at that point and a rerun retries. Regression tests cover a delete that
+removes nothing, retention disabled, and a live-server supersession. A local unchanged-path rerun
+deleted the 276 points (no re-embedding); the consistency check now reports every source at its
+expected active count (Bid1 417, Bid2 116) with zero inactive points.
+
+**Upsert retries.** The earlier "retry" was a reporting artifact (upload batches counted as
+attempts), fixed in `c8f2aa8`; both bid runs logged `upsert_retries: 0`. Bounded retry
+(`upsert_attempts`, backoff `min(2**attempt, 8)` s, no retry on 4xx) is covered by tests.
+
+**Reranker batching parity.** `rerank_bounded` scores at most `rerank_batch_size` pairs per ONNX
+call (length-sorted, input order restored, max over windows for over-limit pairs, failure on
+count mismatch or non-finite scores, empty input makes no call). `scripts/rerank_parity.py
+parity` ran 52 dataset queries at depth 40 through the real `SearchService`, comparing batch
+sizes 8, 32 and 64 against one pair per call: pre-rerank candidate order, final ranking, text,
+citations, metadata and warnings identical in 156/156 comparisons; max |score difference|
+0.0 (tolerance 1e-4). A spy confirmed the batch size changes the calls (20 / 3 / 1 calls for
+batch 1 / 8 / 64) and the scores are still bit-identical, as is FastEmbed's own batching.
+
+**Latency (rerank stage, ms; 13 queries × 3 repeats, warm models).**
+
+| Depth | batch 1 p50/p95 | batch 2 | batch 4 | batch 8 | batch 16 | batch 32 |
+|---|---|---|---|---|---|---|
+| 10 | 828 / 1250 | | | | 1438 / 1906 | 1422 / 1687 |
+| 20 | 1359–1438 / 1906–2953 | 1437 / 2250 | 1687 / 2328 | 1891 / 2359 | 2672 / 5844 | 3016 / 6250 |
+| 40 | 2407–2515 / 3750–5032 | 2500 / 3969 | 2703 / 4000 | 2984 / 4860 | 3609 / 4766 | 5328 / 10672 |
+
+Ranges are two separate runs. 0 errors, 0 skipped measurements.
+
+**Memory (peak private commit growth during the workload, fresh process per configuration,
+identical warm-up and 13-query workload; base after warm-up ≈ 514 MB).** Batch 1: 11 / 44 / 45 MB
+at depth 10 / 20 / 40. Batch 2: 111–113 MB; 4: 242–244 MB; 8: 508–525 MB; 16: 508–838 MB;
+32: 524 MB (depth 10, one batch) and 1170–1203 MB. Memory follows batch size, not depth, because
+every pair is padded to the longest pair in its batch (windows reach 512 tokens).
+
+**Depth vs relevance (all 52 non-unknown queries; top-5 at depth 10 and 20 differs from depth 40
+in 10 and 6 of 13 sampled queries).**
+
+| Mode | Recall@5 | MRR@10 | nDCG@10 | hit@5 | rerank p50 ms |
+|---|---|---|---|---|---|
+| dense | 0.703 | 0.688 | 0.659 | 0.88 | – |
+| sparse (BM25) | 0.786 | 0.781 | 0.749 | 0.88 | – |
+| hybrid RRF | 0.736 | 0.795 | 0.741 | 0.88 | – |
+| hybrid+rerank depth 10 | 0.742 | 0.751 | 0.725 | 0.88 | 1549 (total, batch 32) |
+| hybrid+rerank depth 20 | 0.772 | 0.769 | 0.765 | 0.88 | 4716 (total, batch 32) |
+| hybrid+rerank depth 40 | 0.766 | 0.764 | 0.761 | 0.88 | 6881 (total, batch 32) |
+
+Paired bootstrap (5000 resamples): depth 20 − 40 MRR@10 +0.005 [0.000, +0.011] (3 better,
+0 worse), nDCG@10 +0.004 [−0.014, +0.022]; depth 10 − 20 nDCG@10 −0.040 [−0.084, −0.005];
+hybrid − rerank@40 differences all straddle zero. Every mode: 0 errors, 0 cross-bid leaks,
+0 citation errors, 3/3 unknown identifiers returned no evidence with
+`identifier_evidence_not_found`.
+
+**Defaults changed:** `rerank_batch_size` 32 → 1 (lowest memory and latency on CPU ONNX) and
+`rerank_depth` 40 → 20 (no measurable relevance loss on this dataset, ~45% lower rerank latency;
+depth 10 loses nDCG). Both remain configurable. Caveats: two bids, 50 answerable cases labeled
+from the documents but not yet human-reviewed; the reranker does not significantly beat hybrid
+RRF here; GPU or a different CPU may favour larger batches.
+
+**Known retrieval misses (not tuned):** `Dell_Laptop_Specs.pdf` never ranks for Bid2 RAM,
+display and battery questions (PORFP page 3 dominates in all modes); Bid1 award timing and buyer
+contact are outside the reranked top 10.
+
+**Local validation of both bids.** Point counts equal active occurrences per source; exact
+identifiers (`JA-207652`, `BPM044557`, SKU) rank the right evidence first; doc-type filters:
+342 filtered searches (19 dataset queries × every doc type × dense/sparse/hybrid) returned 3087
+citations, all of the requested type and bid (types seen: Bid1 addendum/bid_page/rfp, Bid2
+affidavit/bid_page/rfp/specs); unknown `JA-999999`, `E20P9999999` and `210-ZZQX` return no results; PDF citations carry
+one-based pages, HTML citations carry element locators and null pages; no bid leaks. Two HTML
+points have locators with no element ID, heading or non-zero element index (not yet inspected).
+
+**OCR pages without table structure (main RFP pages 54–59).** These pages are an embedded IRS
+Form W-9 with no text layer: 0 characters and 0 images, only 375–1247 vector rectangles per page
+(glyph outlines), so native text and pdfplumber table extraction see nothing. Tesseract reads them
+at 92.6–95.5 mean confidence and two-column prose comes out in reading order. The limitation is
+in our pipeline, not OCR quality: `ocr_page` returns only text lines/blocks, there is no OCR
+table-structure reconstruction, and `ocr_table_structure_not_recovered` is appended to every OCR
+page unconditionally. Only pages 57–58 (exempt-payee and name/TIN two-column charts) and the
+page-54 form grid have tabular structure; their column text is interleaved in OCR output. No
+cells were invented. Follow-up (separate parser work): build cells from Tesseract word boxes
+within the detected ruling lines (pdfplumber finds 16–28 lines on pages 54, 56–58), and emit the
+warning only when ruling/column layout is detected.
+
+Verification: `pytest` 269 passed with local Qdrant integration and real-model smoke enabled
+(263 passed, 6 skipped by default); `ruff check`, `ruff format --check` and `mypy` clean (this
+also fixed B023/E501/format and two optional-int comparisons already present in `c8f2aa8`).
+
 ## Not yet verified
 
-Bid2 local indexing/search, and the production canary (R2, PostgreSQL, Qdrant Cloud, Celery).
+Human review of the evaluation labels (`needs_human_labeling`), and the production canary
+(R2, PostgreSQL, Qdrant Cloud, Celery).
