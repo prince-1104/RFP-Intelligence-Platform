@@ -3,28 +3,19 @@
 import re
 
 from rfp.agents.schemas import DraftField, EvidenceHit, FieldValidation, SourceRef
+from rfp.agents.semantics import (
+    DATE_RE,
+    MONTH_YEAR_RE,
+    RELATIVE_RE,
+    STOP,
+    normalize,
+    semantic_problems,
+)
 
 DATE_FIELDS = {"Due Date", "Pre Bid Meeting", "Delivery Date"}
+RELATIVE_DATE_FIELDS = {"Delivery Date"}
 IDENTIFIER_FIELDS = {"Bid Number", "Model_no", "Part_no"}
 ABSENCE = ("not found", "no evidence", "not stated", "not in the documents", "no requirement")
-DATE_RE = re.compile(
-    r"\d{1,2}-[A-Za-z]{3}-\d{4}(?:\s+\d{2}:\d{2}:\d{2})?"
-    r"|(?:January|February|March|April|May|June|July|August|September|October|November|December)"
-    r"\s+\d{1,2},\s+\d{4}(?:\s+at\s+\d{1,2}:\d{2}\s*[AP]M(?:\s*[A-Z]{2,5})?)?"
-    r"|\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?(?:\s*[A-Z]{2,5})?)?"
-    r"|\d{1,2}/\d{1,2}/\d{4}",
-    re.IGNORECASE,
-)
-MONTH_YEAR_RE = re.compile(
-    r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December)"
-    r"(?:\s+of)?\s+\d{4}\b",
-    re.IGNORECASE,
-)
-STOP = frozenset({"the", "and", "for", "with", "this", "that", "from", "are", "was", "were"})
-
-
-def normalize(value: str) -> str:
-    return " ".join(value.casefold().split())
 
 
 def contained(value: str, text: str) -> bool:
@@ -53,7 +44,31 @@ def _support(value: str, texts: list[str]) -> bool:
     if not tokens:
         return False
     haystack = normalize(blob)
-    return all(token in haystack for token in tokens)
+    # PDF text can break dotted tokens such as email domains ("md .us").
+    squashed = re.sub(r"\s+", "", haystack)
+    return all(
+        token in haystack or ("." in token.strip(".") and token in squashed) for token in tokens
+    )
+
+
+SUMMARY_COVERAGE = 0.8
+
+
+def _summary_support(value: str, texts: list[str]) -> bool:
+    """Most content words of an abstractive summary must come from the cited text.
+
+    Numbers are checked separately and must all appear in the cited evidence.
+    """
+    haystack = normalize("\n".join(texts))
+    tokens = [
+        token.strip(".,;:()")
+        for token in re.findall(r"[a-z][a-z'-]{3,}", normalize(value))
+        if token not in STOP
+    ]
+    if not tokens:
+        return False
+    present = sum(1 for token in tokens if token[:6] in haystack)
+    return present / len(tokens) >= SUMMARY_COVERAGE
 
 
 def locator_problem(source: SourceRef) -> str | None:
@@ -125,13 +140,17 @@ def validate_field(
             if source.bid_id != hit.bid_id:
                 reasons.append("Cross-bid citation")
     texts = [hit.text for hit in chosen]
-    supported = bool(chosen) and _support(draft.value, texts)
+    supported = bool(chosen) and (
+        _support(draft.value, texts)
+        or (draft.name == "Bid Summary" and _summary_support(draft.value, texts))
+    )
     if chosen and not supported:
         reasons.append("Cited evidence does not support the value")
     if (
         draft.name in DATE_FIELDS
         and not date_phrases(draft.value)
         and not MONTH_YEAR_RE.search(draft.value)
+        and not (draft.name in RELATIVE_DATE_FIELDS and RELATIVE_RE.search(draft.value))
         and draft.value.casefold()
         not in {
             "none",
@@ -139,6 +158,8 @@ def validate_field(
         }
     ):
         reasons.append("Date field is not a date stated in the evidence")
+    if supported:
+        reasons.extend(semantic_problems(draft.name, draft.value, texts))
     if (
         draft.name in IDENTIFIER_FIELDS
         and chosen

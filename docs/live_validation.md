@@ -1,4 +1,4 @@
-# Live end-to-end validation (Phase 7)
+# Live end-to-end validation (Phases 7 and 8)
 
 Run date 2026-10-24. Every result below comes from a live model call (`openai` / `gpt-4o-mini`,
 configured through the existing `build_live_model()` client) against the local loopback Qdrant
@@ -6,7 +6,177 @@ collection that already held both bids. Nothing was re-indexed, and no remote se
 the configured model provider was contacted. Offline test results are reported separately at the end.
 
 The accuracy verdicts are an assistant review of each value against the parsed source text in
-`artifacts/assessment/<Bid>/parsed`. A human reviewer has not confirmed them yet.
+`artifacts/assessment/<Bid>/parsed`. A human reviewer has not confirmed them yet. Automated
+checks (schema, citation support, secrets) are listed separately from these verdicts.
+
+## Phase 8: field-meaning validation and recovered fields
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts\extraction_v3 --trace-dir artifacts\extraction_v3\traces
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid2 --output artifacts\extraction_v3 --trace-dir artifacts\extraction_v3\traces
+.\.venv\Scripts\python scripts\verify_extraction.py --outputs artifacts\extraction_v3 --out artifacts\eval\extraction_v3_check.json
+.\.venv\Scripts\python -m rfp.cli ask-samples --questions examples\qa_phase7_questions.json --output artifacts\qa_phase8
+.\.venv\Scripts\python -m rfp.cli ask-samples --questions examples\qa_questions.json --output artifacts\qa_v7
+.\.venv\Scripts\python scripts\evaluate_qa.py score --samples artifacts\qa_v7\qa_samples.json --out artifacts\eval\qa_v7.json
+.\.venv\Scripts\python scripts\evaluate_retrieval.py verify
+.\.venv\Scripts\python scripts\evaluate_retrieval.py run --modes dense,sparse,hybrid,hybrid_rerank --out artifacts\eval\retrieval_phase8.json
+```
+
+| Run | Bid | Accepted | Not found | Unresolved | Model calls | Tokens in / out |
+|---|---|---|---|---|---|---|
+| Phase 7 (`extraction_v2`) | Bid1 | 12 | 8 | 0 | 18 | 34,795 / 1,637 |
+| Phase 7 | Bid2 | 12 | 7 | 1 | 23 | 40,591 / 2,399 |
+| Phase 8 (`extraction_v3`) | Bid1 | 16 | 4 | 0 | 26 | 42,554 / 3,003 |
+| Phase 8 | Bid2 | 15 | 5 | 0 | 22 | 37,385 / 1,961 |
+
+Four intermediate runs are kept in `artifacts/extraction_v3_first_attempt` through
+`_fourth_attempt`. Each exposed a defect that was fixed before the next run. The defects are
+listed under "Defects found during the re-runs" below. `artifacts/extraction_v2` is unchanged.
+
+### Field-meaning rules
+
+`src/rfp/agents/semantics.py` adds deterministic rules that run inside `validate_field` after the
+support check. A failed rule is an ordinary rejection reason, so the existing bounded retry (at
+most 2) applies. If the retries also fail, the field becomes unresolved with no value. No
+per-field LLM call was added. Confidence semantics are unchanged.
+
+A *cue* must appear in the value itself or within 150 characters before or 80 characters after
+the value in the cited passage. When the whole value is not in the passage, its dates, emails,
+phones and distinctive words are used to find it.
+
+| Field | Rule |
+|---|---|
+| Due Date | Cue: due, deadline, closing, submit, receive, no later than, opening |
+| Delivery Date | Cue: deliver (not "deliverable"), ship, lead time, arrive. A nearby due or closing label is reported as belonging to another field. A relative schedule ("within 45 days of award") counts as a date |
+| Pre Bid Meeting | Cue: pre-bid, pre-proposal, conference, meeting, site visit |
+| Bid Submission Type | The value itself must name a channel: online, portal, electronic, email, upload, mail, hard copy, envelope, system |
+| Term of Bid | Needs a number or number word, and a term, renewal or period cue |
+| Installation, Bid Bond, Payment Terms, Contract or Cooperative | Topic cues (install, deploy, setup; bond, security; pay, invoice; contract, cooperative, alliance, agreement) |
+| Any Additional Documentation Required | The value must name a document type (affidavit, form, certificate, attachment, …) |
+| MFG for Registration | Checkbox glyphs and "check applicable box" are rejected. A sentence must itself state the manufacturer or authorization requirement; a bare name of up to four words may rely on the passage around it |
+| contact_info | Needs an email or phone, with a contact cue (buyer, contact, procurement, officer, POC, questions) nearby |
+| company_name | Needs words and an organization cue (district, office, department, agency, …). It may not be an email or phone |
+| Bid Number, Model_no, Part_no | Must contain a digit and may not be a date, phone or email. After each round, Model_no or Part_no is rejected if it contains the accepted Bid Number |
+| Product Specification | The value must name a technical term (GB, GHz, processor, memory, display, battery, warranty, …) |
+
+### Incorrect fields: root cause and fix
+
+| Field | Phase 7 value | Root cause | Fix | Phase 8 value |
+|---|---|---|---|---|
+| Bid2 Delivery Date | 06/10/2024 (wrong) | The validator checked that the value was in the passage, not what it meant. The date sits under a "Due Date" column in the PORFP p3 product table | Delivery cue rule. A relative schedule is accepted as a date | within 45 days of Award (p2) |
+| Bid2 MFG for Registration | Affidavit checkbox text (wrong) | Same validator gap | Checkbox rejection and manufacturer cue rule | Dell (p2: "must be an authorized reseller for Dell") |
+| Bid2 Bid Submission Type | "Sealed Proposals process under COMAR 21.05.03" (partial) | A procurement method was accepted as a channel | The value must name a channel. The field definition says a regulation name is not a submission type | eMaryland Marketplace Advantage (eMMA) e-Procurement system (p1) |
+| Bid1 Model_no (seen in an intermediate run) | JA-207652 | The solicitation number is printed on every price-sheet page | Reject product identifiers that repeat the accepted Bid Number | null |
+
+### Missed fields: root cause and fix
+
+| Field | Source passage | Failure point | Fix |
+|---|---|---|---|
+| Bid2 Any Additional Documentation Required | PORFP p2 (Mercury Affidavit), Contract_Affidavit.pdf | Retrieval query. The catalog query contained "W-9", which the search engine treats as an identifier. Bid2 has no W-9, so every search returned nothing (`identifier_evidence_not_found`) | Identifier-free queries. A test asserts no catalog query, including retry variants, contains an identifier |
+| Bid2 Model_no, Product | PORFP p3, specs p1 | Extraction context. The model cited an id shown under a sibling field in the same prompt, which was rejected as "Fabricated citation" | A field may cite any passage shown in the same request. Ids never shown remain fabricated |
+| Bid2 contact_info | PORFP p3 | Parsing of the model reply. Retries returned ids as integers (`[5, 7]`), and once the value as a JSON object; both were dropped. The PDF text also splits the email ("md .us"), so a correct email failed the token check | Integer and string ids map to the field's ids, and object values are joined. Dotted tokens are also compared with whitespace removed |
+| Bid1 company_name | FINAL p2: "The Dallas Independent School District … is soliciting offers" | Retrieval query. The query did not reach that sentence, and the model cited unrelated clauses | Added the step "organization soliciting offers or proposals" (rank 1 for Bid1, no change for Bid2) |
+| Bid1 Bid Submission Type, Bid2 Bid Submission Type, Bid2 MFG, Bid2 Product | FINAL p9; PORFP pp. 1–3 | Extraction context. Passages were cut to their first 700 characters. The answers sit at characters 821 to 1,324, so the model never saw them. The critic had the same cut and rejected correct values | The prompt and critic show the 700-character window that best matches the field's query terms (critic: the value's words). The validator still checks the full passage |
+| Bid1 Product, Product Specification, Installation | FINAL pp. 3–7, 34–35 | Extraction context. No field definitions were shown, and the model returned null for category RFPs | Each field block now has a one-line definition (`FIELD_DEFINITIONS`) |
+| Bid2 Bid Summary (unresolved in an intermediate run) | PORFP p2 | Validator. Every summary word had to appear in the cited text, which an abstractive summary cannot meet | For Bid Summary only, 80% of content words must come from the cited text. Every number must still appear in the evidence |
+
+The model returns an unsupported paraphrase on retries often enough that the retry prompt now
+adds "copy the value word for word" after a "does not support" rejection.
+
+Notes are grounded in `semantics.grounded_notes`. On accepted values, sentences that claim the
+value is absent are dropped. So are sentences about an original, previous or revised value when
+no `AddendumChange` is recorded, and sentences with a date not in the cited passage. When an
+addendum change is recorded, the note is written from that record. The invented "Original due
+date was 06/01/2024" on Bid2 is gone. Bid1's note now reads "Addendum 2 states July 9, 2024 at
+2:00 PM CST; the base document stated 27-JUN-2024 14:00:00."
+
+### Citation page locators
+
+A chunk that crosses pages keeps its first page as `page`. `SourceRef.spans` now holds per-page
+character ranges of the chunk text, built from the existing `source_segments`. Chunk text is the
+source pieces joined by a blank line. The map is used only when the segment lengths add up to the
+text length exactly; otherwise behavior is unchanged. Extraction sources list each page that holds
+the value, and Q&A citations narrow `page`/`page_end` to the quoted span. Identifiers, source
+text and page labels are unchanged.
+
+| Citation | Phase 7 | Phase 8 |
+|---|---|---|
+| Bid1 Pre Bid Meeting `10-JUN-2024 14:00:00` | FINAL p1 (text on p2) | FINAL p2 |
+| Bid1 contact_info | FINAL p1 only | FINAL p1 (department phone, letterhead) and p2 (buyer name and email) |
+| Q&A Bid1 buyer question | FINAL pp. 1–2 | FINAL p2 |
+
+`verify_extraction.py` now finds all 16 accepted Bid1 values supported on their cited pages. In
+Phase 7 there were two exceptions.
+
+### Defects found during the re-runs
+
+1. First run: the prompt said "exact bracketed ids", and the model returned `"[due-date-3]"` as a
+   string. Bid2 dropped to 6 accepted. The wording was reverted, and string id lists are parsed.
+2. Second run: a relaxed MFG rule accepted an unrelated Bid1 sentence because "factory-authorized"
+   was nearby, and Bid1 Model_no repeated the Bid Number. Both are now rejected.
+3. Third run: the critic rejected correct values whose evidence was past its 700-character cut.
+4. Fourth run: paraphrases (Bid1 Term, Bid2 affidavits) were rejected and the retries gave up.
+
+### Field review (`artifacts/extraction_v3`)
+
+Same verdict definitions as Phase 7 (below).
+
+| Field | Bid1 value → verdict | Bid2 value → verdict |
+|---|---|---|
+| Bid Number | JA-207652 → correct | BPM044557 → correct; labelled "Solicitation Number" on the listing and "eMMA Project Number" in the PORFP. The PORFP's own number E20P4600040 is an alternative (needs human decision) |
+| Title | Student and Staff Computing Devices → correct | PORFP form header → partial (unchanged) |
+| Due Date | July 9, 2024 at 2:00 PM CST, note from the addendum record → correct | 06/10/2024 → correct; the invented note is gone |
+| Bid Submission Type | "online via our electronic system" (p9), note on manual sealed submissions → correct (was missed) | eMMA e-Procurement system (p1), note "not accepted by email, fax, U.S. Mail, or hand delivery" → correct (was partial) |
+| Term of Bid | "three (3) year agreement" → partial; the renewals are missing (was correct) | null → null ok |
+| Pre Bid Meeting | 10-JUN-2024 14:00:00, p2 → correct; citation fixed | null → null ok |
+| Installation | "deployment and setup" (p7) → partial; a fragment of the deployment services list (was missed) | null → null ok |
+| Bid Bond Requirement | null → null ok | null → null ok |
+| Delivery Date | September 2024 → partial (unchanged) | within 45 days of Award → correct (was wrong) |
+| Payment Terms | Subcontractor payment clause → partial (unchanged) | Invoice within 10 days → partial (unchanged) |
+| Any Additional Documentation Required | "Form 1295 should be submitted with the RFP response." → partial; one of several forms | null → missed (unchanged). The affidavits were found in the second run and lost to a paraphrase in the final run |
+| MFG for Registration | null → missed (was partial). The rule correctly rejected an unrelated sentence, and the retry returned null | Dell → correct (was wrong) |
+| Contract or Cooperative to use | Central Texas Purchasing Alliance (CTPA) → correct | 2015 Master Contract, 060B5400007 → correct |
+| Model_no | null → null ok | Dell Latitude 5550 → correct (was missed) |
+| Part_no | null → null ok | 210-BLYZ (SKU of the Latitude 5550 base, specs p1) → correct |
+| Product | List of the ten device tiers (pp. 34–35) → correct (was missed) | laptops → partial; no model or quantity (was missed) |
+| contact_info | ALZATE, JASMINE, JALZATE@dallasisd.org, (972)925-4100 → partial; the phone is the department line. Citations fixed | Tamaira Hawkins, thawkins@…, 410-260-7533 → correct (was missed) |
+| company_name | Dallas Independent School District → correct (was missed) | MD State Treasurer's Office → correct |
+| Bid Summary | Scope, device categories and term (p2) → partial; no dates or submission method (improved) | Verbatim copy of PORFP p2 → partial (unchanged) |
+| Product Specification | Tier requirements from pp. 4–6 → partial; starts partway through the first tier (was missed) | CPU, RAM, storage, OS, warranty → correct |
+
+| Verdict | Bid1 Phase 7 | Bid1 Phase 8 | Bid2 Phase 7 | Bid2 Phase 8 |
+|---|---|---|---|---|
+| correct | 6 | 8 | 5 | 11 |
+| partial | 6 | 8 | 5 | 4 |
+| wrong | 0 | 0 | 2 | 0 |
+| missed | 5 | 1 | 4 | 1 |
+| null ok | 3 | 3 | 4 | 4 |
+
+Two Bid1 fields are worse than in Phase 7: Term of Bid (correct → partial) and MFG for
+Registration (partial → missed). Model output still varies between runs. The second v3 run had
+the Bid2 affidavits correct; the final run did not.
+
+### Automated checks and regressions
+
+- `artifacts/eval/extraction_v3_check.json`:
+  - both outputs are schema-valid with the 20 names in order, and no source comes from the other bid;
+  - every trace is `completed`, retries are at most 1, and no secrets were found;
+  - 29 of 31 accepted values are verbatim or token-complete on their cited pages. Bid2 contact_info
+    scores 0.75 because the verifier does not rejoin the split email domain, and the Bid2 summary
+    scores 0.99.
+- Q&A, 18-question set (`artifacts/qa_phase8`): 11 correct, 2 partial, 5 correct abstentions,
+  0 wrong. This matches Phase 7. The two partials are the same as before.
+- Q&A gold set (`artifacts/eval/qa_v7.json`):
+  - answer correctness 9/14, citation source accuracy 0.83 and false abstention 5/11;
+  - claim support 7/7 and exact quote validity 6/7.
+
+  These are identical to Phase 7.
+- Retrieval (`artifacts/eval/retrieval_phase8.json`): `verify` OK; Recall@5, MRR@10, nDCG@10 and
+  hit@5 are identical to Phase 7 in all four modes, with 0 errors, leaks and citation errors.
+  Labels and questions were not changed.
+- Secret scan of every new artifact folder (164 files): no leaks.
+- Offline: `pytest -m "not integration"` gave 365 passed. `ruff check`, `ruff format --check` and
+  `mypy src/rfp` are clean. New tests are in `tests/test_semantics.py`.
 
 ## LLM configuration check
 
@@ -223,10 +393,13 @@ accuracy.
 ## Limitations
 
 - Model output varies between runs. Repeated live runs of the same questions gave different
-  answers.
+  answers, and repeated extraction runs gained and lost individual fields.
 - Grounding is lexical. A claim built from supported words can still misread its quote.
-- The extraction validator checks that evidence contains the value, not that the value answers
-  the field (see Bid2 Delivery Date).
+- Field-meaning rules are keyword cues near the value. They catch a value of the wrong kind
+  (a due date as a delivery date, checkbox text, a regulation as a channel). They cannot judge
+  completeness (Bid1 Term, Bid2 Product) or pick between two valid identifiers (Bid2 Bid Number).
+- Phase 7 sections below describe `extraction_v2`; its defects listed there are addressed in
+  Phase 8 above.
 - Scanned pages (Bid1 FINAL pp. 54–59) are OCR text without table structure.
 - All verdicts here are assistant reviews pending human confirmation.
 - No demo video exists. The reproducible demo sequence is in the README.

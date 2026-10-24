@@ -42,6 +42,66 @@ GROUP_INSTRUCTIONS = {
 }
 
 
+FIELD_DEFINITIONS = {
+    "Bid Number": (
+        "The solicitation number printed on the issuing agency's own RFP or bid document. "
+        "Prefer it over a listing site's internal reference number."
+    ),
+    "Title": (
+        "The name of this solicitation, such as the cover or listing title. A form or "
+        "document-type heading alone is not a title."
+    ),
+    "Due Date": "Date and time responses must be received by.",
+    "Bid Submission Type": (
+        "How responses must be delivered: an online portal or system, email, or sealed hard "
+        "copy. A procurement method or regulation name is not a submission type."
+    ),
+    "Term of Bid": "Length of the resulting contract and any renewal options.",
+    "Pre Bid Meeting": (
+        "Date, time, place and whether attendance is mandatory, if a meeting is held."
+    ),
+    "Installation": (
+        "Whether the vendor must install, deploy, set up or image the goods. A statement "
+        "that deliveries and deployments must include a service counts."
+    ),
+    "Bid Bond Requirement": (
+        "Required bid bond or bid security, or a statement that none is needed."
+    ),
+    "Delivery Date": (
+        "When the goods must be delivered: a date, or a schedule such as a number of days "
+        "after award. A proposal due date is not a delivery date, even inside a product table."
+    ),
+    "Payment Terms": "When and how the buyer pays invoices.",
+    "Any Additional Documentation Required": (
+        "Affidavits, forms, certificates or attachments the response must include."
+    ),
+    "MFG for Registration": (
+        "The manufacturer the bidder must be authorized by, registered with or a reseller for. "
+        "Business-entity checkboxes are not manufacturer requirements."
+    ),
+    "Contract or Cooperative to use": (
+        "The master contract, cooperative or purchasing agreement this purchase uses."
+    ),
+    "Model_no": (
+        "Manufacturer model name or number of the requested product, such as a series name "
+        "and number."
+    ),
+    "Part_no": "Part, SKU or item number of the requested product.",
+    "Product": (
+        "The goods or services being bought, with quantities when stated. A list of device "
+        "categories is acceptable when no single product is named."
+    ),
+    "contact_info": "Name, email and phone of the procurement contact or buyer.",
+    "company_name": "The organization issuing the solicitation.",
+    "Bid Summary": "A short summary of scope, key dates and submission requirements.",
+    "Product Specification": (
+        "Required technical specifications such as processor, memory, storage, display, "
+        "battery and warranty. When several device types are specified, list the stated "
+        "minimums for each."
+    ),
+}
+
+
 @dataclass(frozen=True)
 class QueryStep:
     query: str
@@ -153,7 +213,10 @@ def _catalog() -> dict[str, FieldSpec]:
         FieldSpec(
             "Any Additional Documentation Required",
             "commercial",
-            _steps("affidavits forms certificates insurance and W-9 required with the response"),
+            _steps(
+                "affidavits forms and certificates that must be submitted with the response",
+                "required forms attachments and affidavits",
+            ),
         ),
         FieldSpec(
             "MFG for Registration",
@@ -185,7 +248,14 @@ def _catalog() -> dict[str, FieldSpec]:
                 ),
             ),
         ),
-        FieldSpec("company_name", "identity", _steps("issuing organization or agency name")),
+        FieldSpec(
+            "company_name",
+            "identity",
+            (
+                QueryStep("issuing organization or agency name"),
+                QueryStep("organization soliciting offers or proposals"),
+            ),
+        ),
         FieldSpec(
             "Bid Summary",
             "summary",
@@ -217,7 +287,7 @@ def _catalog() -> dict[str, FieldSpec]:
         ),
     ]
     catalog = {spec.name: spec for spec in specs}
-    if tuple(catalog) != REQUIRED_FIELDS:
+    if tuple(catalog) != REQUIRED_FIELDS or set(FIELD_DEFINITIONS) != set(REQUIRED_FIELDS):
         raise RuntimeError("Field catalog drifted from the required 20 fields")
     return catalog
 
@@ -254,9 +324,38 @@ def steps_for(spec: FieldSpec, attempt: int, reasons: list[str]) -> tuple[QueryS
     return tuple(steps)
 
 
-def _excerpt(text: str, limit: int) -> str:
+STOPWORDS = frozenset(
+    {"the", "and", "for", "with", "that", "this", "from", "what", "when", "whether", "must", "or"}
+)
+
+
+def focus_terms(spec: FieldSpec) -> list[str]:
+    words = re.findall(r"[a-z][a-z-]{3,}", " ".join(step.query for step in spec.steps).casefold())
+    return list(dict.fromkeys(word[:6] for word in words if word not in STOPWORDS))
+
+
+def _excerpt(text: str, limit: int, terms: list[str] | None = None) -> str:
+    """The passage, or the window of `limit` characters that mentions the most field terms.
+
+    Long chunks often hold the answer after the opening lines, so a head-only cut can
+    hide it from the model. The validator still checks the full passage.
+    """
     collapsed = " ".join(text.split())
-    return collapsed if len(collapsed) <= limit else collapsed[: limit - 3] + "..."
+    if len(collapsed) <= limit:
+        return collapsed
+    lowered = collapsed.casefold()
+    best, best_score = 0, -1
+    if terms:
+        hits = sorted(
+            match.start() for term in terms for match in re.finditer(re.escape(term), lowered)
+        )
+        for start in range(0, len(collapsed) - limit + 100, 100):
+            score = sum(1 for position in hits if start <= position < start + limit - 6)
+            if score > best_score:
+                best, best_score = start, score
+    start = min(best, max(0, len(collapsed) - (limit - 6)))
+    body = collapsed[start : start + limit - 6]
+    return ("..." if start else "") + body + ("..." if start + len(body) < len(collapsed) else "")
 
 
 def extraction_request(
@@ -270,9 +369,14 @@ def extraction_request(
     blocks = []
     for name in names:
         hits = evidence.get(name) or []
-        lines = [f"Field: {name}"]
+        lines = [f"Field: {name}", f"Definition: {FIELD_DEFINITIONS[name]}"]
         if reasons.get(name):
             lines.append("Previous rejection: " + "; ".join(reasons[name]))
+            if any("does not support" in reason for reason in reasons[name]):
+                lines.append(
+                    "Copy the value word for word from one passage below; do not paraphrase, "
+                    "summarize or add words."
+                )
         if not hits:
             lines.append("Evidence: none")
         for hit in hits[:8]:
@@ -282,13 +386,14 @@ def extraction_request(
                 f"[{hit.evidence_id}] {source.file} {where} type={source.document_type.value} "
                 f"addendum={source.addendum_number} rank={hit.rank} mode={hit.mode}"
             )
-            lines.append(_excerpt(hit.text, config.excerpt_chars))
+            lines.append(_excerpt(hit.text, config.excerpt_chars, focus_terms(CATALOG[name])))
         blocks.append("\n".join(lines))
     user = (
         f"Attempt: {attempt}\n"
         "Return a JSON object with a fields object whose keys are exactly "
         f"{json.dumps(names)}. For each field use value (string or null), "
-        "evidence_ids (the ids listed under that field whose text states the value), and notes. "
+        "evidence_ids (a list of the ids, from any field in this request, whose text states "
+        "the value), and notes. "
         "Copy values verbatim from the evidence. "
         "Use null and notes 'Not found in documents' when the evidence does not state the value. "
         "Do not invent citations, pages, or facts.\n\n" + "\n\n".join(blocks)
@@ -308,8 +413,10 @@ def critic_request(
     name: str, draft: DraftField, hits: list[EvidenceHit], config: ExtractionConfig
 ) -> ModelRequest:
     cited = [hit for hit in hits if hit.evidence_id in draft.evidence_ids]
+    words = re.findall(r"[a-z0-9][a-z0-9@.-]{3,}", (draft.value or "").casefold())
+    terms = list(dict.fromkeys(word[:8] for word in words)) or focus_terms(CATALOG[name])
     body = "\n".join(
-        f"[{hit.evidence_id}] {_excerpt(hit.text, config.excerpt_chars)}" for hit in cited
+        f"[{hit.evidence_id}] {_excerpt(hit.text, config.excerpt_chars, terms)}" for hit in cited
     )
     return ModelRequest(
         purpose=f"critic:{name}",
@@ -326,6 +433,42 @@ def _key(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", name.casefold())
 
 
+def evidence_prefix(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.casefold()).strip("-")
+
+
+def _evidence_ids(name: str, ids: object) -> list[str]:
+    """String ids as given; a bare number N means the field's own evidence id N.
+
+    Models sometimes return the list as one string such as "[due-date-1, due-date-3]".
+    """
+    if isinstance(ids, str):
+        ids = re.split(r"[\s,;]+", ids)
+    if not isinstance(ids, list):
+        return []
+    result: list[str] = []
+    for item in ids:
+        if isinstance(item, int) and not isinstance(item, bool):
+            item = str(item)
+        if not isinstance(item, str):
+            continue
+        item = item.strip().strip("[]\"'")
+        if item:
+            result.append(f"{evidence_prefix(name)}-{item}" if item.isdigit() else item)
+    return result
+
+
+def _value(raw: object) -> str | None:
+    """A string value; an object or list reply is joined from its non-empty parts."""
+    if isinstance(raw, dict):
+        raw = [item for item in raw.values() if isinstance(item, str | int | float)]
+    if isinstance(raw, list):
+        raw = ", ".join(str(item).strip() for item in raw if str(item).strip())
+    if not isinstance(raw, str) or raw.strip().casefold() in {"", "null", "none"}:
+        return None
+    return " ".join(raw.split())
+
+
 def drafts_from_model(names: list[str], payload: dict) -> dict[str, DraftField]:
     raw_fields = payload.get("fields")
     if not isinstance(raw_fields, dict):
@@ -337,19 +480,13 @@ def drafts_from_model(names: list[str], payload: dict) -> dict[str, DraftField]:
         if not isinstance(raw, dict):
             drafts[name] = DraftField(name=name, value=None, notes="Model omitted this field")
             continue
-        raw_value = raw.get("value")
-        if not isinstance(raw_value, str) or raw_value.strip().casefold() in {"", "null"}:
-            value = None
-        else:
-            value = " ".join(raw_value.split())
+        value = _value(raw.get("value"))
         ids = raw.get("evidence_ids")
         notes = raw.get("notes")
         drafts[name] = DraftField(
             name=name,
             value=value,
-            evidence_ids=[item for item in ids if isinstance(item, str)]
-            if isinstance(ids, list)
-            else [],
+            evidence_ids=_evidence_ids(name, ids),
             notes=notes.strip() if isinstance(notes, str) else "",
             model_confidence=raw.get("confidence")
             if isinstance(raw.get("confidence"), (int, float))

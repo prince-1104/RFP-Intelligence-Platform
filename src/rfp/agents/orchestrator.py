@@ -7,7 +7,6 @@ most `max_retries` times after the first attempt. Search calls on one client
 are serialized. Model calls for independent groups run concurrently.
 """
 
-import re
 import threading
 import time
 from collections.abc import Callable
@@ -19,6 +18,7 @@ from rfp.agents.errors import ModelError
 from rfp.agents.extractors import (
     CATALOG,
     critic_request,
+    evidence_prefix,
     extraction_request,
     fields_in_group,
     parse_drafts,
@@ -26,7 +26,7 @@ from rfp.agents.extractors import (
 )
 from rfp.agents.llm import LanguageModel, ModelResponse, account, parse_json_object
 from rfp.agents.reconciliation import reconcile_field
-from rfp.agents.retrieval import retrieve
+from rfp.agents.retrieval import cited_pages, retrieve
 from rfp.agents.schemas import (
     REQUIRED_FIELDS,
     AddendumChange,
@@ -41,15 +41,32 @@ from rfp.agents.schemas import (
     TraceEvent,
     ValidationCounts,
 )
+from rfp.agents.semantics import grounded_notes
 from rfp.agents.state import ExtractionState
 from rfp.agents.trace import Tracer, clock
-from rfp.agents.validator import validate_field
+from rfp.agents.validator import contained, validate_field
 from rfp.schemas.search import SearchRequest, SearchResponse
 from rfp.search.errors import SearchServiceError
 
 
-def _slug(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", name.casefold()).strip("-")
+def _borrow_shown(
+    evidence: dict[str, list[EvidenceHit]], drafts: dict[str, DraftField], asked: list[str]
+) -> None:
+    """Let a field cite any passage shown in the same prompt.
+
+    Evidence ids are unique per field, and the prompt shows every asked field's
+    passages together, so the model may cite a passage listed under a sibling
+    field. Ids that were never shown stay fabricated.
+    """
+    shown = {hit.evidence_id: hit for name in asked for hit in evidence[name][:8]}
+    for name in asked:
+        own = {hit.evidence_id for hit in evidence[name]}
+        borrowed = [
+            shown[evidence_id]
+            for evidence_id in dict.fromkeys(drafts[name].evidence_ids)
+            if evidence_id not in own and evidence_id in shown
+        ]
+        evidence[name] = evidence[name] + borrowed
 
 
 def _dedupe(hits: list[EvidenceHit], prefix: str) -> list[EvidenceHit]:
@@ -128,6 +145,26 @@ def _event(agent: str, task: str, started: str, started_at: float, **payload: ob
     )
 
 
+def _reject_copied_identifiers(state: ExtractionState) -> None:
+    """A product identifier that repeats the accepted solicitation number is a mismatch."""
+    bid = state.fields["Bid Number"]
+    if bid.status != "accepted" or bid.draft is None or not bid.draft.value:
+        return
+    for name in ("Model_no", "Part_no"):
+        slot = state.fields[name]
+        value = slot.draft.value if slot.draft else None
+        if slot.status != "accepted" or not value or not contained(bid.draft.value, value):
+            continue
+        slot.status = "rejected"
+        slot.validation = FieldValidation(
+            name=name,
+            passed=False,
+            status="rejected",
+            reasons=[f"{name} repeats the solicitation number, not a product identifier"],
+            support="conflict",
+        )
+
+
 def _confidence(status: str) -> float:
     """Fixed value per validation status, required by the output schema; not a probability."""
     if status == "accepted":
@@ -179,11 +216,13 @@ class Orchestrator:
             fields_in_group(name) for name in ("identity", "logistics", "commercial", "product")
         ]
         self._round(state, tracer, [[spec.name for spec in group] for group in groups], attempt=0)
+        _reject_copied_identifiers(state)
         for attempt in range(1, self.config.max_retries + 1):
             pending = [name for name in state.pending() if CATALOG[name].group != "summary"]
             if not pending:
                 break
             self._round(state, tracer, [[name] for name in pending], attempt=attempt)
+            _reject_copied_identifiers(state)
         self._finalize(state, skip_summary=True)
         self._round(state, tracer, [["Bid Summary"]], attempt=0)
         for attempt in range(1, self.config.max_retries + 1):
@@ -253,7 +292,7 @@ class Orchestrator:
                         top_k=self.config.hard_top_k if step.hard else self.config.top_k,
                         doc_types=list(step.doc_types),
                         addendum_numbers=list(step.addendum_numbers),
-                        evidence_prefix=_slug(name),
+                        evidence_prefix=evidence_prefix(name),
                         lock=self._search_lock,
                     )
                 except SearchServiceError as exc:
@@ -295,7 +334,7 @@ class Orchestrator:
                         decision=", ".join(response.warnings) or None,
                     )
                 )
-            evidence[name] = _dedupe(_interleave(collected), _slug(name))
+            evidence[name] = _dedupe(_interleave(collected), evidence_prefix(name))
         result.evidence = evidence
         asked = [name for name in names if evidence[name]]
         drafts: dict[str, DraftField] = {}
@@ -320,6 +359,7 @@ class Orchestrator:
                 result.provider = completion.provider
                 result.model_name = completion.model
                 drafts.update(parse_drafts(asked, completion.text))
+                _borrow_shown(evidence, drafts, asked)
             except (ModelError, ValueError) as exc:
                 model_error = exc.code if isinstance(exc, ModelError) else "llm_malformed"
                 for name in asked:
@@ -539,11 +579,14 @@ class Orchestrator:
                     )
                     continue
                 passed += 1
+                cited = [hit.text for hit in slot.evidence if hit.evidence_id in draft.evidence_ids]
+                change = next((item for item in state.addendum_changes if item.field == name), None)
+                notes = grounded_notes(draft.notes, cited, _change_note(change))
                 fields[name] = FieldOutput(
                     value=draft.value,
                     sources=sources,
                     confidence=_confidence(status),
-                    notes=draft.notes.strip() or "Supported by the cited passage.",
+                    notes=notes or "Supported by the cited passage.",
                 )
             elif status == "not_found":
                 not_found += 1
@@ -574,6 +617,18 @@ class Orchestrator:
         )
 
 
+def _change_note(change: AddendumChange | None) -> str | None:
+    if change is None or change.conflict or not change.revised_value:
+        return None
+    addendum = f"Addendum {change.addendum_number}" if change.addendum_number else "An addendum"
+    if change.original_value:
+        return (
+            f"{addendum} states {change.revised_value}; the base document stated "
+            f"{change.original_value}."
+        )
+    return f"{addendum} states {change.revised_value}."
+
+
 def _sources(draft: DraftField, evidence: list[EvidenceHit]) -> list[OutputSource]:
     by_id = {hit.evidence_id: hit for hit in evidence}
     sources: list[OutputSource] = []
@@ -583,11 +638,13 @@ def _sources(draft: DraftField, evidence: list[EvidenceHit]) -> list[OutputSourc
         if hit is None:
             continue
         for source in hit.sources:
-            key = (source.file, source.page, source.html_element_id)
-            if key in seen:
-                continue
-            seen.add(key)
-            sources.append(source.output())
+            pages: list[int | None] = [*cited_pages(source, hit.text, draft.value)] or [None]
+            for page in pages:
+                key = (source.file, page, source.html_element_id)
+                if key in seen:
+                    continue
+                seen.add(key)
+                sources.append(source.output(page))
     if not sources:
         raise ValueError(f"{draft.name} was accepted without a usable citation")
     return sources

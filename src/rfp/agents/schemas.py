@@ -111,6 +111,14 @@ class BidExtraction(Contract):
         return self
 
 
+class PageSpan(Contract):
+    """Character range [start, end) of the hit text that came from one PDF page."""
+
+    page: int = Field(ge=1)
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+
+
 class SourceRef(Contract):
     file: str
     relative_path: str
@@ -120,10 +128,11 @@ class SourceRef(Contract):
     page_end: int | None = Field(default=None, ge=1)
     html_element_id: str | None = None
     bid_id: UUID
+    spans: list[PageSpan] = Field(default_factory=list)
 
-    def output(self) -> OutputSource:
+    def output(self, page: int | None = None) -> OutputSource:
         if self.page is not None:
-            return OutputSource(file=self.file, page=self.page)
+            return OutputSource(file=self.file, page=page or self.page)
         return OutputSource(file=self.file, html_element_id=self.html_element_id)
 
 

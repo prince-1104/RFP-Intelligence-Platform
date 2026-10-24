@@ -17,6 +17,7 @@ fails if `LLM_PROVIDER`, `LLM_MODEL`, and `LLM_API_KEY` are missing. It does not
 | `extractors.py` | Identity, logistics, commercial, product, and summary prompts |
 | `reconciliation.py` | Records a due-date change only when addendum text states the new date |
 | `validator.py` | Checks citations, locators, support in the cited text, and date shape |
+| `semantics.py` | Field-meaning rules (a cue in or near the value, rejected value shapes) and grounded notes |
 | `trace.py` | Ordered steps with timings, tool metadata, and token counts |
 | `state.py` | Shared bid, evidence, drafts, validation, retries, and token totals |
 

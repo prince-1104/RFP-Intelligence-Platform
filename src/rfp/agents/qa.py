@@ -32,7 +32,7 @@ from rfp.agents.grounding import claim_problems, facts
 from rfp.agents.llm import LanguageModel, ModelRequest, ModelResponse, account, parse_json_object
 from rfp.agents.quotes import verbatim
 from rfp.agents.reconciliation import reconcile_due_date
-from rfp.agents.retrieval import query_hash, retrieve
+from rfp.agents.retrieval import cited_pages, query_hash, retrieve
 from rfp.agents.schemas import DraftField, EvidenceHit, ModelMetadata, TokenUsage, TraceEvent
 from rfp.agents.trace import clock
 from rfp.agents.validator import contained, date_phrases, locator_problem
@@ -470,13 +470,14 @@ def check_reply(
             if key not in keys:
                 keys[key] = f"C{len(keys) + 1}"
                 source = hit.sources[0]
+                pages = cited_pages(source, hit.text, excerpt) if source.spans else []
                 result.citations.append(
                     QACitation(
                         citation_id=keys[key],
                         evidence_id=hit.evidence_id,
                         document=source.file,
-                        page=source.page,
-                        page_end=source.page_end,
+                        page=pages[0] if pages else source.page,
+                        page_end=pages[-1] if pages else source.page_end,
                         html_element_id=source.html_element_id,
                         document_type=source.document_type,
                         addendum_number=source.addendum_number,

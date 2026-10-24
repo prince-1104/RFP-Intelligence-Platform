@@ -684,7 +684,7 @@ Extraction JSON is in `artifacts/extraction_v2/Bid1.json` and `Bid2.json`. Trace
 - retries at most 2;
 - no secrets in outputs or traces.
 
-Known extraction errors:
+Known extraction errors in Phase 7 (addressed in Phase 8, below):
 
 - Bid2 Delivery Date repeats the due date.
 - Bid2 MFG for Registration contains form checkbox text.
@@ -733,10 +733,49 @@ so Bid2 answers `Not found in documents`.
 
 - Model output varies between runs.
 - Grounding is lexical, not entailment.
-- The extraction validator checks that the evidence contains the value, not that the value
-  answers the field.
+- Field-meaning rules (Phase 8) are keyword cues. They reject values of the wrong kind, but they
+  cannot judge completeness.
 - Extraction `confidence` is a fixed value per status (0.86 / 0.74 / 0.35), not a calibrated
   probability.
-- A source for a chunk that spans two pages names only its first page.
 - Scanned pages are OCR text without tables.
 - Retrieval labels and all accuracy verdicts are not yet human-approved.
+
+## Phase 8: field-meaning validation
+
+`src/rfp/agents/semantics.py` adds deterministic rules that run inside the existing validator. A
+value must be supported by its cited passage and must also be the kind of value the field asks
+for. For example, a delivery date needs a delivery cue near it, MFG may not be checkbox text, a
+submission type must name a channel, and contact info needs an email or phone. A failed rule
+uses the existing bounded retry (at most 2). If the retries fail too, the field is left
+unresolved with no value. No per-field model call was added.
+
+Other fixes, each with a regression test in `tests/test_semantics.py`:
+
+- Catalog queries no longer contain identifiers such as "W-9". The search engine returns nothing
+  for an identifier absent from the bid.
+- A field may cite any passage shown in the same prompt.
+- Integer or string id lists and object values in model replies are read, not dropped.
+- Long passages are shown to the model and the critic as the window that best matches the field,
+  instead of the first 700 characters.
+- Each field has a one-line definition in the prompt. A product identifier that repeats the
+  Bid Number is rejected.
+- Notes on accepted values drop unsupported claims (for example an invented original due date).
+- Sources for chunks that cross pages name the page that holds the value. The page map is built
+  from the existing segment offsets.
+
+| Bid | Accepted / not found / unresolved | Reviewed correct / partial / wrong / missed / null ok |
+|---|---|---|
+| Bid1 Phase 7 → Phase 8 | 12/8/0 → 16/4/0 | 6/6/0/5/3 → 8/8/0/1/3 |
+| Bid2 Phase 7 → Phase 8 | 12/7/1 → 15/5/0 | 5/5/2/4/4 → 11/4/0/1/4 |
+
+Output is in `artifacts/extraction_v3/`, and the automated check is
+`artifacts/eval/extraction_v3_check.json`. Q&A and retrieval results are unchanged from Phase 7:
+
+- 18-question set (`artifacts/qa_phase8`): 11 correct, 2 partial, 5 correct abstentions;
+- gold set (`artifacts/eval/qa_v7.json`): 9/14;
+- retrieval (`artifacts/eval/retrieval_phase8.json`): identical metrics in all four modes.
+
+Offline: 365 passed with `pytest -m "not integration"`; ruff and mypy are clean. The review is an
+assistant review and needs human confirmation. Two Bid1 fields are worse than in Phase 7 (Term
+of Bid, MFG for Registration). Bid2's affidavits are still missed in the final run. Details are
+in `docs/live_validation.md`.

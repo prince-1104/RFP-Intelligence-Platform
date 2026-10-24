@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import threading
 from collections.abc import Callable
 from uuid import UUID
 
-from rfp.agents.schemas import EvidenceHit, ExtractionConfig, SourceRef
+from rfp.agents.quotes import locate
+from rfp.agents.schemas import EvidenceHit, ExtractionConfig, PageSpan, SourceRef
 from rfp.schemas.parsed import DocumentType
 from rfp.schemas.search import Citation, RetrievalMode, SearchFilters, SearchRequest, SearchResponse
 from rfp.search.errors import SearchServiceError
@@ -20,7 +22,62 @@ def _html_id(citation: Citation) -> str | None:
     return None
 
 
-def _source(citation: Citation) -> SourceRef | None:
+def page_spans(citation: Citation, text: str) -> list[PageSpan]:
+    """Per-page ranges of a chunk that crosses pages.
+
+    Chunk text is its source pieces joined by a blank line. The map is only
+    trusted when the segment lengths add up to the text length exactly.
+    """
+    segments = citation.source_segments
+    pages = {segment.locator.page_number for segment in segments}
+    if len(pages) < 2 or None in pages:
+        return []
+    lengths = [segment.normalized_end - segment.normalized_start for segment in segments]
+    if sum(lengths) + 2 * (len(segments) - 1) != len(text):
+        return []
+    spans: list[PageSpan] = []
+    cursor = 0
+    for segment, length in zip(segments, lengths, strict=True):
+        page = segment.locator.page_number
+        if page is not None and page >= 1:
+            spans.append(PageSpan(page=page, start=cursor, end=cursor + length))
+        cursor += length + 2
+    return spans
+
+
+def _anchors(value: str, text: str) -> list[tuple[int, int]]:
+    span = locate(value, text)
+    if span is not None:
+        return [span]
+    found: list[tuple[int, int]] = []
+    for part in re.split(r"[,;|]\s*|\s+-\s+", value):
+        span = locate(part, text) if len(part.strip()) >= 4 else None
+        if span is not None:
+            found.append(span)
+            continue
+        for word in re.findall(r"[^\s,;()]{4,}", part):
+            span = locate(word, text)
+            if span is not None:
+                found.append(span)
+    return found
+
+
+def cited_pages(source: SourceRef, text: str, value: str | None) -> list[int]:
+    """Pages of a PDF source that hold the value; the chunk's first page when unknown."""
+    if source.page is None:
+        return []
+    if not source.spans or not value:
+        return [source.page]
+    pages = {
+        span.page
+        for start, end in _anchors(value, text)
+        for span in source.spans
+        if start < span.end and end > span.start
+    }
+    return sorted(pages) or [source.page]
+
+
+def _source(citation: Citation, text: str = "") -> SourceRef | None:
     pdf = citation.relative_path.lower().endswith(".pdf")
     page = citation.page_start if pdf else None
     html_id = None if pdf else _html_id(citation)
@@ -39,6 +96,7 @@ def _source(citation: Citation) -> SourceRef | None:
         page_end=(citation.page_end or page) if pdf else None,
         html_element_id=html_id,
         bid_id=citation.bid_id,
+        spans=page_spans(citation, text) if pdf else [],
     )
 
 
@@ -52,7 +110,7 @@ def hits_from_response(
         for citation in (result.citation, *result.additional_citations):
             if citation.bid_id != bid_id:
                 continue
-            source = _source(citation)
+            source = _source(citation, result.text)
             if source is not None:
                 sources.append(source)
         if not sources:
