@@ -291,3 +291,57 @@ Exact offline command in this Windows workspace:
 Phase 4 should consume active generation → occurrence → canonical content, preserving metadata
 filters and source-specific authority/citations while reusing embedding computation by exact
 content/model identity. No Phase 4 implementation is included in this phase.
+
+# Phase 4 verification — 2026-10-24
+
+The Phase 1–3 baseline (114 tests) was rerun first and stayed green throughout. Phase 4 reuses
+Settings, logging, the SQLAlchemy engine, the R2 Storage protocol and retry helpers, the per-bid
+advisory lock, `ProcessingJob`, the Celery app and the CLI. New dependencies: `fastembed` 0.9.0 and
+`qdrant-client` 1.13.3 (transitively numpy, onnxruntime; Pillow resolved to 12.3.0 because
+FastEmbed requires `pillow<13`). Migration `0004_search_index` adds `embedding_cache_entries` and
+`chunk_index_states`.
+
+## Commands and results
+
+| Check actually executed | Result |
+| --- | --- |
+| `.venv/Scripts/pytest -q` | **209 passed, 3 skipped** (live-Qdrant tests without env vars), one upstream TestClient warning, 46.7 s |
+| `.venv/Scripts/ruff check src tests examples` | Passed |
+| `.venv/Scripts/ruff format --check src tests examples` | 91 files already formatted |
+| `.venv/Scripts/mypy src/rfp` | No issues in 61 source files |
+| `python -m rfp.cli init-models` (host) | Downloaded/verified bge-small (MIT), Qdrant/bm25 (Apache-2.0), ms-marco-MiniLM-L-6-v2 (Apache-2.0); profile `79fea6c89a6d…` |
+| `python -m rfp.cli index-folder --path artifacts/chunks` against compose Qdrant v1.13.4 | 2 generations completed, 6 points, 6 cache misses, 0 truncated |
+| Same command repeated | 2 generations `unchanged`, 0 embeddings computed, identical points |
+| `search --local --query "PX-420"` (hybrid_rerank) | #1 `specifications.pdf` page 1 prose, #2 same page table rows 1-2, #3 `notice.html` `#items` table; all with exact identifier match |
+| `search --local --query "What must accompany delivery?" --top-k 3` | #1 `specifications.pdf` page 2 |
+| `python examples/search_smoke.py` (run twice) | All 10 checks passed both runs: all four modes cite PDF page 1 for PX-420; natural-language → page 2; HTML result has null page and `#notice` locator; `ZZ-9999` → no results with `identifier_evidence_not_found` |
+| `RFP_QDRANT_INTEGRATION_URL=http://127.0.0.1:6333 RFP_MODEL_SMOKE=1 pytest tests/test_search_integration.py` | 3 passed: live payload indexes and search, app RRF top set equals Qdrant server-side `FusionQuery(RRF)`, real-model end-to-end |
+| `docker compose config --quiet` | Passed |
+| `docker compose build migrate` | Backend image rebuilt with frozen Phase 4 dependencies |
+| `docker compose up -d --no-build api worker` | Migration runner applied 0004; API and worker started |
+| Container `alembic current` / `alembic check` | `0004 (head)`; no drift |
+| Container `alembic downgrade 0003` → `upgrade head` → `check` | Round trip passed on PostgreSQL; no drift |
+| `GET /health/ready` | postgres, redis, qdrant healthy |
+| Container API search before models | 503 `embedding_model_unavailable` with `Retry-After: 5` |
+| Container `python -m rfp.cli init-models` | Models in `model_cache` volume; same profile fingerprint as Windows host |
+| Container API search / `GET /api/v1/index/status` after models | 503 `index_not_found`; status shows `exists: false`, dense+sparse loaded (configured Qdrant from private `.env` has no index yet) |
+| `GET /api/v1/search?q=x&top_k=0` | 422 validation envelope with request ID |
+
+## Issues found and fixed during verification
+
+- A transient Qdrant failure stopped the run but omitted not-yet-attempted generations from the
+  report; all generations are now pre-registered as `pending`.
+- The sparse branch returned zero-score points (no shared weighted term) that still earned RRF
+  credit; non-positive sparse hits are now discarded before fusion.
+- `localhost` on Windows cost ~2 s per Qdrant request (IPv6 attempt before the IPv4-only compose
+  binding); local CLI/smoke defaults now use `http://127.0.0.1:6333` (reindex 30 s → 8.5 s).
+
+## Not verified
+
+- Production `index-bid` / `POST /api/v1/index` through Celery with real R2 embedding artifacts
+  and the configured (cloud) Qdrant was **not** executed, to avoid writing to paid production
+  resources without explicit approval. That path is covered only by offline tests using SQLite,
+  an in-memory storage mock, in-memory Qdrant and fake models.
+- No relevance benchmark was run; the only quality evidence is the synthetic sample above.
+- Real-model checks used two synthetic documents (6 chunks). Latency figures are single-machine
+  CPU observations: rerank ~0.7–0.9 s for 6 candidates including first-call warm-up.

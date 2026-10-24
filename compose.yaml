@@ -47,6 +47,7 @@ services:
     env_file: .env
     init: true
     ports: ["127.0.0.1:8000:8000"]
+    volumes: ["model_cache:/app/model-cache"]
     depends_on:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
@@ -63,6 +64,7 @@ services:
     env_file: .env
     init: true
     command: ["celery", "-A", "rfp.workers.entrypoint:app", "worker", "--loglevel=WARNING", "--concurrency=2", "--hostname=worker@%h"]
+    volumes: ["model_cache:/app/model-cache"]
     depends_on:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
@@ -77,3 +79,4 @@ volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  model_cache:

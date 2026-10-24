@@ -1,4 +1,4 @@
-# RFP platform architecture through Phase 3
+# RFP platform architecture through Phase 4
 
 The API, operator CLI and Celery worker share Settings, the SQLAlchemy model/engine factory,
 the existing R2 Storage protocol and application logging conventions.
@@ -107,3 +107,68 @@ Before Phase 4, select the embedding model/tokenizer, include model/input transf
 embedding-cache identity, and use active occurrences for metadata filters and citations. Do not
 collapse addendum/RFP authority or cross-bid access boundaries when reusing canonical content.
 No embeddings, Qdrant writes, BM25, retrieval, agents, extraction or reconciliation are implemented.
+
+## Phase 4 hybrid search
+
+```mermaid
+flowchart LR
+  Active[Active ChunkGenerations or local ChunkingResult JSON] --> Validate[Provenance validation]
+  Validate --> Cache{Embedding cache by content hash + profile}
+  Cache -- miss --> Embed[FastEmbed bge-small dense + Qdrant/bm25 sparse]
+  Embed --> Store[Versioned binary artifact: R2 + PostgreSQL pointers / local dir]
+  Cache -- hit --> Points
+  Store --> Points[One point per source occurrence, index_active=false]
+  Points --> Verify[Count/profile verification] --> Activate[set index_active=true]
+  Activate --> Supersede[Retire other generations of same bid/path]
+  Query[Query] --> Plan[Normalize, identifiers, additive synonyms]
+  Plan --> Batch[query_batch_points: dense, sparse, identifier]
+  Batch --> RRF[Application weighted RRF k=60]
+  RRF --> Rerank[ms-marco-MiniLM cross-encoder + identifier bonus]
+  Rerank --> Collapse[Collapse by content hash, attach all citations]
+  Collapse --> Evidence[Evidence + citations + score components]
+```
+
+`rfp.search` is a library first: `SearchService.search(SearchRequest) -> SearchResponse` and
+`IndexingService.index(generations)` are what the API, CLI, Celery task and future LangGraph tools
+call. All inference happens through `ModelRuntime`, a lazy per-process loader guarded by a bounded
+semaphore; the API additionally runs searches in a capacity-limited worker thread with a timeout.
+Model downloads happen only via `init-models` unless `SEARCH__ALLOW_MODEL_DOWNLOAD=true`.
+
+**Embedding profile.** A SHA-256 over dense identity (model, source, ONNX file SHA-256, dim,
+max tokens, normalization, FastEmbed version), sparse identity (model, stopwords hash, BM25
+k/b/avg_len/language, IDF modifier) and the input representation `canonical_text_v1`. The
+collection is `{QDRANT_COLLECTION}__{profile[:12]}` with named vectors `dense` (cosine, 384) and
+`bm25` (sparse, `Modifier.IDF`). A model or parameter change therefore yields a new collection and
+a cold cache; models are never mixed in one collection. An existing collection with a different
+vector configuration raises `collection_incompatible`; collections are never deleted or recreated.
+
+**Text representation.** Exact canonical chunk text is embedded, so identical text in different
+documents shares vectors while each occurrence keeps its own bid/document/addendum/page/locator
+payload. The BGE query instruction is applied to dense queries only. Inputs beyond 512 tokens are
+truncated by the tokenizer; this is recorded as `embedding_truncated` and a payload warning.
+
+**Indexing.** Each generation is processed independently: unchanged detection (exact active/total
+counts for the generation and profile), cache lookup, batched embedding of misses, cache write,
+batched upsert with bounded retries, verification, activation and supersession. Any failure
+deletes only that generation's inactive staging points, so previously active evidence stays
+searchable. A transient Qdrant failure stops the run and leaves the remaining generations pending.
+Production jobs reuse `ProcessingJob(kind="indexing")`, the per-bid advisory lock, deterministic
+job IDs (bid + configured profile key + generation manifest), `chunk_index_states` per
+generation/profile, deadline continuations and Celery retries for transient cache/vector-store
+failures. Production embedding artifacts must go to R2; there is no local fallback.
+
+**Retrieval.** Branch queries share one metadata filter that always includes `index_active=true`
+and the profile fingerprint, plus optional bid, document, doc type, addendum, chunk type and path
+filters. The identifier branch is a dense query restricted to points whose `identifiers` payload
+contains a normalized or compact query identifier, because BM25 tokenization splits `PX-420`.
+Fusion is weighted RRF over ranks (never raw scores). `hybrid_rerank` reranks the fused top
+`rerank_depth` with the cross-encoder; matching identifiers add `identifier_rerank_bonus`. Under
+`identifier_policy=require_evidence` a query naming identifiers that no candidate contains returns
+no results with `identifier_evidence_not_found` instead of semantically similar but wrong evidence.
+Results are collapsed by content hash and every filter-valid occurrence is attached as an
+additional citation. Reranker/sparse failures are errors unless `allow_degraded` is enabled, in
+which case the response is flagged `degraded` with a warning.
+
+Structured logs record timings, candidate counts, score components, profile and a query hash, not
+query text, document text, signed URLs or secrets. Phase 4 returns evidence only: no answer
+generation, extraction, agents or reconciliation.

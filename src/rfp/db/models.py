@@ -160,3 +160,49 @@ class DocumentChunk(Base):
     content_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chunk_contents.id"), index=True)
     sequence: Mapped[int] = mapped_column(Integer)
     provenance: Mapped[dict] = mapped_column(JSON)
+
+
+class EmbeddingCacheEntry(Base):
+    """Pointer to a vector inside an immutable R2 batch artifact; vectors are not stored here."""
+
+    __tablename__ = "embedding_cache_entries"
+    __table_args__ = (
+        UniqueConstraint(
+            "content_hash", "profile_fingerprint", name="uq_embedding_cache_content_profile"
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    profile_fingerprint: Mapped[str] = mapped_column(String(64), index=True)
+    artifact_key: Mapped[str] = mapped_column(String(1024))
+    artifact_sha256: Mapped[str] = mapped_column(String(64))
+    position: Mapped[int] = mapped_column(Integer)
+    dense_dim: Mapped[int] = mapped_column(Integer)
+    sparse_nnz: Mapped[int] = mapped_column(Integer)
+    token_count: Mapped[int] = mapped_column(Integer)
+    truncated: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChunkIndexState(Record, Base):
+    __tablename__ = "chunk_index_states"
+    __table_args__ = (
+        UniqueConstraint(
+            "generation_id", "profile_fingerprint", name="uq_chunk_index_generation_profile"
+        ),
+        Index("ix_chunk_index_states_bid_profile", "bid_id", "profile_fingerprint"),
+    )
+    generation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("chunk_generations.id", ondelete="RESTRICT"), index=True
+    )
+    bid_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("bids.id"))
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id"))
+    profile_fingerprint: Mapped[str] = mapped_column(String(64))
+    collection_name: Mapped[str] = mapped_column(String(255))
+    point_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    cache_hits: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    cache_misses: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    truncated_inputs: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    error_code: Mapped[str | None] = mapped_column(String(100))
+    timings: Mapped[dict | None] = mapped_column(JSON)

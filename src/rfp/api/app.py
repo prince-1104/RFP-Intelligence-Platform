@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 
+import anyio
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -11,9 +12,11 @@ from starlette.exceptions import HTTPException
 
 from rfp.api.health import dependency_checks
 from rfp.api.ingestion import router as ingestion_router
+from rfp.api.search import router as search_router
 from rfp.core.config import Settings, get_settings
-from rfp.core.logging import configure_logging, request_id
+from rfp.core.logging import configure_logging, log_event, request_id
 from rfp.db.session import create_db_engine
+from rfp.search.errors import SearchServiceError
 
 logger = logging.getLogger("rfp.api")
 
@@ -33,7 +36,27 @@ def create_app(
 
     app = FastAPI(title="RFP Intelligence Platform", version="0.1.0", lifespan=lifespan)
     app.state.engine = engine
+    app.state.settings = settings
+    # Models load lazily on the first search; tests replace the factory/dispatcher.
+    app.state.search_service = None
+    app.state.search_limiter = anyio.CapacityLimiter(settings.search.max_concurrent_inference)
+
+    def search_service_factory():
+        from rfp.search.wiring import search_service
+
+        return search_service(settings)
+
+    def index_dispatcher(job_id: uuid.UUID) -> None:
+        from rfp.workers.celery_app import create_celery
+
+        create_celery(settings).tasks["rfp.index"].apply_async(
+            args=[str(job_id)], task_id=str(job_id), retry=False
+        )
+
+    app.state.search_service_factory = search_service_factory
+    app.state.index_dispatcher = index_dispatcher
     app.include_router(ingestion_router)
+    app.include_router(search_router)
 
     def error_response(status: int, code: str, message: str) -> JSONResponse:
         return JSONResponse(
@@ -65,6 +88,14 @@ def create_app(
         response = error_response(exc.status_code, "http_error", "Request could not be completed")
         if exc.headers:
             response.headers.update(exc.headers)
+        return response
+
+    @app.exception_handler(SearchServiceError)
+    async def search_error(request: Request, exc: SearchServiceError):
+        log_event(logger, "search_request_failed", logging.WARNING, code=exc.code)
+        response = error_response(exc.status, exc.code, exc.message)
+        if exc.retryable:
+            response.headers["Retry-After"] = "5"
         return response
 
     @app.exception_handler(RequestValidationError)

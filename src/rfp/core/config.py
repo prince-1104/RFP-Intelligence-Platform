@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
 from rfp.schemas.chunks import ChunkConfig
+from rfp.schemas.search import SearchConfig
 
 
 class Settings(BaseSettings):
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
         env_file=".env", extra="ignore", hide_input_in_errors=True, env_nested_delimiter="__"
     )
     chunking: ChunkConfig = Field(default_factory=ChunkConfig)
+    search: SearchConfig = Field(default_factory=SearchConfig)
 
     database_url: SecretStr
     redis_url: SecretStr

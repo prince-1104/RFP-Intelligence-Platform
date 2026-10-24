@@ -93,4 +93,42 @@ def create_celery(settings: Settings | None = None) -> Celery:
         finally:
             engine.dispose()
 
+    @app.task(
+        bind=True,
+        name="rfp.index",
+        max_retries=3,
+        acks_late=True,
+        soft_time_limit=settings.search.index_batch_seconds + 600,
+        time_limit=settings.search.index_batch_seconds + 660,
+    )
+    def index(self, job_id: str) -> dict:
+        import uuid
+
+        from rfp.core.logging import request_id
+        from rfp.db.session import create_db_engine
+        from rfp.ingestion.service import IngestionBusy
+        from rfp.search.jobs import IndexRetryPending, process_index_job
+        from rfp.search.wiring import production_indexing_service
+
+        token = request_id.set(job_id.replace("-", "")[:64])
+        engine = create_db_engine(settings)
+        try:
+            result = process_index_job(
+                uuid.UUID(job_id),
+                settings,
+                engine,
+                lambda: production_indexing_service(settings, engine),
+                final_attempt=self.request.retries >= self.max_retries,
+            )
+            if result.get("continuation_required"):
+                self.apply_async(args=[job_id], task_id=job_id, countdown=1)
+            return result
+        except (IndexRetryPending, IngestionBusy) as exc:
+            raise self.retry(
+                exc=type(exc)("index_retry"), countdown=min(2**self.request.retries * 5, 60)
+            ) from None
+        finally:
+            engine.dispose()
+            request_id.reset(token)
+
     return app

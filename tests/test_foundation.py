@@ -178,6 +178,11 @@ def test_migration_matches_models():
     )
     third = importlib.util.module_from_spec(third_spec)
     third_spec.loader.exec_module(third)
+    fourth_spec = importlib.util.spec_from_file_location(
+        "search_migration", Path("src/rfp/db/migrations/versions/0004_search_index.py")
+    )
+    fourth = importlib.util.module_from_spec(fourth_spec)
+    fourth_spec.loader.exec_module(fourth)
     engine = create_engine("sqlite://")
     with engine.begin() as connection:
         context = MigrationContext.configure(connection)
@@ -185,7 +190,9 @@ def test_migration_matches_models():
             module.upgrade()
             second.upgrade()
             third.upgrade()
+            fourth.upgrade()
             assert compare_metadata(context, Base.metadata) == []
+            fourth.downgrade()
             third.downgrade()
             second.downgrade()
             module.downgrade()

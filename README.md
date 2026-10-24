@@ -1,16 +1,17 @@
-# RFP Intelligence Platform — Phase 3
+# RFP Intelligence Platform — Phase 4
 
 Phase 2 adds document ingestion, PDF/HTML parsing, native tables and Tesseract OCR to the
 Phase 1 infrastructure. Phase 3 adds normalization, structure-aware chunks, canonical content,
-source occurrences and incremental generations. Embeddings, retrieval, agents and the UI remain
-later phases.
+source occurrences and incremental generations. Phase 4 adds a hybrid RAG evidence search engine
+(dense + BM25 + exact identifiers, RRF, cross-encoder reranking, citations) with incremental
+Qdrant indexing, a REST API and CLI. Agents, extraction and the UI remain later phases.
 The repository was empty at Phase 1 implementation start.
 
 ## Architecture
 
 Python 3.12, FastAPI and Pydantic settings power the API. SQLAlchemy/PostgreSQL holds Bid,
 Document and ProcessingJob records; Alembic owns schema changes. Redis is the Celery broker.
-Qdrant is provisioned for future indexing. Cloudflare R2 is the sole object-storage adapter;
+Qdrant stores hybrid dense/sparse search points (Phase 4); FastEmbed runs ONNX models locally. Cloudflare R2 is the sole object-storage adapter;
 no filesystem or MinIO fallback exists. Tesseract and English data are installed in the backend
 image and used on pages with insufficient native text. API, migration runner and worker share
 that image. The operator CLI uploads sources to R2 and queues ingestion through Celery.
@@ -25,7 +26,7 @@ src/rfp/
   schemas/         validated parsed document/page/block/table contracts
   ingestion/       discovery, parsers, OCR, process isolation and persistence
   chunking/        normalization, token estimates, structured chunks and incremental persistence
-  search/          reserved
+  search/          embeddings, cache, Qdrant indexing, hybrid retrieval, reranking, citations
   agents/          reserved
   evaluation/      reserved
 tests/             offline unit and migration tests
@@ -440,3 +441,69 @@ canonical hash **and** actual model/version/input transformation; retain per-occ
 document type, addendum, pages and locators for filters and citations. Review partial states and
 warnings, choose the real tokenizer, and preserve revision/activation rules. No embeddings,
 Qdrant writes, keyword search, retrieval, reranking, extraction or reconciliation exist here.
+
+## Phase 4: hybrid evidence search
+
+Search returns cited evidence, never answers. Design details are in `docs/architecture.md` and
+`src/rfp/search/README.md`.
+
+| Component | Default (all in `SEARCH__*` settings) |
+| --- | --- |
+| Dense | FastEmbed `BAAI/bge-small-en-v1.5`, 384-dim, cosine, BGE query instruction |
+| Sparse | FastEmbed `Qdrant/bm25` with Qdrant IDF modifier |
+| Identifiers | Exact payload match branch for codes such as `PX-420`, `RFP-2026-014` |
+| Fusion | Application weighted RRF, k=60, candidate depth 40 per branch |
+| Reranker | FastEmbed `Xenova/ms-marco-MiniLM-L-6-v2` cross-encoder, depth 40 |
+| Output | top_k 5 (max 50), duplicates collapsed with all citations attached |
+
+Modes: `dense`, `sparse`, `hybrid` (dense + sparse + identifier RRF) and `hybrid_rerank`
+(default). Filters: bid, document, doc type, addendum number, chunk type; active generations and
+the current embedding profile are always enforced.
+
+### Local (no PostgreSQL/R2/.env)
+
+```powershell
+docker compose up -d qdrant
+.\.venv\Scripts\python -m rfp.cli init-models            # one-time download into .cache/fastembed
+.\.venv\Scripts\python -m rfp.cli index-folder --path artifacts/chunks
+.\.venv\Scripts\python -m rfp.cli search --local --query "PX-420"
+.\.venv\Scripts\python -m rfp.cli search --local --query "installation requirements" --mode hybrid --top-k 3 --json
+.\.venv\Scripts\python examples\search_smoke.py          # repeatable end-to-end check
+```
+
+`index-folder` reads Phase 3 `ChunkingResult` JSON (one generation per bid/path; the current
+chunk configuration wins over stale artifacts), caches embeddings in `.cache/embeddings` and is
+idempotent: a rerun reports every generation `unchanged` without recomputation. Changing a model
+or BM25 parameter creates a new profile-specific collection and cache namespace.
+
+### Production
+
+```powershell
+docker compose up --build -d
+docker compose exec api python -m rfp.cli init-models    # fills the shared model_cache volume
+docker compose exec api python -m rfp.cli index-bid --bid-id BID_UUID
+curl.exe -X POST http://localhost:8000/api/v1/index -H "Content-Type: application/json" -d '{\"bid_id\": \"BID_UUID\"}'
+curl.exe http://localhost:8000/api/v1/index/jobs/JOB_UUID
+curl.exe "http://localhost:8000/api/v1/search?q=PX-420&bid_id=BID_UUID&top_k=5"
+curl.exe -X POST http://localhost:8000/api/v1/search -H "Content-Type: application/json" -d '{\"query\": \"submission deadline\", \"filters\": {\"bid_ids\": [\"BID_UUID\"], \"doc_types\": [\"addendum\"]}}'
+curl.exe http://localhost:8000/api/v1/index/status
+```
+
+Production indexing reads active chunk generations from PostgreSQL, stores embedding batch
+artifacts in R2 (`embeddings/{profile}/{sha256}.bin`) with `embedding_cache_entries` pointer rows,
+and runs on the existing Celery app as `rfp.index`. `index-bid --inline` processes in the CLI
+process. Job state is per generation in `chunk_index_states`. R2 is mandatory for production
+indexing; there is no local fallback. Qdrant Cloud is used through `QDRANT_URL`/`QDRANT_API_KEY`.
+
+Errors use the standard envelope with stable codes, for example `index_not_found`,
+`collection_incompatible`, `embedding_model_unavailable` (run `init-models`),
+`vector_store_unavailable`, `embedding_cache_unavailable`, `query_too_long`, `top_k_too_large`,
+`no_active_chunk_generations` and `search_timeout`. Retryable errors carry `Retry-After`.
+CLI exit codes: 0 success, 1 operational failure, 2 invalid request.
+
+Each result contains text, chunk type, citation (file name, relative path, one-based PDF
+`page_start`/`page_end` or `null` pages plus HTML locators, section path, table rows, doc type,
+addendum, generation/occurrence IDs), additional citations for identical text elsewhere, score
+components (dense, sparse, identifier rank, RRF, reranker, identifier bonus, final) and identifier
+matches. Responses include normalized/expanded queries, candidate counts, timings, profile and
+warnings such as `identifier_evidence_not_found` or `degraded`.
