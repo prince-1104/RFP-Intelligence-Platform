@@ -1,1 +1,1 @@
-Reserved for a later phase. No processing, extraction, retrieval, or agent behavior is implemented in Phase 1.
+Phase 2 parser contracts live in parsed.py. All parsed content remains untrusted source data; provenance and warnings must be preserved by later consumers.

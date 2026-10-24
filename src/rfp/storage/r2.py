@@ -17,6 +17,10 @@ class ObjectNotFound(StorageError):
     pass
 
 
+class TransientStorageError(StorageError):
+    """Retryable provider/network failure, sanitized like other storage errors."""
+
+
 class Storage(Protocol):
     def upload(
         self,
@@ -52,9 +56,16 @@ def provider_errors():
         code = exc.response.get("Error", {}).get("Code")
         if code in {"404", "NoSuchKey", "NotFound"}:
             raise ObjectNotFound("Object not found") from None
+        if exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) >= 500 or code in {
+            "SlowDown",
+            "RequestTimeout",
+            "Throttling",
+            "429",
+        }:
+            raise TransientStorageError("Object store operation failed") from None
         raise StorageError("Object store operation failed") from None
     except BotoCoreError:
-        raise StorageError("Object store unavailable") from None
+        raise TransientStorageError("Object store unavailable") from None
 
 
 class CloudflareR2Storage:

@@ -2,8 +2,20 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, UniqueConstraint, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    String,
+    Table,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -15,6 +27,7 @@ class Status(enum.StrEnum):
     processing = "processing"
     completed = "completed"
     failed = "failed"
+    partially_completed = "partially_completed"
 
 
 class Record:
@@ -34,6 +47,15 @@ class Record:
 class Bid(Record, Base):
     __tablename__ = "bids"
     title: Mapped[str] = mapped_column(String(500))
+    external_id: Mapped[str | None] = mapped_column(String(500), unique=True)
+
+
+job_documents = Table(
+    "job_documents",
+    Base.metadata,
+    Column("job_id", ForeignKey("processing_jobs.id", ondelete="CASCADE"), primary_key=True),
+    Column("document_id", ForeignKey("documents.id", ondelete="RESTRICT"), primary_key=True),
+)
 
 
 class Document(Record, Base):
@@ -45,6 +67,12 @@ class Document(Record, Base):
     filename: Mapped[str] = mapped_column(String(500))
     object_key: Mapped[str] = mapped_column(String(1024))
     content_type: Mapped[str] = mapped_column(String(255))
+    relative_path: Mapped[str | None] = mapped_column(String(1000))
+    source_sha256: Mapped[str | None] = mapped_column(String(64))
+    source_size: Mapped[int | None] = mapped_column(BigInteger)
+    parsed_object_key: Mapped[str | None] = mapped_column(String(1024))
+    parser_fingerprint: Mapped[str | None] = mapped_column(String(64))
+    error_code: Mapped[str | None] = mapped_column(String(100))
 
 
 class ProcessingJob(Record, Base):
@@ -54,3 +82,5 @@ class ProcessingJob(Record, Base):
     task_id: Mapped[str | None] = mapped_column(String(255), unique=True)
     kind: Mapped[str] = mapped_column(String(100))
     error_code: Mapped[str | None] = mapped_column(String(100))
+    parser_config: Mapped[dict | None] = mapped_column(JSON)
+    documents: Mapped[list[Document]] = relationship(secondary=job_documents, lazy="selectin")

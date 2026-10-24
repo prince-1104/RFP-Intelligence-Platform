@@ -168,12 +168,19 @@ def test_migration_matches_models():
     spec = importlib.util.spec_from_file_location("initial", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    second_spec = importlib.util.spec_from_file_location(
+        "ingestion_migration", Path("src/rfp/db/migrations/versions/0002_ingestion.py")
+    )
+    second = importlib.util.module_from_spec(second_spec)
+    second_spec.loader.exec_module(second)
     engine = create_engine("sqlite://")
     with engine.begin() as connection:
         context = MigrationContext.configure(connection)
         with Operations.context(context):
             module.upgrade()
+            second.upgrade()
             assert compare_metadata(context, Base.metadata) == []
+            second.downgrade()
             module.downgrade()
             assert not connection.execute(
                 text("SELECT name FROM sqlite_master WHERE type='table'")

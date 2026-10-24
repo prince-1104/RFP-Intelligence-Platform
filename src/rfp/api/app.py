@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from rfp.api.health import dependency_checks
+from rfp.api.ingestion import router as ingestion_router
 from rfp.core.config import Settings, get_settings
 from rfp.core.logging import configure_logging, request_id
 from rfp.db.session import create_db_engine
@@ -31,6 +32,8 @@ def create_app(
         engine.dispose()
 
     app = FastAPI(title="RFP Intelligence Platform", version="0.1.0", lifespan=lifespan)
+    app.state.engine = engine
+    app.include_router(ingestion_router)
 
     def error_response(status: int, code: str, message: str) -> JSONResponse:
         return JSONResponse(

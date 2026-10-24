@@ -24,4 +24,38 @@ def create_celery(settings: Settings | None = None) -> Celery:
         """Diagnostic only; never creates business records."""
         return "pong"
 
+    @app.task(
+        bind=True,
+        name="rfp.ingest",
+        max_retries=3,
+        acks_late=True,
+        soft_time_limit=settings.parser_timeout_seconds + 570,
+        time_limit=settings.parser_timeout_seconds + 600,
+    )
+    def ingest(self, job_id: str) -> dict:
+        import uuid
+
+        from rfp.db.session import create_db_engine
+        from rfp.ingestion.service import IngestionBusy, process_job
+        from rfp.storage.r2 import CloudflareR2Storage, TransientStorageError
+
+        engine = create_db_engine(settings)
+        try:
+            result = process_job(
+                uuid.UUID(job_id),
+                settings,
+                engine,
+                CloudflareR2Storage(settings),
+                final_attempt=self.request.retries >= self.max_retries,
+            )
+            if result.get("continuation_required"):
+                self.apply_async(args=[job_id], task_id=job_id, countdown=1)
+            return result
+        except (TransientStorageError, IngestionBusy) as exc:
+            raise self.retry(
+                exc=type(exc)("ingestion_retry"), countdown=min(2**self.request.retries * 5, 60)
+            ) from None
+        finally:
+            engine.dispose()
+
     return app
