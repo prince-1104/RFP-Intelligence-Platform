@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from rfp.db.models import Document, ProcessingJob
+from rfp.db.models import ChunkGeneration, Document, ProcessingJob
 from rfp.ingestion.service import job_summary
 
 router = APIRouter(prefix="/api/v1", tags=["ingestion"])
@@ -39,4 +39,25 @@ def get_document(document_id: uuid.UUID, session: Annotated[Session, Depends(get
         "parser_fingerprint": document.parser_fingerprint,
         "status": document.status,
         "error_code": document.error_code,
+    }
+
+
+@router.get("/chunk-generations/{generation_id}")
+def get_chunk_generation(
+    generation_id: uuid.UUID, session: Annotated[Session, Depends(get_session)]
+):
+    generation = session.get(ChunkGeneration, generation_id)
+    if generation is None:
+        raise HTTPException(404)
+    return {
+        "generation_id": str(generation.id),
+        "document_id": str(generation.document_id),
+        "bid_id": str(generation.bid_id),
+        "active": generation.active,
+        "status": generation.status,
+        "artifact_key": generation.artifact_key,
+        "artifact_hash": generation.artifact_hash,
+        "configuration_hash": generation.config_hash,
+        "chunk_count": generation.chunk_count,
+        "error_code": generation.error_code,
     }

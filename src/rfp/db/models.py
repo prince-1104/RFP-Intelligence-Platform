@@ -5,15 +5,19 @@ from datetime import datetime
 from sqlalchemy import (
     JSON,
     BigInteger,
+    Boolean,
     Column,
     DateTime,
     Enum,
     ForeignKey,
     Index,
+    Integer,
     String,
     Table,
+    Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -60,7 +64,10 @@ job_documents = Table(
 
 class Document(Record, Base):
     __tablename__ = "documents"
-    __table_args__ = (UniqueConstraint("object_key", name="uq_documents_object_key"),)
+    __table_args__ = (
+        UniqueConstraint("object_key", name="uq_documents_object_key"),
+        Index("ix_documents_bid_source_hash", "bid_id", "source_sha256"),
+    )
     bid_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("bids.id", ondelete="RESTRICT"), index=True
     )
@@ -71,6 +78,7 @@ class Document(Record, Base):
     source_sha256: Mapped[str | None] = mapped_column(String(64))
     source_size: Mapped[int | None] = mapped_column(BigInteger)
     parsed_object_key: Mapped[str | None] = mapped_column(String(1024))
+    parsed_artifact_sha256: Mapped[str | None] = mapped_column(String(64))
     parser_fingerprint: Mapped[str | None] = mapped_column(String(64))
     error_code: Mapped[str | None] = mapped_column(String(100))
 
@@ -84,3 +92,71 @@ class ProcessingJob(Record, Base):
     error_code: Mapped[str | None] = mapped_column(String(100))
     parser_config: Mapped[dict | None] = mapped_column(JSON)
     documents: Mapped[list[Document]] = relationship(secondary=job_documents, lazy="selectin")
+    chunk_generations: Mapped[list["ChunkGeneration"]] = relationship(
+        secondary="job_chunk_generations", lazy="selectin"
+    )
+
+
+job_chunk_generations = Table(
+    "job_chunk_generations",
+    Base.metadata,
+    Column("job_id", ForeignKey("processing_jobs.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "generation_id", ForeignKey("chunk_generations.id", ondelete="RESTRICT"), primary_key=True
+    ),
+)
+
+
+class ChunkContent(Base):
+    __tablename__ = "chunk_contents"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    content_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChunkGeneration(Record, Base):
+    __tablename__ = "chunk_generations"
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id", "input_hash", "config_hash", name="uq_chunk_generation_input"
+        ),
+        Index(
+            "uq_chunk_generation_active_source",
+            "bid_id",
+            "source_path",
+            unique=True,
+            postgresql_where=text("active"),
+            sqlite_where=text("active = 1"),
+        ),
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id"), index=True)
+    bid_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("bids.id"), index=True)
+    source_path: Mapped[str] = mapped_column(String(1000))
+    input_hash: Mapped[str] = mapped_column(String(64))
+    parsed_object_key: Mapped[str] = mapped_column(String(1024))
+    config_hash: Mapped[str] = mapped_column(String(64), index=True)
+    config: Mapped[dict] = mapped_column(JSON)
+    active: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    artifact_key: Mapped[str | None] = mapped_column(String(1024))
+    artifact_hash: Mapped[str | None] = mapped_column(String(64))
+    normalized_content_hash: Mapped[str | None] = mapped_column(String(64))
+    schema_version: Mapped[str] = mapped_column(String(20), default="1.0", server_default="1.0")
+    chunk_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    reused_content_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    error_code: Mapped[str | None] = mapped_column(String(100))
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+    __table_args__ = (
+        UniqueConstraint("generation_id", "sequence", name="uq_document_chunk_sequence"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    generation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("chunk_generations.id", ondelete="CASCADE"), index=True
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id"), index=True)
+    content_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chunk_contents.id"), index=True)
+    sequence: Mapped[int] = mapped_column(Integer)
+    provenance: Mapped[dict] = mapped_column(JSON)

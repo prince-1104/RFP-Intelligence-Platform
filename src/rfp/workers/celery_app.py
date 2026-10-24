@@ -58,4 +58,39 @@ def create_celery(settings: Settings | None = None) -> Celery:
         finally:
             engine.dispose()
 
+    @app.task(
+        bind=True,
+        name="rfp.chunk",
+        max_retries=3,
+        acks_late=True,
+        soft_time_limit=settings.chunking.timeout_seconds + settings.chunking.batch_seconds + 300,
+        time_limit=settings.chunking.timeout_seconds + settings.chunking.batch_seconds + 330,
+    )
+    def chunk(self, job_id: str) -> dict:
+        import uuid
+
+        from rfp.chunking.service import process_chunks
+        from rfp.db.session import create_db_engine
+        from rfp.ingestion.service import IngestionBusy
+        from rfp.storage.r2 import CloudflareR2Storage, TransientStorageError
+
+        engine = create_db_engine(settings)
+        try:
+            result = process_chunks(
+                uuid.UUID(job_id),
+                settings,
+                engine,
+                CloudflareR2Storage(settings),
+                final_attempt=self.request.retries >= self.max_retries,
+            )
+            if result.get("continuation_required"):
+                self.apply_async(args=[job_id], task_id=job_id, countdown=1)
+            return result
+        except (TransientStorageError, IngestionBusy) as exc:
+            raise self.retry(
+                exc=type(exc)("chunk_retry"), countdown=min(2**self.request.retries * 5, 60)
+            ) from None
+        finally:
+            engine.dispose()
+
     return app

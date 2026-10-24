@@ -170,3 +170,124 @@ uv run --frozen python -m rfp.cli parse-folder --path artifacts/synthetic_bid --
 
 Stop at Phase 2. Later phases must consume the existing parsed artifacts/provenance rather than
 replacing this pipeline or inventing missing source data.
+
+# Phase 3 verification — 2026-10-24
+
+The initial Phase 1/2 baseline was actually rerun: 81 tests passed. Existing ParsedDocument,
+Settings, engine/session factory, R2 adapter, retry helpers, bid advisory lock, Celery app and
+CLI framework were reused. Missing integration points were canonical content, source occurrences,
+revisioned chunk generations and stored parsed-artifact integrity hashes.
+
+## Commands and results
+
+| Check actually executed | Result |
+| --- | --- |
+| `.venv/Scripts/pytest -q` | **114 passed**, one visible upstream TestClient warning, 21.50 seconds |
+| `.venv/Scripts/ruff check src tests examples` | Passed |
+| `.venv/Scripts/ruff format --check src tests examples` | All 65 Python files formatted |
+| `.venv/Scripts/mypy src/rfp` | No issues in 46 source files |
+| Workspace-local `uv sync --frozen` | Checked 75 packages; no dependency or lockfile changes required |
+| `python -m rfp.cli chunk-folder --path artifacts/parsed --output artifacts/chunks` | 2 documents, 6 chunks, 6 canonical contents, no failures; parser summary skipped |
+| Same local command repeated | Both document artifacts unchanged; deterministic bytes preserved |
+| Offline CLI subprocess with invalid private `.env` | Passed without cloud credentials or infrastructure |
+| PostgreSQL `alembic upgrade head`, `alembic check`, `alembic current` | Revision 0003 applied; no drift; 0003 (head) |
+| Temporary PostgreSQL DB: upgrade head → downgrade 0002 → upgrade head | Passed; no drift after upgrades; temporary database removed |
+| Temporary PostgreSQL DB, concurrent same-bid processing | Advisory lock rejected duplicate concurrent execution safely |
+| Temporary PostgreSQL DB, concurrent canonical insertion across bids | 2 shared content rows, 4 distinct occurrences, 2 active generations; database removed |
+| `docker compose config --quiet` | Passed |
+| `docker compose build migrate` | Frozen Phase 3 backend image built successfully |
+| `docker compose up -d --no-build api worker` | Migration runner, API and worker started successfully |
+| Container `python -m rfp.cli chunk-bid --bid-id ...` | Real Celery/R2/PostgreSQL synthetic job succeeded |
+| `GET /api/v1/jobs/{id}` | 3 successful active document generations, 7 occurrences total |
+| Download/validate R2 chunk JSON and verify SHA-256 | All 3 artifacts passed schema/hash checks |
+| Regenerate chunks from original R2 parsed artifacts | All 3 outputs matched stored chunk JSON byte-for-byte |
+| Production `chunk-bid` rerun | Same job/generation identities and successful existing artifacts reused |
+| Final rebuilt image: migration parity, R2 validation, deterministic regeneration and readiness | Passed; all 5 services healthy |
+
+The live production check used only the prior synthetic HTML, native PDF and scanned PDF. It
+loaded parsed JSON rather than reparsing originals or rerunning OCR. It made no embedding calls,
+Qdrant writes, keyword-index updates or paid LLM calls. Bucket access policy was not audited.
+
+## Files and decisions
+
+- `src/rfp/chunking/{normalize,tokens,engine,local,service}.py` and package initializer:
+  conservative normalization, replaceable deterministic token estimation, structured chunking,
+  offline output and incremental production persistence.
+- `src/rfp/schemas/chunks.py`: effective config, canonical text, citation-bearing occurrences,
+  table row ranges and validated deterministic result contracts.
+- Existing `Settings` and `.env.example`: nested `CHUNKING__...` fields, cross-field token
+  validation, supported versions/counter identity, empty behavior and resource bounds.
+- Existing models and migration `0003_chunks.py`: ChunkContent, ChunkGeneration, DocumentChunk,
+  job-generation membership, parsed JSON SHA-256 and source-hash indexing. Unique constraints
+  and a partial unique active-generation index enforce idempotency in the database.
+- Existing ingestion service: records parsed-artifact SHA-256 on new parses and delegates chunk
+  job inspection without changing the ParsedDocument contract.
+- Existing CLI/Celery/API: `chunk-folder`, `chunk-bid`, kind-aware `dispatch-job`, `rfp.chunk`,
+  and versioned generation inspection. No second job/storage/configuration framework was added.
+- `tests/test_chunk_{engine,persistence,cli,tasks}.py`: 33 added tests; the migration-chain
+  test now includes 0003 and its downgrade. The original 81 tests remain successful.
+- README and `docs/architecture.md`: tested commands, normalization/table rules, deduplication,
+  revision/activation behavior, resource bounds, limitations and Phase 4 handoff.
+
+Default prose budgets are 600 target / 800 maximum / 100 overlap, using the explicitly approximate
+`utf8-bytes-div4-v1` counter. Sections and chunk types remain distinct. Table row groups repeat
+available headers and retain original cell arrays, row ranges, order, extraction warnings and
+locators. Oversized indivisible rows/identifiers are warned rather than sliced. Canonical hashes
+reuse computation; every source occurrence, addendum authority and citation remains independent.
+
+Generation identity includes source document revision, exact parsed-artifact SHA-256 and full
+effective configuration/version hash. Only a successful generation is atomically activated;
+historical occurrences remain. Failed storage/DB operations preserve the old active generation.
+Partial output preserves an existing complete generation. Unchanged active generations bypass
+processing, artifact reads/writes and activation writes, so short batches cannot starve new work.
+
+## Coverage and resolved issues
+
+Tests exercise Unicode/whitespace and safe hyphen handling, identifier/number/legal-text
+preservation, deterministic ordering and overlap, sections and numeric hierarchy, oversized
+paragraphs/rows, header repetition, uncertain table/prose duplicates, empty/partial/malformed
+inputs, multi-page and HTML locators, OCR diagnostics, canonical reuse with distinct source
+files/addendums, configuration/source revisions, idempotent reruns, stale snapshots, atomic
+activation rollback, active uniqueness, transient storage recovery, legacy hash backfill,
+per-document failure isolation, task registration/retries, CLI exit codes and nested settings.
+
+Final safeguards fixed during implementation:
+
+- Normalized parser blocks are subtracted from normalized page text, preventing artificial
+  residual copies after Unicode/soft-hyphen normalization. Identifier boundaries prevent a
+  standalone `123` block from deleting the suffix of `PX-123` in residual evidence.
+- Unstructured page text remains independent rather than inheriting an unrelated last heading.
+- A numbered subsection cannot inherit a parent with a different numeric prefix; unavailable
+  hierarchy stays flat with an explicit warning.
+- Exact chunk-count limits are checked only when emitting new content. Output expansion from
+  repeated large table headers is bounded; limit failures never activate truncated generations.
+- Already-active generations are skipped before batch timing/activation, avoiding incremental
+  starvation when an operator chooses a short batch window.
+
+## Remaining limits and Phase 4 handoff
+
+- Token counts are estimates. Phase 4 must select the actual embedding tokenizer/model and
+  include model version and input transformation in embedding cache identity.
+- Unknown HTML/PDF hierarchy cannot be recovered from information Phase 2 did not encode.
+  Native table headers may stay unknown; scanned tables remain OCR/text evidence. Ambiguous
+  duplicates are retained rather than discarded.
+- Source revision selection uses registration timestamp with deterministic UUID tie-breaking.
+  Generations and prior source revisions remain historical; deletion/retention policy is an
+  operator concern.
+- R2 upload and DB activation are not a distributed transaction. An orphan artifact may remain
+  after DB failure, but active rows change atomically. Broker recovery uses `dispatch-job`.
+- Resource limits, partial states and warnings must be reviewed before model input. In particular,
+  a preserved oversized row/identifier must not be blindly sent to a model with a hard context limit.
+- The live check covers synthetic documents, not unseen assessment folders or every hostile
+  document layout. Production bucket access controls were not independently verified.
+- One upstream Starlette/httpx deprecation warning remains visible. No failing checks remain.
+
+Exact offline command in this Windows workspace:
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli chunk-folder --path artifacts/parsed --output artifacts/chunks
+```
+
+Phase 4 should consume active generation → occurrence → canonical content, preserving metadata
+filters and source-specific authority/citations while reusing embedding computation by exact
+content/model identity. No Phase 4 implementation is included in this phase.

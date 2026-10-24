@@ -1,7 +1,9 @@
-# RFP Intelligence Platform — Phase 2
+# RFP Intelligence Platform — Phase 3
 
 Phase 2 adds document ingestion, PDF/HTML parsing, native tables and Tesseract OCR to the
-Phase 1 infrastructure. Retrieval, embeddings, chunking, agents and the UI remain later phases.
+Phase 1 infrastructure. Phase 3 adds normalization, structure-aware chunks, canonical content,
+source occurrences and incremental generations. Embeddings, retrieval, agents and the UI remain
+later phases.
 The repository was empty at Phase 1 implementation start.
 
 ## Architecture
@@ -22,6 +24,7 @@ src/rfp/
   workers/         Celery factory, entrypoint, diagnostic ping task
   schemas/         validated parsed document/page/block/table contracts
   ingestion/       discovery, parsers, OCR, process isolation and persistence
+  chunking/        normalization, token estimates, structured chunks and incremental persistence
   search/          reserved
   agents/          reserved
   evaluation/      reserved
@@ -284,3 +287,156 @@ Conflicting override matches yield `other`; pattern configuration is included in
 Failed terminal jobs preserve their
 failure and need operator intervention or changed source/configuration for a new run. Native
 PDF parsing may consume significant resources until the subprocess limit is reached.
+
+## Phase 3: local chunk preparation
+
+Phase 3 consumes the existing validated `ParsedDocument` JSON contract, leaving parsed artifacts
+immutable. No new dependency or tokenizer download is required. From a populated environment:
+
+```powershell
+uv run --frozen python -m rfp.cli chunk-folder --path artifacts/parsed --output artifacts/chunks
+```
+
+To reproduce the complete synthetic local example:
+
+```powershell
+uv run --frozen python examples/create_sample.py
+uv run --frozen python -m rfp.cli parse-folder --path artifacts/synthetic_bid --output artifacts/parsed
+uv run --frozen python -m rfp.cli chunk-folder --path artifacts/parsed --output artifacts/chunks
+```
+
+The tested native PDF + HTML sample produces 2 source documents, 6 chunk occurrences, 6 canonical
+contents and no failures. Its parser `summary.json` is skipped. Re-running writes identical
+per-document artifacts and reports 2 unchanged outputs. The CLI ignores private `.env`, needs
+no credentials/infrastructure, and reads optional chunk configuration from process environment.
+Malformed JSON is reported by relative input path and safe code while valid documents continue.
+Output must be outside the input folder; symlink files/directories are excluded and output
+symlinks are rejected. Files, source bytes, output text, chunks and execution time
+are bounded. One file is written per generation UUID, plus a summary with source/chunk counts,
+canonical reuse, exact-source duplicates, failures, partial documents and skipped inputs.
+Exit codes: 0 for successful preparation (including explicitly configured empty skips), 1 for
+failures/partial documents/no usable inputs, and 2 for invalid CLI arguments.
+
+Normalization version `1.0` uses Unicode NFC, conservative whitespace cleanup, limited wrapped
+line joining and removal of explicit discretionary soft-hyphen line wraps. ASCII hyphens remain
+intact, including ambiguous word wrapping, to protect model numbers, SKUs and legal compounds.
+Numbers, dates, times, money, units, percentages, legal wording, lists and repetitions are kept.
+There is no stemming, paraphrasing, semantic deduplication or instruction execution. The
+normalized evidence hash captures content and ordering before chunk overlap.
+
+`ChunkConfig` lives in `src/rfp/schemas/chunks.py` and is part of shared Settings. Use nested
+environment settings, for example in PowerShell:
+
+```powershell
+$env:CHUNKING__TARGET_TOKENS='600'
+$env:CHUNKING__MAX_TOKENS='800'
+$env:CHUNKING__OVERLAP_TOKENS='100'
+$env:CHUNKING__TABLE_ROW_LIMIT='20'
+```
+
+Validation requires overlap < target <= maximum. The default `utf8_bytes_v1` counter estimates
+tokens as `ceil(UTF-8 byte length / 4)`, with identifier `utf8-bytes-div4-v1`. These are **estimates**,
+not an embedding-model tokenizer's exact counts. The `TokenCounter` protocol is replaceable;
+Phase 4 must select/validate the actual embedding tokenizer and revise the effective configuration
+before relying on hard model context limits. Supported normalization/chunking versions are
+explicit: an unknown version or counter is rejected rather than pretending to implement it.
+
+Prose chunks preserve explicit sections and numeric heading paths, prefer paragraph/sentence/
+word boundaries, and carry approximately 100 estimated tokens of overlap only within the same
+continuous section and chunk type. Unrelated sections, lists, headings and OCR evidence remain
+separate. Unknown HTML heading levels are not invented; numbered headings support hierarchy,
+and unstructured residual page text is preserved separately with its available locator.
+Oversized unbreakable identifiers are preserved with a budget warning rather than split.
+
+Tables use `table_rows` occurrences, not flattened prose. Each row group repeats identifiable
+headers, retains typed cell arrays and original row order, and records table ID, one-based row
+range, source page/HTML locator, extraction method and warnings. Original repeated header rows
+remain source rows. Groups obey row and token budgets, except an indivisible oversized row is
+preserved and flagged. Missing headers stay null. Scanned tables remain honest OCR/text evidence.
+An exact whole-table copy is removed from ordinary body blocks only when the structured rows
+match one unambiguous group of complete adjacent blocks. Uncertain copies are preserved with
+`table_prose_overlap_uncertain`. No repeated legal statement is removed as semantic duplication.
+
+Every occurrence records bid/document/source revision, type/addendum metadata, normalized text,
+section path, sequence, versions/configuration hash, estimated count/counter ID, parsing warnings
+and all source segments. PDF ranges cover every contributing one-based page; HTML ranges are
+null and retain element IDs/headings/indexes. Character spans refer to normalized block text,
+not byte offsets in the original PDF/HTML. Layout boxes and OCR diagnostics remain available.
+
+## Canonical content, generations and incremental processing
+
+Three distinct reuse levels remain visible:
+
+1. Original SHA-256 identifies byte-identical source files; each file/path retains its own
+   document ID and source references.
+2. Canonical `ChunkContent` stores exact normalized chunk text once by SHA-256, even across
+   bids. Its content UUID derives from that hash. This deduplicates computation and storage.
+3. Each `DocumentChunk` occurrence keeps an independent citation, authority, filters, section,
+   order and source segments. Repeated text remains evidence; occurrences are never collapsed
+   merely because their content ID matches another document or addendum.
+
+Canonical text deliberately excludes a synthetic section-heading prefix; section context stays
+on occurrences. Phase 4 must preserve occurrence-specific authority and metadata filters when
+reusing an embedding, and must include any added heading context in its embedding-cache key.
+
+Migration `0003` adds `chunk_contents`, `chunk_generations`, `document_chunks` and
+`job_chunk_generations`, plus parsed-artifact SHA-256 and a source-hash index on Document. New
+parses store their JSON hash directly; legacy Phase 2 records are backfilled once by bounded
+R2 download. Adding a document does not reparse or rechunk existing completed documents.
+
+A generation UUID binds document revision + exact parsed-artifact SHA-256 + effective config
+hash. The config includes versions, counter, budgets and limits. Canonical and occurrence IDs
+are stable. A partial unique DB index permits only one active generation per bid/source path;
+separate uniqueness constraints protect inputs, content hashes and occurrence order. A source
+revision gets a new Document ID; the latest registered revision is selected by creation time
+with UUID tie-breaking. Snapshot checks reject stale parsed keys/hashes before activation.
+
+New artifacts are uploaded privately to
+`bids/{bid}/documents/{revision}/chunks/{parsed_sha256}/{config_hash}.json`. Artifact key/hash,
+schema version, normalized hash, config, status and counts are persisted. Old generations and
+their occurrences remain historical. R2 upload and DB activation use separate systems, so an
+orphan chunk object may remain if the DB transaction fails. Activation itself is atomic:
+canonical insertion, occurrence insertion and previous-generation deactivation commit together.
+Failure rolls everything back and preserves the last successful active generation. A partial
+generation does not replace an existing complete generation; if no active generation exists,
+its readable evidence can become active with partial status.
+
+## Production chunk worker
+
+After starting/migrating the shared backend:
+
+```powershell
+docker compose up --build -d
+docker compose exec api python -m rfp.cli chunk-bid --bid-id BID_UUID
+curl.exe http://localhost:8000/api/v1/jobs/JOB_UUID
+curl.exe http://localhost:8000/api/v1/chunk-generations/GENERATION_UUID
+```
+
+`chunk-bid` uses PostgreSQL/R2 and requires full R2 configuration. It registers deterministic
+jobs and queues `rfp.chunk` on the existing Celery app. `dispatch-job --job-id JOB_UUID` chooses
+the correct ingestion/chunk task for recovery. Completed repeated deliveries do nothing.
+An explicit `chunk-bid` rerun can retry failed generations or reactivate a successful historical
+configuration without duplicating occurrences. Existing successful documents are reused, while
+new or changed inputs/configurations receive their applicable generation. Preparation is
+explicitly invoked after ingestion; it is not silently triggered by parsing.
+
+The shared per-bid PostgreSQL advisory lock serializes ingestion and chunk preparation. Canonical
+inserts use conflict-safe database inserts, including when different bids prepare identical text
+concurrently. Retries/backoff are bounded for transient storage failures. Documents checkpoint
+independently; permanent failures stay visible while the remainder continues. Legacy snapshot
+read failures are recorded and yield partial/failed jobs rather than silently claiming success.
+Batch continuations keep work within configured worker time limits. Parsed integrity and
+provenance are validated before use; no local storage fallback exists.
+
+The Phase 3 limits default to 64 MiB per input JSON, 5 million represented input characters,
+20 million output text characters, 10,000 chunks, 120 seconds per document and 240 seconds per
+batch, plus existing folder limits. Output expansion (for example, repeated large table headers)
+is bounded. Full configuration examples are in `.env.example`. A resource-limited generation
+fails atomically instead of replacing active evidence with truncated chunks.
+
+Phase 4 handoff: read active `ChunkGeneration` records, join `DocumentChunk` to `ChunkContent`,
+or load the matching validated `ChunkingResult` R2 artifact. Cache embedding computation by
+canonical hash **and** actual model/version/input transformation; retain per-occurrence bid,
+document type, addendum, pages and locators for filters and citations. Review partial states and
+warnings, choose the real tokenizer, and preserve revision/activation rules. No embeddings,
+Qdrant writes, keyword search, retrieval, reranking, extraction or reconciliation exist here.

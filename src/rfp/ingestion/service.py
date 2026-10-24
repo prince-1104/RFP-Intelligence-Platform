@@ -228,6 +228,7 @@ def process_job(
 
                 storage_call(upload_artifact, settings.ingestion_storage_attempts)
                 document.parsed_object_key = key
+                document.parsed_artifact_sha256 = hashlib.sha256(payload).hexdigest()
                 document.parser_fingerprint = options.fingerprint
                 document.status = {
                     ParseStatus.succeeded: Status.completed,
@@ -274,6 +275,10 @@ def process_job(
 
 
 def job_summary(job: ProcessingJob) -> dict:
+    if job.kind == "chunking":
+        from rfp.chunking.service import chunk_job_summary
+
+        return chunk_job_summary(job)
     return {
         "job_id": str(job.id),
         "bid_id": str(job.bid_id),

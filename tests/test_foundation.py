@@ -173,13 +173,20 @@ def test_migration_matches_models():
     )
     second = importlib.util.module_from_spec(second_spec)
     second_spec.loader.exec_module(second)
+    third_spec = importlib.util.spec_from_file_location(
+        "chunk_migration", Path("src/rfp/db/migrations/versions/0003_chunks.py")
+    )
+    third = importlib.util.module_from_spec(third_spec)
+    third_spec.loader.exec_module(third)
     engine = create_engine("sqlite://")
     with engine.begin() as connection:
         context = MigrationContext.configure(connection)
         with Operations.context(context):
             module.upgrade()
             second.upgrade()
+            third.upgrade()
             assert compare_metadata(context, Base.metadata) == []
+            third.downgrade()
             second.downgrade()
             module.downgrade()
             assert not connection.execute(

@@ -92,8 +92,19 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--tesseract-cmd")
     dispatch = commands.add_parser("dispatch-job", help="Requeue a registered nonterminal job")
     dispatch.add_argument("--job-id", type=uuid.UUID, required=True)
+    chunk_local = commands.add_parser("chunk-folder", help="Offline parsed JSON to chunk JSON")
+    chunk_local.add_argument("--path", type=Path, required=True)
+    chunk_local.add_argument("--output", type=Path, required=True)
+    chunk_bid = commands.add_parser("chunk-bid", help="Queue incremental chunk preparation from R2")
+    chunk_bid.add_argument("--bid-id", type=uuid.UUID, required=True)
     args = parser.parse_args(argv)
     try:
+        if args.command == "chunk-folder":
+            from rfp.chunking.local import chunk_folder
+
+            summary, code = chunk_folder(args.path, args.output, local_settings())
+            print(json.dumps(summary, ensure_ascii=True))
+            return code
         if args.command == "parse-folder":
             settings = local_settings()
             settings.ocr_force = args.force_ocr or settings.ocr_force
@@ -122,16 +133,30 @@ def main(argv: list[str] | None = None) -> int:
         engine = create_db_engine(settings)
         try:
             storage = CloudflareR2Storage(settings)
+            task_name = "rfp.ingest"
             if args.command == "ingest-folder":
                 job_id, summary = register_folder(args.path, settings, engine, storage, args.bid_id)
                 print(json.dumps(summary, ensure_ascii=False))
+            elif args.command == "chunk-bid":
+                from rfp.chunking.service import register_chunks
+
+                job_id, summary = register_chunks(args.bid_id, settings, engine, storage)
+                task_name = "rfp.chunk"
+                print(json.dumps(summary, ensure_ascii=True))
             else:
                 job_id = args.job_id
+                from sqlalchemy.orm import Session
+
+                from rfp.db.models import ProcessingJob
+
+                with Session(engine) as session:
+                    job = session.get(ProcessingJob, job_id)
+                    if job is None:
+                        raise ValueError("job_not_found")
+                    task_name = "rfp.chunk" if job.kind == "chunking" else "rfp.ingest"
             # Commit-before-publish: a broker failure leaves a queued job that can be requeued.
             app = create_celery(settings)
-            app.tasks["rfp.ingest"].apply_async(
-                args=[str(job_id)], task_id=str(job_id), retry=False
-            )
+            app.tasks[task_name].apply_async(args=[str(job_id)], task_id=str(job_id), retry=False)
             print(json.dumps({"job_id": str(job_id), "dispatch": "queued"}))
             return 0
         finally:
