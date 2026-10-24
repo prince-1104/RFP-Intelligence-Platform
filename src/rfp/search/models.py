@@ -12,6 +12,7 @@ from typing import Any, Protocol, TypeVar
 
 import numpy as np
 
+from rfp.chunking.tokens import ModelTokenCounter, token_windows
 from rfp.core.logging import log_event
 from rfp.schemas.chunks import sha256, stable_json
 from rfp.schemas.search import SearchConfig
@@ -67,10 +68,21 @@ class SparseEmbedder(Protocol):
     def identity(self) -> Identity: ...
 
 
+@dataclass(frozen=True)
+class RerankScores:
+    scores: list[float]
+    # Documents whose query+document input exceeded the cross-encoder limit and were scored
+    # as the maximum over overlapping windows instead of being truncated.
+    windowed: int = 0
+    # Over-limit pairs left to model truncation because the query alone is too long to window.
+    truncated: int = 0
+    max_pair_tokens: int = 0
+
+
 class Reranker(Protocol):
     model_id: str
 
-    def rerank(self, query: str, documents: Sequence[str]) -> list[float]: ...
+    def rerank(self, query: str, documents: Sequence[str]) -> RerankScores: ...
     def identity(self) -> Identity: ...
 
 
@@ -179,6 +191,7 @@ class FastEmbedDense:
         except Exception:
             raise ModelUnavailable() from None
         self._file_hash = _file_sha256(_model_dir(self._model) / self.description["model_file"])
+        self._counter = ModelTokenCounter(self.model_id, _model_dir(self._model))
 
     def embed_documents(self, texts: Sequence[str]) -> list[np.ndarray]:
         return list(self._model.passage_embed(list(texts), batch_size=self.batch_size))
@@ -187,7 +200,8 @@ class FastEmbedDense:
         return next(iter(self._model.query_embed(self.instruction + text)))
 
     def token_counts(self, texts: Sequence[str]) -> list[int]:
-        return [int(self._model.token_count(text)) for text in texts]
+        # FastEmbed's own count is taken after truncation and can never exceed the limit.
+        return self._counter.counts(list(texts))
 
     def identity(self) -> Identity:
         return {
@@ -273,12 +287,50 @@ class FastEmbedReranker:
         except Exception:
             raise ModelUnavailable() from None
         self._file_hash = _file_sha256(_model_dir(self._model) / self.description["model_file"])
+        directory = _model_dir(self._model)
+        self._counter = ModelTokenCounter(self.model_id, directory)
+        from fastembed.common.preprocessor_utils import load_tokenizer
 
-    def rerank(self, query: str, documents: Sequence[str]) -> list[float]:
-        return [
-            float(score)
-            for score in self._model.rerank(query, list(documents), batch_size=self.batch_size)
-        ]
+        truncation = load_tokenizer(directory)[0].truncation or {}
+        self.max_tokens = int(truncation.get("max_length") or 512)
+        self.overlap_tokens = config.rerank_window_overlap_tokens
+
+    def rerank(self, query: str, documents: Sequence[str]) -> RerankScores:
+        inputs: list[str] = []
+        owners: list[int] = []
+        windowed = truncated = 0
+        longest = 0
+        query_tokens = self._counter.count(query)
+        for index, document in enumerate(documents):
+            length = self._counter.pair_count(query, document)
+            longest = max(longest, length)
+            # A query that leaves no room for document text cannot be windowed meaningfully.
+            if length <= self.max_tokens or query_tokens > self.max_tokens // 2:
+                truncated += int(length > self.max_tokens)
+                inputs.append(document)
+                owners.append(index)
+                continue
+            windowed += 1
+            spans, _ = token_windows(
+                document,
+                self.max_tokens,
+                self.overlap_tokens,
+                lambda value: self._counter.pair_count(query, value),
+                self._counter.count,
+            )
+            for start, end in spans:
+                inputs.append(document[start:end])
+                owners.append(index)
+        # Shorter inputs first so each batch pads to similar lengths; order is restored below.
+        order = sorted(range(len(inputs)), key=lambda i: len(inputs[i]))
+        raw = list(
+            self._model.rerank(query, [inputs[i] for i in order], batch_size=self.batch_size)
+        )
+        scores = [-math.inf] * len(documents)
+        for position, score in zip(order, raw, strict=True):
+            owner = owners[position]
+            scores[owner] = max(scores[owner], float(score))
+        return RerankScores(scores, windowed, truncated, longest)
 
     def identity(self) -> Identity:
         return {
@@ -400,6 +452,6 @@ def init_models(config: SearchConfig, include_reranker: bool = True) -> dict[str
     }
     if include_reranker:
         reranker = FastEmbedReranker(config, allow_download=True)
-        reranker.rerank("warm-up", ["warm-up"])
+        reranker.rerank("warm-up", ["warm-up"]).scores
         result["reranker"] = reranker.identity()
     return result

@@ -253,8 +253,8 @@ def test_partial_replacement_does_not_replace_complete_active(folder, settings, 
     )
     second, summary = register_chunks(bid, changed, database, store)
 
-    def partial(parsed, config, digest):
-        result = chunk_document(parsed, config, digest)
+    def partial(parsed, config, digest, counter):
+        result = chunk_document(parsed, config, digest, counter)
         result.processing_status = ParseStatus.partially_succeeded
         return result
 

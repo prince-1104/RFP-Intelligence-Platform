@@ -24,7 +24,7 @@ from rfp.search.collection import DENSE_VECTOR, SPARSE_VECTOR, CollectionManager
 from rfp.search.errors import IndexUnavailable, InvalidSearchRequest, SearchServiceError
 from rfp.search.fusion import reciprocal_rank_fusion
 from rfp.search.identifiers import matched_identifiers
-from rfp.search.models import ModelRuntime, validate_dense
+from rfp.search.models import ModelRuntime, RerankScores, validate_dense
 from rfp.search.payload import citation_from_payload
 from rfp.search.query import QueryPlan, plan_query
 
@@ -113,7 +113,7 @@ class SearchService:
         )
         return {**manager.diagnostics(), "models_loaded": self.runtime.loaded()}
 
-    def search(self, request: SearchRequest) -> SearchResponse:
+    def search(self, request: SearchRequest, rerank_depth: int | None = None) -> SearchResponse:
         started = time.monotonic()
         timings: dict[str, float] = {}
         top_k = request.top_k or self.config.default_top_k
@@ -135,6 +135,23 @@ class SearchService:
         use_dense = mode in {RetrievalMode.dense, RetrievalMode.hybrid, RetrievalMode.hybrid_rerank}
         use_sparse = mode != RetrievalMode.dense
         use_identifiers = mode in {RetrievalMode.hybrid, RetrievalMode.hybrid_rerank}
+
+        # Lazy model loading is timed separately so per-stage timings reflect inference only.
+        timer = time.monotonic()
+        needed = {
+            "dense": use_dense or (use_identifiers and plan.identifier_terms),
+            "sparse": use_sparse,
+            "reranker": mode == RetrievalMode.hybrid_rerank,
+        }
+        missing = [name for name, used in needed.items() if used and name not in self.runtime.loaded()]
+        for name in missing:
+            try:
+                getattr(self.runtime, name)
+            except SearchServiceError:
+                if name == "dense" or not self.config.allow_degraded:
+                    raise
+        if missing:
+            timings["model_load"] = (time.monotonic() - timer) * 1000
 
         timer = time.monotonic()
         dense_vector = None
@@ -256,11 +273,24 @@ class SearchService:
         timings["fusion"] = (time.monotonic() - timer) * 1000
         counts["fused"] = len(ordered)
 
-        if mode == RetrievalMode.hybrid_rerank and ordered:
+        identifier_missing = (
+            plan.identifiers
+            and self.config.identifier_policy == "require_evidence"
+            and not any(candidate.matched for candidate in ordered)
+        )
+        if mode == RetrievalMode.hybrid_rerank and ordered and not identifier_missing:
             timer = time.monotonic()
             try:
-                ordered = self._rerank(plan, ordered)
-                counts["reranked"] = min(len(ordered), self.config.rerank_depth)
+                depth = rerank_depth or self.config.rerank_depth
+                ordered, output, unique = self._rerank(plan, ordered, depth)
+                counts["reranked"] = min(len(ordered), depth)
+                counts["rerank_inputs"] = unique
+                if output.windowed:
+                    warnings.append("rerank_input_windowed")
+                    counts["rerank_windowed"] = output.windowed
+                if output.truncated:
+                    warnings.append("rerank_input_truncated")
+                    counts["rerank_truncated"] = output.truncated
             except SearchServiceError as exc:
                 if not self.config.allow_degraded:
                     raise
@@ -268,11 +298,7 @@ class SearchService:
                 warnings.append(f"reranker_unavailable:{exc.code}")
             timings["rerank"] = (time.monotonic() - timer) * 1000
 
-        if (
-            plan.identifiers
-            and self.config.identifier_policy == "require_evidence"
-            and not any(candidate.matched for candidate in ordered)
-        ):
+        if identifier_missing:
             warnings.append("identifier_evidence_not_found")
             ordered = []
         if not ordered:
@@ -347,16 +373,19 @@ class SearchService:
             ordered.append(candidate)
         return ordered
 
-    def _rerank(self, plan: QueryPlan, ordered: list[Candidate]) -> list[Candidate]:
-        head = ordered[: self.config.rerank_depth]
-        tail = ordered[self.config.rerank_depth :]
+    def _rerank(
+        self, plan: QueryPlan, ordered: list[Candidate], depth: int
+    ) -> tuple[list[Candidate], RerankScores, int]:
+        head = ordered[:depth]
+        tail = ordered[depth:]
         reranker = self.runtime.reranker
-        scores = self.runtime.infer(
-            lambda: reranker.rerank(plan.normalized, [c.payload.get("text", "") for c in head]),
-            "reranker_failed",
-        )
-        if len(scores) != len(head):
+        # Identical text scores identically, so each distinct text is scored once.
+        texts = list(dict.fromkeys(c.payload.get("text", "") for c in head))
+        output = self.runtime.infer(lambda: reranker.rerank(plan.normalized, texts), "reranker_failed")
+        if len(output.scores) != len(texts):
             raise SearchServiceError("Reranker output size mismatch", "reranker_failed")
+        by_text = dict(zip(texts, output.scores, strict=True))
+        scores = [by_text[c.payload.get("text", "")] for c in head]
         for candidate, score in zip(head, scores, strict=True):
             candidate.reranker_score = float(score)
             candidate.identifier_bonus = (
@@ -366,7 +395,7 @@ class SearchService:
         head.sort(key=lambda c: (-c.final_score, -(c.rrf_score or 0.0)))
         # Candidates beyond the rerank depth keep fused order and are never promoted above
         # reranked evidence; they are only used if top_k exceeds the rerank depth.
-        return head + tail
+        return head + tail, output, len(texts)
 
     def _results(
         self,

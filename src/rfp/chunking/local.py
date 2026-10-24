@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from rfp.chunking.engine import chunk_bytes, chunk_document
+from rfp.chunking.tokens import counter_for
 from rfp.core.config import Settings
 from rfp.schemas.chunks import sha256, stable_json
 from rfp.schemas.parsed import ParsedDocument, ParseStatus
@@ -31,6 +32,11 @@ def chunk_folder(path: Path, output: Path, settings: Settings) -> tuple[dict, in
         raise ValueError("input_directory_not_found")
     if destination == root or root in destination.parents:
         raise ValueError("output_must_be_outside_source_folder")
+    counter = counter_for(
+        settings.chunking.token_counter,
+        settings.chunking.tokenizer_identifier,
+        settings.search.model_cache_dir,
+    )
     destination.mkdir(parents=True, exist_ok=True)
     summary: dict = {
         "source_documents": 0,
@@ -87,7 +93,7 @@ def chunk_folder(path: Path, output: Path, settings: Settings) -> tuple[dict, in
                 ):
                     raise ValueError("input_size_limit")
                 parsed = ParsedDocument.model_validate_json(payload)
-                result = chunk_document(parsed, settings.chunking, sha256(payload))
+                result = chunk_document(parsed, settings.chunking, sha256(payload), counter)
                 if str(result.generation_id) in generations:
                     summary["skipped_inputs"] += 1
                     continue

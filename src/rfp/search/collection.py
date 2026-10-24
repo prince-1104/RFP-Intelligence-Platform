@@ -17,6 +17,7 @@ from rfp.core.logging import log_event
 from rfp.search.errors import (
     CollectionIncompatible,
     IndexUnavailable,
+    QdrantRejected,
     QdrantUnavailable,
     SearchServiceError,
 )
@@ -70,9 +71,11 @@ def qdrant_call[T](operation: Callable[[], T]) -> T:
         if status == 404:
             raise IndexUnavailable() from None
         if status in {401, 403}:
-            raise QdrantUnavailable(
+            raise QdrantRejected(
                 "Vector store rejected the configured credentials", "vector_store_unauthorized"
             ) from None
+        if 400 <= status < 500 and status not in {408, 429}:
+            raise QdrantRejected() from None
         raise QdrantUnavailable() from None
     except (ResponseHandlingException, httpx.HTTPError, OSError, TimeoutError):
         raise QdrantUnavailable() from None

@@ -147,6 +147,17 @@ def test_unknown_identifier_requires_evidence(indexed):
     assert response.query.identifiers == ["ZZ-9999"]
 
 
+def test_unknown_identifier_skips_reranking_and_reports_model_load(settings):
+    reranker = FakeReranker()
+    indexer, search, _ = services(settings, reranker=reranker)
+    indexer.index([generation(r) for r in sample_bid()])
+    first = run(search, "ZZ-9999 pump")
+    assert first.results == [] and reranker.calls == 0 and "rerank" not in first.timings_ms
+    assert "model_load" in first.timings_ms
+    second = run(search, "PX-420 pump")
+    assert reranker.calls == 1 and "model_load" not in second.timings_ms
+
+
 def test_identifier_policy_boost_returns_semantic_results(settings):
     settings.search.identifier_policy = "boost"
     indexer, search, _ = services(settings)

@@ -54,7 +54,10 @@ class GenerationOutcome:
     sparse_computed: int = 0
     truncated_inputs: int = 0
     superseded_points_removed: int = 0
+    # Highest attempt number any upsert batch needed (1 = no retry), not the number of batches.
     attempts: int = 0
+    upsert_batches: int = 0
+    upsert_retries: int = 0
     error_code: str | None = None
     timings_ms: dict[str, float] = field(default_factory=dict)
 
@@ -74,6 +77,8 @@ class GenerationOutcome:
             "truncated_inputs": self.truncated_inputs,
             "superseded_points_removed": self.superseded_points_removed,
             "attempts": self.attempts,
+            "upsert_batches": self.upsert_batches,
+            "upsert_retries": self.upsert_retries,
             "error_code": self.error_code,
             "timings_ms": self.timings_ms,
         }
@@ -117,6 +122,7 @@ class IndexReport:
             "dense_computed": total("dense_computed"),
             "sparse_computed": total("sparse_computed"),
             "truncated_inputs": total("truncated_inputs"),
+            "upsert_retries": total("upsert_retries"),
             "continuation_required": self.continuation_required,
             "input_failures": self.input_failures,
             "total_ms": round(self.total_ms, 1),
@@ -203,7 +209,9 @@ class IndexingService:
                     code=exc.code,
                     attempts=outcome.attempts,
                 )
-                if exc.retryable and isinstance(exc, QdrantUnavailable):
+                if isinstance(exc, QdrantUnavailable) and (
+                    exc.retryable or exc.code == "vector_store_unauthorized"
+                ):
                     # Remaining generations would fail the same way; keep them pending.
                     break
         report.total_ms = (time.monotonic() - started) * 1000
@@ -327,6 +335,8 @@ class IndexingService:
             cache_misses=outcome.cache_misses,
             truncated_inputs=outcome.truncated_inputs,
             attempts=outcome.attempts,
+            upsert_batches=outcome.upsert_batches,
+            upsert_retries=outcome.upsert_retries,
             timings_ms={k: round(v, 1) for k, v in outcome.timings_ms.items()},
         )
 
@@ -358,15 +368,16 @@ class IndexingService:
                         dense=tuple(validate_dense(vector, dense_model.dim)),
                         sparse=checked,
                         token_count=int(count),
-                        # Tokenizer truncation caps counts at the model limit.
-                        truncated=int(count) >= dense_model.max_tokens,
+                        truncated=int(count) > dense_model.max_tokens,
                     )
                 )
         return result
 
     def _upsert(self, manager: CollectionManager, points: list, outcome: GenerationOutcome) -> None:
+        outcome.upsert_batches += 1
         for attempt in range(self.config.upsert_attempts):
-            outcome.attempts += 1
+            outcome.attempts = max(outcome.attempts, attempt + 1)
+            outcome.upsert_retries += int(attempt > 0)
             try:
                 qdrant_call(lambda: self.client.upsert(manager.name, points=points, wait=True))
                 return

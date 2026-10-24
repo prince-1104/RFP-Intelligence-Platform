@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 
@@ -36,6 +37,11 @@ def test_local_chunks_no_credentials_and_deterministic_outputs(tmp_path, setting
         capture_output=True,
         text=True,
         timeout=30,
+        env={
+            **os.environ,
+            "CHUNKING__TOKEN_COUNTER": "utf8_bytes_v1",
+            "CHUNKING__TOKENIZER_IDENTIFIER": "utf8-bytes-div4-v1",
+        },
     )
     assert completed.returncode == 0, completed.stderr
     summary = json.loads(completed.stdout)

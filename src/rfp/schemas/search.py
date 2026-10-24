@@ -38,6 +38,7 @@ class SearchConfig(Contract):
     onnx_threads: int | None = Field(default=None, ge=1, le=64)
     embed_batch_size: int = Field(default=32, ge=1, le=1024)
     rerank_batch_size: int = Field(default=32, ge=1, le=1024)
+    rerank_window_overlap_tokens: int = Field(default=50, ge=0, le=256)
     max_concurrent_inference: int = Field(default=2, ge=1, le=32)
     inference_timeout_seconds: float = Field(default=60, ge=1, le=600)
     default_top_k: int = Field(default=5, ge=1, le=100)

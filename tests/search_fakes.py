@@ -21,7 +21,7 @@ from rfp.schemas.parsed import (
 )
 from rfp.search.errors import InferenceFailed
 from rfp.search.indexing import GenerationInput, IndexingService
-from rfp.search.models import ModelRuntime, SparseVector
+from rfp.search.models import ModelRuntime, RerankScores, SparseVector
 from rfp.search.service import SearchService
 
 DIM = 64
@@ -112,9 +112,9 @@ class FakeReranker:
         if self.fail:
             raise RuntimeError("reranker crashed")
         wanted = set(tokens(query))
-        return [
-            float(len(wanted & set(tokens(doc)))) - 0.001 * i for i, doc in enumerate(documents)
-        ]
+        return RerankScores(
+            [float(len(wanted & set(tokens(doc)))) - 0.001 * i for i, doc in enumerate(documents)]
+        )
 
     def identity(self):
         return {"model": self.model_id}
@@ -209,9 +209,12 @@ def html_document(bid_id: uuid.UUID, path: str, html: str) -> ParsedDocument:
     return parse_document(html.encode(), path, bid_id, ParserOptions())
 
 
+ESTIMATED = {"token_counter": "utf8_bytes_v1", "tokenizer_identifier": "utf8-bytes-div4-v1"}
+
+
 def chunked(parsed: ParsedDocument, config: ChunkConfig | None = None) -> ChunkingResult:
     digest = sha256(parsed.model_dump_json().encode())
-    return chunk_document(parsed, config or ChunkConfig(), digest)
+    return chunk_document(parsed, config or ChunkConfig(**ESTIMATED), digest)
 
 
 def generation(result: ChunkingResult) -> GenerationInput:

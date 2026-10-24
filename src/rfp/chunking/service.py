@@ -8,6 +8,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from rfp.chunking.engine import chunk_bytes, chunk_document, generation_id
+from rfp.chunking.tokens import TokenizerUnavailable, counter_for
 from rfp.core.config import Settings
 from rfp.db.models import (
     ChunkContent,
@@ -283,7 +284,12 @@ def process_chunks(
                     or parsed.relative_path != generation.source_path
                 ):
                     raise ValueError("parsed_provenance_mismatch")
-                result = chunker(parsed, config, generation.input_hash)
+                counter = counter_for(
+                    config.token_counter,
+                    config.tokenizer_identifier,
+                    settings.search.model_cache_dir,
+                )
+                result = chunker(parsed, config, generation.input_hash, counter)
                 result = ChunkingResult.model_validate(result.model_dump())
                 if result.generation_id != generation.id:
                     raise ValueError("chunk_generation_mismatch")
@@ -315,6 +321,8 @@ def process_chunks(
                 failed_generation.error_code = "chunk_processing_failed"
                 if isinstance(exc, StorageError):
                     failed_generation.error_code = "storage_operation_failed"
+                if isinstance(exc, TokenizerUnavailable):
+                    failed_generation.error_code = str(exc)
                 if isinstance(exc, TransientStorageError):
                     transient = True
                     if not final_attempt:

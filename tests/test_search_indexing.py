@@ -6,6 +6,7 @@ from qdrant_client import models
 from search_fakes import (
     BID_A,
     DIM,
+    ESTIMATED,
     FakeDense,
     FakeSparse,
     MemoryCache,
@@ -107,6 +108,53 @@ def test_incremental_new_generation_supersedes_only_its_source(settings):
     untouched = [r for r in results if r.relative_path != "specs/pumps.pdf"]
     for result in untouched:
         assert str(result.generation_id) in generations
+
+
+def test_multi_batch_upsert_is_not_reported_as_a_retry(settings):
+    small = settings.model_copy(
+        update={"search": settings.search.model_copy(update={"upsert_batch_size": 2})}
+    )
+    indexer, _, _ = services(small)
+    long = chunked(
+        pdf_document(BID_A, "long.pdf", [[f"Clause {i} requires PX-{i}."] for i in range(5)]),
+        ChunkConfig(target_tokens=8, max_tokens=10, overlap_tokens=0, **ESTIMATED),
+    )
+    outcome = indexer.index([generation(long)]).outcomes[0]
+    assert outcome.status == "completed" and outcome.point_count >= 3
+    assert outcome.upsert_batches == -(-outcome.point_count // 2)
+    assert outcome.attempts == 1 and outcome.upsert_retries == 0
+
+
+def test_transient_upsert_failure_is_retried_once_and_counted(settings):
+    sleeps = []
+    indexer, _, client = services(settings)
+    indexer.sleep = sleeps.append
+    original = client.upsert
+    calls = iter([QdrantUnavailable()])
+
+    def flaky(*args, **kwargs):
+        failure = next(calls, None)
+        if failure:
+            raise failure
+        return original(*args, **kwargs)
+
+    with patch.object(client, "upsert", side_effect=flaky):
+        outcome = indexer.index([generation(sample_bid()[1])]).outcomes[0]
+    assert outcome.status == "completed"
+    assert outcome.attempts == 2 and outcome.upsert_retries == 1 and sleeps == [1]
+
+
+def test_deterministic_rejection_is_not_retried(settings):
+    from qdrant_client.http.exceptions import UnexpectedResponse
+
+    sleeps = []
+    indexer, _, client = services(settings)
+    indexer.sleep = sleeps.append
+    rejected = UnexpectedResponse(400, "Bad Request", b'{"status":"bad"}', None)
+    with patch.object(client, "upsert", side_effect=rejected):
+        outcome = indexer.index([generation(sample_bid()[1])]).outcomes[0]
+    assert outcome.status == "failed" and outcome.error_code == "vector_store_request_rejected"
+    assert outcome.attempts == 1 and outcome.upsert_retries == 0 and sleeps == []
 
 
 def test_failed_upsert_retries_bounded_and_keeps_previous_active(settings):
@@ -222,7 +270,7 @@ def test_load_local_artifacts_prefers_current_config(settings, tmp_path):
     result = sample_bid()[1]
     other = chunked(
         pdf_document(BID_A, result.relative_path, [["Different text PX-1."]]),
-        ChunkConfig(target_tokens=30, max_tokens=40, overlap_tokens=8),
+        ChunkConfig(target_tokens=30, max_tokens=40, overlap_tokens=8, **ESTIMATED),
     )
     (tmp_path / "a.json").write_text(result.model_dump_json())
     (tmp_path / "b.json").write_text(other.model_dump_json())

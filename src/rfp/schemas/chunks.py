@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 from typing import Literal
 from uuid import UUID
 
@@ -22,13 +23,18 @@ def sha256(data: bytes) -> str:
 
 class ChunkConfig(Contract):
     normalization_version: Literal["1.0"] = "1.0"
-    chunking_version: Literal["1.0"] = "1.0"
-    target_tokens: int = Field(default=600, ge=8, le=16000)
-    max_tokens: int = Field(default=800, ge=8, le=32000)
-    overlap_tokens: int = Field(default=100, ge=0)
+    # 2.0: exact embedding-model token budgets and cell-level splitting of oversized table rows.
+    chunking_version: Literal["1.0", "2.0"] = "2.0"
+    # Budgets count the full embedding input, including the model's special tokens.
+    target_tokens: int = Field(default=320, ge=8, le=16000)
+    max_tokens: int = Field(default=400, ge=8, le=32000)
+    overlap_tokens: int = Field(default=50, ge=0)
     table_row_limit: int = Field(default=20, ge=1, le=1000)
-    token_counter: Literal["utf8_bytes_v1"] = "utf8_bytes_v1"
-    tokenizer_identifier: Literal["utf8-bytes-div4-v1"] = "utf8-bytes-div4-v1"
+    token_counter: Literal["utf8_bytes_v1", "model_tokenizer_v1"] = "model_tokenizer_v1"
+    # The hash pins tokenizer files; a different tokenizer must change the configuration.
+    tokenizer_identifier: str = Field(
+        default="hf:BAAI/bge-small-en-v1.5@6ba3d85b0f27cb7a", min_length=3, max_length=300
+    )
     min_content_chars: int = Field(default=1, ge=1, le=1000)
     empty_behavior: Literal["failed", "skipped"] = "failed"
     join_wrapped_lines: bool = True
@@ -43,6 +49,11 @@ class ChunkConfig(Contract):
     def budgets(self) -> "ChunkConfig":
         if not self.overlap_tokens < self.target_tokens <= self.max_tokens:
             raise ValueError("Require overlap_tokens < target_tokens <= max_tokens")
+        estimated = self.token_counter == "utf8_bytes_v1"
+        if estimated != (self.tokenizer_identifier == "utf8-bytes-div4-v1"):
+            raise ValueError("tokenizer_identifier does not match token_counter")
+        if not estimated and not re.fullmatch(r"hf:[^@\s]+@[a-f0-9]{16}", self.tokenizer_identifier):
+            raise ValueError("Model tokenizer identifier must be hf:<model>@<16 hex>")
         return self
 
     @property
@@ -77,11 +88,28 @@ class TableRows(Contract):
     rows: list[list[str | None]]
     extraction_method: str
     warnings: list[str] = Field(default_factory=list)
+    # Set only when one row exceeds the token budget: the chunk text holds these columns
+    # (one-based, inclusive) and, for a single oversized cell, part ``cell_part`` of
+    # ``cell_parts``. ``rows`` always preserves the complete source row.
+    column_start: int | None = Field(default=None, ge=1)
+    column_end: int | None = Field(default=None, ge=1)
+    cell_part: int | None = Field(default=None, ge=1)
+    cell_parts: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def row_range(self) -> "TableRows":
         if self.row_end - self.row_start + 1 != len(self.rows):
             raise ValueError("Table row range must match preserved rows")
+        if (self.column_start is None) != (self.column_end is None) or (
+            self.column_start is not None
+            and (self.column_end < self.column_start or self.row_start != self.row_end)
+        ):
+            raise ValueError("Column range requires a single row and start <= end")
+        if (self.cell_part is None) != (self.cell_parts is None) or (
+            self.cell_part is not None
+            and (self.cell_part > self.cell_parts or self.column_start != self.column_end)
+        ):
+            raise ValueError("Cell parts require a single column and part <= parts")
         return self
 
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from rfp.chunking.normalize import normalize
-from rfp.chunking.tokens import EstimatedTokenCounter, TokenCounter
+from rfp.chunking.tokens import EstimatedTokenCounter, TokenCounter, largest, token_windows
 from rfp.ingestion.parser import artifact_bytes
 from rfp.schemas.chunks import (
     CanonicalChunk,
@@ -178,26 +178,75 @@ def _page_pieces(
 def _split(piece: Piece, config: ChunkConfig, counter: TokenCounter) -> list[Piece]:
     if counter.count(piece.text) <= config.max_tokens:
         return [piece]
-    # Prefer sentences, then whole words. Never break an identifier or table row to fit a budget.
+    # Prefer sentences, then whole words. Overlap between the resulting chunks is added by the
+    # caller, so windows inside one long sentence do not overlap here.
     result = []
-    start = 0
     for sentence in re.finditer(r".*?(?:[.!?](?=\s+[A-Z0-9(])|$)", piece.text, re.S):
         if not sentence.group().strip():
             continue
         if counter.count(sentence.group()) <= config.target_tokens:
             result.append(_slice(piece, sentence.start(), sentence.end()))
             continue
-        start = sentence.start()
-        end = start
-        for word in re.finditer(r"\S+\s*", sentence.group()):
-            next_end = sentence.start() + word.end()
-            if end > start and counter.count(piece.text[start:next_end]) > config.target_tokens:
-                result.append(_slice(piece, start, end))
-                start = sentence.start() + word.start()
-            end = next_end
-        if end > start:
-            result.append(_slice(piece, start, end))
+        spans, _ = token_windows(sentence.group(), config.target_tokens, 0, counter.count)
+        result.extend(
+            _slice(piece, sentence.start() + start, sentence.start() + end) for start, end in spans
+        )
     return result
+
+
+@dataclass
+class RowPart:
+    text: str
+    column_start: int
+    column_end: int
+    cell_part: int | None = None
+    cell_parts: int | None = None
+    warnings: tuple[str, ...] = ()
+
+
+def _row_parts(
+    headers: list[str] | None, row: list[str | None], config: ChunkConfig, counter: TokenCounter
+) -> list[RowPart]:
+    """Split one over-budget row at cell boundaries; split a single oversized cell at word
+    boundaries with overlap. Header/value alignment is kept by slicing both identically."""
+
+    def render(start: int, end: int, cells: list[str | None] | None = None) -> str:
+        return _table_text(
+            headers[start:end] if headers else None, [cells if cells is not None else row[start:end]]
+        )
+
+    parts: list[RowPart] = []
+    column = 0
+    while column < len(row):
+        last = largest(
+            column + 1, len(row), lambda end: counter.count(render(column, end)) <= config.max_tokens
+        )
+        if last > column:
+            parts.append(RowPart(render(column, last), column + 1, last))
+            column = last
+            continue
+        cell = row[column] or ""
+        spans, split_word = token_windows(
+            cell,
+            config.max_tokens,
+            config.overlap_tokens,
+            lambda value: counter.count(render(column, column + 1, [value])),
+            counter.count,
+        )
+        warnings = ("token_budget_word_split",) if split_word else ()
+        for number, (start, end) in enumerate(spans, 1):
+            parts.append(
+                RowPart(
+                    render(column, column + 1, [cell[start:end]]),
+                    column + 1,
+                    column + 1,
+                    number,
+                    len(spans),
+                    warnings,
+                )
+            )
+        column += 1
+    return parts
 
 
 def _tail(pieces: list[Piece], budget: int, counter: TokenCounter) -> list[Piece]:
@@ -225,7 +274,10 @@ def chunk_document(
     counter: TokenCounter | None = None,
 ) -> ChunkingResult:
     document = ParsedDocument.model_validate(document.model_dump())
-    counter = counter or EstimatedTokenCounter()
+    if counter is None:
+        if config.token_counter != "utf8_bytes_v1":
+            raise ValueError("token_counter_required")
+        counter = EstimatedTokenCounter()
     if counter.identifier != config.tokenizer_identifier:
         raise ValueError("Token counter identifier does not match effective configuration")
     input_hash = parsed_sha256 or sha256(artifact_bytes(document))
@@ -265,7 +317,9 @@ def chunk_document(
         if time.monotonic() > deadline:
             raise ValueError("chunk_timeout")
 
-    def emit(pieces: list[Piece], table: TableRows | None = None) -> None:
+    def emit(
+        pieces: list[Piece], table: TableRows | None = None, extra: tuple[str, ...] = ()
+    ) -> None:
         nonlocal output_chars
         guard()
         if len(result.occurrences) >= config.max_chunks:
@@ -297,11 +351,13 @@ def chunk_document(
                     *document.warnings,
                     *(w for segment in segments for w in segment.warnings),
                     *(table.warnings if table else []),
+                    *extra,
                 ]
             )
         )
         if count > config.max_tokens:
             warnings.append("indivisible_row_or_identifier_exceeds_token_budget")
+            result.warnings.append("chunk_exceeds_token_budget")
         sequence = len(result.occurrences) + 1
         section = list(pieces[0].section)
         result.occurrences.append(
@@ -380,7 +436,8 @@ def chunk_document(
                             result.warnings.append("numbered_heading_parent_unavailable")
                     heading_path = ancestors + [piece.text]
                     piece.section = tuple(heading_path)
-                    emit([piece])
+                    for part in _split(piece, config, counter):
+                        emit([part])
                     current_section = piece.section
                     continue
                 if piece.section:
@@ -423,27 +480,22 @@ def chunk_document(
                 normalized_evidence.append(
                     {"table_id": table.table_id, "headers": headers, "rows": rows}
                 )
-                start = 0
-                while start < len(rows):
-                    end = start + 1
-                    while (
-                        end < len(rows)
-                        and end - start < config.table_row_limit
-                        and counter.count(_table_text(headers, rows[start : end + 1]))
-                        <= config.max_tokens
-                    ):
-                        end += 1
-                    text_value = _table_text(headers, rows[start:end])
-                    table_rows = TableRows(
-                        table_id=table.table_id,
-                        table_index=table.table_index,
-                        row_start=start + 1,
-                        row_end=end,
-                        headers=headers,
-                        rows=rows[start:end],
-                        extraction_method=table.extraction_method,
-                        warnings=table.warnings,
-                    )
+                section = (
+                    (table.source_locator.heading,)
+                    if table.source_locator.heading
+                    else tuple(heading_path)
+                )
+
+                def emit_rows(
+                    text_value: str,
+                    first: int,
+                    last: int,
+                    part: RowPart | None = None,
+                    table=table,
+                    headers=headers,
+                    rows=rows,
+                    section=section,
+                ) -> None:
                     emit(
                         [
                             Piece(
@@ -457,13 +509,44 @@ def chunk_document(
                                     ocr_average_confidence=page.ocr_average_confidence,
                                 ),
                                 "table_rows",
-                                (table.source_locator.heading,)
-                                if table.source_locator.heading
-                                else tuple(heading_path),
+                                section,
                             )
                         ],
-                        table_rows,
+                        TableRows(
+                            table_id=table.table_id,
+                            table_index=table.table_index,
+                            row_start=first + 1,
+                            row_end=last,
+                            headers=headers,
+                            rows=rows[first:last],
+                            extraction_method=table.extraction_method,
+                            warnings=table.warnings,
+                            column_start=part.column_start if part else None,
+                            column_end=part.column_end if part else None,
+                            cell_part=part.cell_part if part else None,
+                            cell_parts=part.cell_parts if part else None,
+                        ),
+                        part.warnings if part else (),
                     )
+
+                start = 0
+                while start < len(rows):
+                    guard()
+                    end = start + 1
+                    if counter.count(_table_text(headers, rows[start:end])) > config.max_tokens:
+                        result.warnings.append("table_row_split_for_token_budget")
+                        for row_part in _row_parts(headers, rows[start], config, counter):
+                            emit_rows(row_part.text, start, end, row_part)
+                        start = end
+                        continue
+                    while (
+                        end < len(rows)
+                        and end - start < config.table_row_limit
+                        and counter.count(_table_text(headers, rows[start : end + 1]))
+                        <= config.max_tokens
+                    ):
+                        end += 1
+                    emit_rows(_table_text(headers, rows[start:end]), start, end)
                     start = end
             normalized_evidence.extend(
                 {"text": piece.text, "section": piece.section, "kind": piece.kind}

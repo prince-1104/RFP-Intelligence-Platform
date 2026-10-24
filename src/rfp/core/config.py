@@ -106,6 +106,17 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def validate_token_budget(self) -> "Settings":
+        if self.chunking.token_counter == "model_tokenizer_v1":
+            from rfp.chunking.tokens import model_from_identifier
+
+            if model_from_identifier(self.chunking.tokenizer_identifier) != self.search.dense_model:
+                raise ValueError("Chunk tokenizer must belong to SEARCH__DENSE_MODEL")
+            if self.chunking.max_tokens > self.search.dense_max_tokens:
+                raise ValueError("CHUNKING__MAX_TOKENS must not exceed SEARCH__DENSE_MAX_TOKENS")
+        return self
+
+    @model_validator(mode="after")
     def validate_r2(self) -> "Settings":
         import re
 

@@ -9,6 +9,7 @@ from typing import Any
 
 from pydantic import SecretStr
 
+from rfp.chunking.tokens import TokenizerUnavailable
 from rfp.core.config import Settings, get_settings
 from rfp.ingestion.discovery import DiscoveryError, discover, read_source
 from rfp.ingestion.options import ParserOptions
@@ -385,6 +386,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     except SearchServiceError as exc:
         _print_error(exc.code, exc.message)
+        return 1
+    except TokenizerUnavailable as exc:
+        _print_error(str(exc), "Run init-models so the embedding tokenizer is cached locally")
         return 1
     except ValueError as exc:
         if str(exc) in {"no_active_chunk_generations", "job_not_found", "index_job_not_found"}:

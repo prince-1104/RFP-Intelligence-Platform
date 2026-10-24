@@ -52,8 +52,15 @@ def page(texts, number=1, path="specs.pdf", **kwargs):
     return ParsedPage(page_number=number, text="\n\n".join(texts), blocks=blocks, **kwargs)
 
 
+ESTIMATED = {"token_counter": "utf8_bytes_v1", "tokenizer_identifier": "utf8-bytes-div4-v1"}
+
+
+def estimated_config(**kwargs):
+    return ChunkConfig(**{**ESTIMATED, **kwargs})
+
+
 def small_config(**kwargs):
-    return ChunkConfig(target_tokens=30, max_tokens=40, overlap_tokens=8, **kwargs)
+    return estimated_config(target_tokens=30, max_tokens=40, overlap_tokens=8, **kwargs)
 
 
 def test_conservative_normalization():
@@ -84,8 +91,8 @@ def test_determinism_source_immutability_and_multpage_provenance():
         [page(["Supply PX-420 pumps."], 1), page(["Quantity 20; retain legal wording."], 2)]
     )
     before = parsed.model_dump_json()
-    result = chunk_document(parsed, ChunkConfig())
-    assert chunk_bytes(result) == chunk_bytes(chunk_document(parsed, ChunkConfig()))
+    result = chunk_document(parsed, estimated_config())
+    assert chunk_bytes(result) == chunk_bytes(chunk_document(parsed, estimated_config()))
     assert parsed.model_dump_json() == before
     occurrence = result.occurrences[0]
     assert occurrence.page_start == 1 and occurrence.page_end == 2
@@ -158,8 +165,9 @@ def test_tables_repeat_headers_preserve_rows_and_remove_confident_text_copy():
     assert all(group.page_start == 1 and "header_inferred" in group.warnings for group in groups)
 
 
-def test_missing_headers_and_oversized_row_not_invented_or_split():
-    row = ["PX-420", "X" * 300, "20 units"]
+def test_missing_headers_not_invented_and_oversized_row_split_at_cells():
+    long_cell = " ".join(f"clause{i:02d} PX-{i:03d} $1,{i:03d}.00" for i in range(30))
+    row = ["PX-420", long_cell, "20 units"]
     table = ParsedTable(
         table_id="t",
         table_index=1,
@@ -170,9 +178,34 @@ def test_missing_headers_and_oversized_row_not_invented_or_split():
         warnings=["ambiguous_table_headers"],
     )
     result = chunk_document(document([page([], tables=[table])]), small_config())
-    occurrence = result.occurrences[0]
-    assert occurrence.table.rows == [row] and occurrence.table.headers is None
-    assert "indivisible_row_or_identifier_exceeds_token_budget" in occurrence.warnings
+    parts = result.occurrences
+    assert len(parts) > 2 and "table_row_split_for_token_budget" in result.warnings
+    assert all(p.estimated_token_count <= 40 for p in parts)
+    assert all(p.table.rows == [row] and p.table.headers is None for p in parts)
+    assert all(p.table.row_start == p.table.row_end == 1 for p in parts)
+    cell_parts = [p for p in parts if p.table.cell_parts]
+    assert {p.table.column_start for p in cell_parts} == {2}
+    assert [p.table.cell_part for p in cell_parts] == list(range(1, len(cell_parts) + 1))
+    text = " ".join(p.normalized_text for p in parts)
+    # Every value survives intact (never split inside a word) and parts overlap.
+    assert all(word in text for word in long_cell.split() + ["PX-420", "20 units"])
+    first, second = (set(p.normalized_text.split()) for p in cell_parts[:2])
+    assert first & second
+
+
+def test_unbreakable_word_is_split_with_warning_not_silently_truncated():
+    row = ["X" * 300]
+    table = ParsedTable(
+        table_id="t",
+        table_index=1,
+        rows=[row],
+        source_locator=SourceLocator(relative_path="specs.pdf", page_number=1),
+        extraction_method="pdfplumber",
+    )
+    result = chunk_document(document([page([], tables=[table])]), small_config())
+    assert all(p.estimated_token_count <= 40 for p in result.occurrences)
+    assert all("token_budget_word_split" in p.warnings for p in result.occurrences)
+    assert "".join(p.normalized_text.split('"')[1] for p in result.occurrences) == "X" * 300
 
 
 def test_repetition_is_evidence_not_deleted():

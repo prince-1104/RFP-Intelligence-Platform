@@ -64,6 +64,15 @@ class QdrantUnavailable(SearchServiceError):
     message = "Vector store is unavailable or timed out"
 
 
+class QdrantRejected(QdrantUnavailable):
+    """A deterministic 4xx rejection (credentials, validation); repeating it cannot succeed."""
+
+    code = "vector_store_request_rejected"
+    status = 502
+    retryable = False
+    message = "Vector store rejected the request"
+
+
 class CacheUnavailable(SearchServiceError):
     code = "embedding_cache_unavailable"
     status = 503
