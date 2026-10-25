@@ -106,6 +106,31 @@
       "source": "artifacts/final_demo/ask_bid2_abstention.json",
       "source_sha256": "e6b9b2d779870695a779d8fa75d23d48c10956794dd1492f9752265c0eb339a2",
       "redactions": []
+    },
+    "phaseA_ask_bid2_affidavits.json": {
+      "source": "artifacts/phaseA_qa/01_affidavit_bid2.json",
+      "source_sha256": "b67f819a07831413e647ac0ddc2bb39b4ab67e59c1695c10baa5238a32d5ae58",
+      "redactions": []
+    },
+    "phaseA_compare_warranty_run1.json": {
+      "source": "artifacts/phaseA_qa/02_warranty_compare.json",
+      "source_sha256": "889b0605cc12d094ac0c414ebd8035d8534e196ef57ab4a572cd6ae254e9012d",
+      "redactions": []
+    },
+    "phaseA_compare_warranty.json": {
+      "source": "artifacts/phaseA_qa/05_warranty_compare_after_reason_fix.json",
+      "source_sha256": "5861119887d6d8905e61fd3a96ec2df4cda2a642c1a985d1a90fec2b7b71fb68",
+      "redactions": []
+    },
+    "phaseA_compare_isolation_probe.json": {
+      "source": "artifacts/phaseA_qa/03_isolation_probe_compare.json",
+      "source_sha256": "26b8f29ffc55a22c02d278ffc1005463a9182ecb7ec88c8c8c41342ae0339364",
+      "redactions": []
+    },
+    "phaseA_compare_unanswerable.json": {
+      "source": "artifacts/phaseA_qa/04_unanswerable_compare.json",
+      "source_sha256": "a4488fb6f9c1a2c98818c65a11d0ec446027ca8bb9764f961b1a55fac072dc2c",
+      "redactions": []
     }
   }
 }

@@ -20,6 +20,7 @@ Classifications: **Safe to publish**, **Requires redaction** (a masked copy is p
 | Demo video or live demo | Not an artifact; script in README | Required; **outstanding** |
 | Machine-readable verification report | `submission_audit.json` | Not required; supporting |
 | Demo output or run summary | `Bid2_process_bid_run_summary.json`, `demo_ask_*.json` | Not required; supporting |
+| Section 7.3 examples: affidavits, warranty comparison | `phaseA_ask_bid2_affidavits.json`, `phaseA_compare_*.json` (Phase A) | Supporting; shows the required example tasks |
 
 ## Candidates
 
@@ -36,6 +37,8 @@ Classifications: **Safe to publish**, **Requires redaction** (a masked copy is p
 | `artifacts/eval/submission_audit.json` | Verification report | Yes | None | None | None | None | Safe to publish | Copied unchanged |
 | `artifacts/pipeline_v1/Bid2/run_summary.json` | One-command run summary | Yes | None | None | Loopback Qdrant URL and collection name only | None | Safe to publish | Copied unchanged as `Bid2_process_bid_run_summary.json` |
 | `artifacts/final_demo/ask_*.json` (3) | Live Q&A demo outputs | Yes | Short quotes | None | None | None | Safe to publish | Copied unchanged as `demo_ask_*.json` |
+| `artifacts/phaseA_qa/0[1-5]_*.json` (5) | Phase A live outputs: affidavit answer, two warranty comparisons, isolation probe, unanswerable comparison | Yes | Short verbatim quotes (longest about 200 chars) | None found (build masked 0 values) | None | None | Safe to publish | Copied as `phaseA_*.json` through the same masking build; all five runs included, none selected out |
+| `artifacts/phaseA_qa/traces/*.json` | Q&A and comparison traces | Yes | None (question stored as a hash) | None | None | None | Safe to publish | **Not included**: not required |
 | `artifacts/final_demo/traces/*.json` | Q&A traces | Yes | None (question stored as a hash) | None | None | None | Safe to publish | **Not included**: not required |
 | `artifacts/eval/extraction_v4_check.json` | Per-field citation support | Yes | Yes, repeats every extraction value | Same contacts as the extraction files | None | None | Requires redaction | **Not included**: duplicates the extraction values; `submission_audit.json` covers verification; reproducible with `verify_extraction.py` |
 | `artifacts/eval/qa_v7.json` | Q&A gold-set scores | Yes | Short | 1 email | None | None | Requires redaction | **Not included**: the results are summarized in tracked `docs/qa_examples.md` |

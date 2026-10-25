@@ -260,7 +260,28 @@ sequences in indexed table cells count as whitespace when quotes are located. De
 questions also search addenda and the bid page; list questions add an
 item-keyword search. Answer confidence is not reported because no calibrated method exists. The CLI
 layer is `qa_runner.py`; offline scoring is `src/rfp/evaluation/qa.py` with
-`scripts/evaluate_qa.py` and the reviewed set `evaluation/qa_reviewed.json`.
+`scripts/evaluate_qa.py` and the reviewed set `evaluation/qa_reviewed.json`. Claims that passed
+every check on an earlier attempt are kept when the correction abstains or fails (`keep_validated`).
+
+### Cross-bid comparison (`ask --compare-bids`)
+
+```mermaid
+flowchart LR
+  Bids[2-4 explicit bids] --> Resolve[resolve_bids: no empty, single, duplicate or invalid ids]
+  Resolve --> Probe[bid-scoped dense probe; none -> unknown_bid]
+  Probe --> Gather[gather_evidence per bid, one bid filter per search]
+  Gather --> Sections[Section A: A1..An / Section B: B1..Bn]
+  Sections --> Model[LanguageModel: claims per bid with aspect labels]
+  Model --> Check[check_reply per bid against its own passages; cross-bid ids dropped]
+  Check -->|reject, one correction| Model
+  Check --> Findings[per-bid findings or Not found in documents]
+  Findings --> Aspects[lexical aspect relations: identical, different, one_sided]
+```
+
+`src/rfp/agents/compare.py` adds no retrieval or validation of its own. It calls the single-bid
+`gather_evidence` and `check_reply`, plus the shared model client and trace events. The model never
+decides whether two bids are the same: relations come from the validated claim and quote text.
+These are fixed pipeline steps; no autonomous agent plans the comparison.
 
 ## Phase 10 end-to-end pipeline
 

@@ -1,0 +1,139 @@
+{
+  "mode": "comparison",
+  "question": "Compare the Mercury Affidavit requirements of both bids.",
+  "bid_ids": [
+    "Bid1",
+    "Bid2"
+  ],
+  "status": "partial",
+  "answer": "Bid1: Not found in documents\nBid2: The bid requires a Mercury Affidavit to be provided. The affidavit includes a declaration about mercury content.\nmercury affidavit requirements: stated only for Bid2; no validated statement for Bid1.",
+  "findings": [
+    {
+      "bid_id": "Bid1",
+      "status": "not_found",
+      "answer": "Not found in documents",
+      "claims": [],
+      "citations": [],
+      "completeness": null,
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "checks": [],
+        "reasons": [
+          "Model abstained"
+        ]
+      },
+      "evidence_count": 8
+    },
+    {
+      "bid_id": "Bid2",
+      "status": "answered",
+      "answer": "The bid requires a Mercury Affidavit to be provided. The affidavit includes a declaration about mercury content.",
+      "claims": [
+        {
+          "text": "The bid requires a Mercury Affidavit to be provided.",
+          "citation_ids": [
+            "C1"
+          ]
+        },
+        {
+          "text": "The affidavit includes a declaration about mercury content.",
+          "citation_ids": [
+            "C2"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "evidence_id": "B2",
+          "document": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 2,
+          "page_end": 2,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "The Master Contractor must provide a Mercury Affidavit"
+        },
+        {
+          "citation_id": "C2",
+          "evidence_id": "B1",
+          "document": "Mercury_Affidavit.pdf",
+          "page": 1,
+          "page_end": 1,
+          "html_element_id": null,
+          "document_type": "affidavit",
+          "addendum_number": null,
+          "excerpt": "The product(s) offered do not contain mercury."
+        }
+      ],
+      "completeness": null,
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "checks": [
+          {
+            "evidence_id": "B2",
+            "valid": true,
+            "reason": null
+          },
+          {
+            "evidence_id": "B1",
+            "valid": true,
+            "reason": null
+          }
+        ],
+        "reasons": []
+      },
+      "evidence_count": 8
+    }
+  ],
+  "aspects": [
+    {
+      "aspect": "mercury affidavit requirements",
+      "relation": "one_sided",
+      "claims": {
+        "Bid2": [
+          "The bid requires a Mercury Affidavit to be provided.",
+          "The affidavit includes a declaration about mercury content."
+        ]
+      }
+    }
+  ],
+  "missing_evidence": [
+    "Bid1"
+  ],
+  "limitations": [
+    "Bid1: Not found in documents; no comparison is made for this bid."
+  ],
+  "validation": {
+    "passed": true,
+    "attempts": 1,
+    "checks": [
+      {
+        "evidence_id": "B2",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "B1",
+        "valid": true,
+        "reason": null
+      }
+    ],
+    "reasons": [
+      "Bid1: Model abstained"
+    ]
+  },
+  "trace_id": "3e1ebd47-160e-4cb6-9780-d36f5edd345e",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "evidence_count": {
+    "Bid1": 8,
+    "Bid2": 8
+  }
+}

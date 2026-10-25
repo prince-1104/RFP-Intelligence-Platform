@@ -21,6 +21,11 @@ assistant-assisted.
 | `demo_ask_bid1_due_date.json` | `artifacts/final_demo/` | Live | Bid1 deadline after addenda, cited to Addendum 2 page 1 | Q&A example 7.3 |
 | `demo_ask_bid2_collection.json` | `artifacts/final_demo/` | Live | `ask --collection pipeline_check` answering from a separately indexed collection | Q&A mode |
 | `demo_ask_bid2_abstention.json` | `artifacts/final_demo/` | Live | "Not found in documents" for a Bid1 contact asked of Bid2 (bid isolation) | Guardrail (7.2) |
+| `phaseA_ask_bid2_affidavits.json` | `artifacts/phaseA_qa/01_affidavit_bid2.json` | Live, 2026-10-25 | Bid2 affidavits after the false-abstention fix: Mercury Affidavit cited to PORFP p2; Contract and Proposal Affidavit listed as unaddressed | Q&A example 7.3 |
+| `phaseA_compare_warranty.json` | `artifacts/phaseA_qa/05_warranty_compare_after_reason_fix.json` | Live | "Compare the warranty requirements of both bids": per-bid cited findings and lexical aspect relations | Q&A example 7.3 (cross-bid) |
+| `phaseA_compare_warranty_run1.json` | `artifacts/phaseA_qa/02_warranty_compare.json` | Live | First run of the same question, kept rather than replaced; one Bid2 claim is broader than its quote | Same |
+| `phaseA_compare_isolation_probe.json` | `artifacts/phaseA_qa/03_isolation_probe_compare.json` | Live | Mercury Affidavit compared across bids: Bid1 not found, Bid2 answered from its own documents | Bid isolation (7.2) |
+| `phaseA_compare_unanswerable.json` | `artifacts/phaseA_qa/04_unanswerable_compare.json` | Live | A comparison neither bid answers: `Not found in documents` | Guardrail (7.2) |
 | `redactions.json` | Generated | — | Masked paths and source hashes | — |
 
 The evaluation questions and labels are already tracked in `evaluation/` (`assessment_retrieval.json`,
@@ -47,7 +52,8 @@ From a clone (no `artifacts/`, models, Qdrant or keys needed):
 
 This checks that every file parses, that both extraction files have the 20 fields with no uncited
 value, that the trace comes from a live model and covers the 20 fields, that at least 10 Q&A answers
-carry citations, and that the README retrieval table matches `retrieval_evaluation.json`.
+carry citations, that the Phase A files validate against the Q&A and comparison schemas and came
+from a live model, and that the README retrieval table matches `retrieval_evaluation.json`.
 
 With the local artifacts present (the machine that produced them):
 

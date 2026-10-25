@@ -1,4 +1,5 @@
-"""CLI execution for `ask` and `ask-samples`. Read-only against loopback Qdrant."""
+"""CLI execution for `ask`, `ask --compare-bids` and `ask-samples`. Read-only against loopback
+Qdrant."""
 
 import json
 from collections.abc import Callable
@@ -6,6 +7,7 @@ from pathlib import Path
 
 from pydantic import Field, ValidationError
 
+from rfp.agents.compare import ComparisonResponse, compare, resolve_bids
 from rfp.agents.errors import ExtractionError
 from rfp.agents.llm import LanguageModel, ModelRequest, ModelResponse
 from rfp.agents.qa import NOT_FOUND, QAConfig, QAResponse, QATrace, ask, dump
@@ -82,6 +84,40 @@ def execute_ask(
         search = local_search(safe_url, collection) if collection else local_search(safe_url)
     response, trace = ask(label, bid_uuid, question, search, model, config)
     trace_path = write_trace(trace_dir, trace) if trace_dir is not None else None
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(dump(response), encoding="utf-8")
+    return response, trace_path
+
+
+def execute_compare(
+    *,
+    bids: list[str],
+    question: str,
+    qdrant_url: str,
+    llm_mode: str,
+    fixture: Path | None,
+    trace_dir: Path | None,
+    output: Path | None,
+    search: Search | None = None,
+    config: QAConfig | None = None,
+    collection: str | None = None,
+    model: LanguageModel | None = None,
+) -> tuple[ComparisonResponse, Path | None]:
+    safe_url = assert_local_qdrant(qdrant_url)
+    selected = resolve_bids(bids)
+    if output is not None:
+        assert_output_dir(output.parent)
+    model = model or qa_model(llm_mode, fixture)
+    if search is None:
+        search = local_search(safe_url, collection)
+    response, trace = compare(selected, question, search, model, config)
+    trace_path = None
+    if trace_dir is not None:
+        directory = assert_output_dir(trace_dir)
+        directory.mkdir(parents=True, exist_ok=True)
+        trace_path = directory / f"qa_compare_{trace.trace_id}.json"
+        trace_path.write_text(dump(trace), encoding="utf-8")
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(dump(response), encoding="utf-8")

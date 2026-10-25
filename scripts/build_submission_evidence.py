@@ -31,7 +31,13 @@ SOURCES = {
     "demo_ask_bid1_due_date.json": "artifacts/final_demo/ask_bid1_due_date.json",
     "demo_ask_bid2_collection.json": "artifacts/final_demo/ask_bid2_pipeline_check.json",
     "demo_ask_bid2_abstention.json": "artifacts/final_demo/ask_bid2_abstention.json",
+    "phaseA_ask_bid2_affidavits.json": "artifacts/phaseA_qa/01_affidavit_bid2.json",
+    "phaseA_compare_warranty_run1.json": "artifacts/phaseA_qa/02_warranty_compare.json",
+    "phaseA_compare_warranty.json": "artifacts/phaseA_qa/05_warranty_compare_after_reason_fix.json",
+    "phaseA_compare_isolation_probe.json": "artifacts/phaseA_qa/03_isolation_probe_compare.json",
+    "phaseA_compare_unanswerable.json": "artifacts/phaseA_qa/04_unanswerable_compare.json",
 }
+COMPARISONS = [name for name in SOURCES if name.startswith("phaseA_compare_")]
 PATTERNS = {
     "email": (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "[email redacted]"),
     "phone": (re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}\b"), "[phone redacted]"),
@@ -76,6 +82,8 @@ def verify() -> list[str]:
     """Checks a reviewer can run from a clone, without artifacts/, models or Qdrant."""
     from audit_submission import METRICS, readme_table
 
+    from rfp.agents.compare import ComparisonResponse
+    from rfp.agents.qa import QAResponse
     from rfp.agents.schemas import REQUIRED_FIELDS, BidExtraction, ExtractionTrace
 
     problems = []
@@ -102,6 +110,15 @@ def verify() -> list[str]:
     ]
     if len(answered) < 10:
         problems.append(f"only {len(answered)} cited Q&A answers")
+    affidavits = QAResponse.model_validate(data["phaseA_ask_bid2_affidavits.json"])
+    if affidavits.model.provider == "fake" or affidavits.status != "answered":
+        problems.append("affidavit example is not a live, answered response")
+    for name in COMPARISONS:
+        response = ComparisonResponse.model_validate(data[name])
+        if response.model.provider == "fake":
+            problems.append(f"{name}: not produced by a live model")
+        if response.bid_ids != ["Bid1", "Bid2"]:
+            problems.append(f"{name}: expected a Bid1/Bid2 comparison")
     modes = data["retrieval_evaluation.json"]["modes"]
     table = readme_table(ROOT / "README.md")
     if len(table) < 2:

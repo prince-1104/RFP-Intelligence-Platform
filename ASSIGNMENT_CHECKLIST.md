@@ -1,6 +1,7 @@
 # Assignment requirement checklist
 
-Updated 2026-10-24 after the final submission audit (Phase 11). This is the short form of
+Updated 2026-10-24 after the final submission audit (Phase 11); Q&A rows updated 2026-10-25
+after Phase A (cross-bid comparison, affidavit fix). This is the short form of
 `docs/final_submission_audit.md`, which gives the implementation, evidence, verification method and
 remaining limitation for each requirement of `Assignment-AI Engineer.pdf`. It supersedes the status
 columns of `ASSIGNMENT_COMPLIANCE_AUDIT.md` (state before Phases 5–11).
@@ -34,7 +35,7 @@ Statuses: **Verified** (met and checked in this audit or by a re-checked saved r
 | C. Parallel execution | Verified (offline) | Concurrency test |
 | C. Structured outputs, guardrails, observability, error handling | Verified | Pydantic messages; no uncited value; traces with tokens and latency; malformed-output tests |
 | C. Extraction mode | Verified | `extract-bid`, `process-bid` live |
-| C. Q&A mode and section 7.3 examples | Partial | Deadline, bid bond and Addendum 2 examples correct. Bid2 affidavits: false abstention. "Compare both bids": not supported (one bid per question) |
+| C. Q&A mode and section 7.3 examples | Partial | Deadline, bid bond and Addendum 2 examples correct. Bid2 affidavits: false abstention fixed (Phase A); live answer names the Mercury Affidavit (PORFP p2) and leaves the Contract Affidavit unaddressed. "Compare the warranty requirements of both bids": `ask --compare-bids` (Phase A; 21 fake-model tests, live runs in `submission/evidence/phaseA_compare_*.json`). The live Bid1 finding omits Addendum 1 warranty terms |
 | D. 20 fields, JSON per bid, null with reason, `addendum_changes`, `validation` | Verified (structure) | Audit of 6 outputs |
 | D. Due Date with time and zone after addenda | Partial | Bid1 correct; Bid2 lacks time and zone |
 | D. Extraction accuracy | Partial | Model-assisted: Bid1 9/7/0/0/4, Bid2 11/5/0/0/4 (correct/partial/wrong/missed/null ok) in `extraction_v4`; not human-reviewed |
@@ -50,4 +51,5 @@ Statuses: **Verified** (met and checked in this audit or by a re-checked saved r
 | Bonus. OCR | Verified in Docker; blocked on host | No Tesseract on this Windows host; setup steps in README |
 | Bonus. Token and latency tracking | Partial | In traces; no currency cost, no query cache |
 | Bonus. Docker | Partial | `compose.yaml`; only Qdrant used in validation |
-| Bonus. Web UI, bid comparison, go/no-go, CI | Not implemented | Optional |
+| Bonus. Web UI, go/no-go, CI | Not implemented | Optional |
+| Bonus. Bid comparison | Partial | CLI question-level comparison (`ask --compare-bids`); no side-by-side field comparison of the extraction JSON |

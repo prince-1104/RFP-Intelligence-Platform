@@ -1,0 +1,75 @@
+{
+  "mode": "comparison",
+  "question": "Compare the on-site vendor parking arrangements described in both bids.",
+  "bid_ids": [
+    "Bid1",
+    "Bid2"
+  ],
+  "status": "not_found",
+  "answer": "Not found in documents",
+  "findings": [
+    {
+      "bid_id": "Bid1",
+      "status": "not_found",
+      "answer": "Not found in documents",
+      "claims": [],
+      "citations": [],
+      "completeness": null,
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "checks": [],
+        "reasons": [
+          "Model abstained"
+        ]
+      },
+      "evidence_count": 8
+    },
+    {
+      "bid_id": "Bid2",
+      "status": "not_found",
+      "answer": "Not found in documents",
+      "claims": [],
+      "citations": [],
+      "completeness": null,
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "checks": [],
+        "reasons": [
+          "Model abstained"
+        ]
+      },
+      "evidence_count": 8
+    }
+  ],
+  "aspects": [],
+  "missing_evidence": [
+    "Bid1",
+    "Bid2"
+  ],
+  "limitations": [
+    "Bid1: Not found in documents; no comparison is made for this bid.",
+    "Bid2: Not found in documents; no comparison is made for this bid."
+  ],
+  "validation": {
+    "passed": true,
+    "attempts": 1,
+    "checks": [],
+    "reasons": [
+      "Bid1: Model abstained",
+      "Bid2: Model abstained"
+    ]
+  },
+  "trace_id": "294d3f36-f10b-43e5-90ce-46eb30c5ea4b",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "evidence_count": {
+    "Bid1": 8,
+    "Bid2": 8
+  }
+}

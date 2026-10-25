@@ -167,32 +167,50 @@ def run_extract(args: argparse.Namespace) -> int:
 
 
 ASK_REQUEST_ERRORS = {
+    "duplicate_bid",
     "invalid_bid_id",
+    "invalid_comparison",
     "invalid_fixture",
     "invalid_llm_mode",
     "invalid_questions",
+    "unknown_bid",
     "unsafe_output_path",
 }
 
 
 def run_ask(args: argparse.Namespace) -> int:
+    from rfp.agents.compare import ComparisonResponse
     from rfp.agents.errors import ExtractionError, ModelError
-    from rfp.agents.qa import QAConfig
-    from rfp.agents.qa_runner import execute_ask
+    from rfp.agents.qa import QAConfig, QAResponse
+    from rfp.agents.qa_runner import execute_ask, execute_compare
 
+    response: QAResponse | ComparisonResponse
     try:
         config = QAConfig.model_validate({"top_k": args.top_k} if args.top_k is not None else {})
-        response, trace_path = execute_ask(
-            bid=args.bid_id,
-            question=args.question,
-            qdrant_url=args.qdrant_url,
-            llm_mode=args.llm_mode,
-            fixture=args.fixture,
-            trace_dir=args.trace_dir,
-            output=args.output,
-            config=config,
-            collection=args.collection,
-        )
+        if args.compare_bids is not None:
+            response, trace_path = execute_compare(
+                bids=args.compare_bids,
+                question=args.question,
+                qdrant_url=args.qdrant_url,
+                llm_mode=args.llm_mode,
+                fixture=args.fixture,
+                trace_dir=args.trace_dir,
+                output=args.output,
+                config=config,
+                collection=args.collection,
+            )
+        else:
+            response, trace_path = execute_ask(
+                bid=args.bid_id,
+                question=args.question,
+                qdrant_url=args.qdrant_url,
+                llm_mode=args.llm_mode,
+                fixture=args.fixture,
+                trace_dir=args.trace_dir,
+                output=args.output,
+                config=config,
+                collection=args.collection,
+            )
     except (ExtractionError, ModelError) as exc:
         _print_error(exc.code, exc.message)
         return 2 if exc.code in ASK_REQUEST_ERRORS else 1
@@ -454,7 +472,14 @@ def main(argv: list[str] | None = None) -> int:
     ask = commands.add_parser(
         "ask", help="Answer a question about one bid with validated citations (local Qdrant)"
     )
-    ask.add_argument("--bid-id", required=True)
+    target = ask.add_mutually_exclusive_group(required=True)
+    target.add_argument("--bid-id")
+    target.add_argument(
+        "--compare-bids",
+        nargs="+",
+        metavar="BID",
+        help="Compare 2-4 bids; evidence is retrieved and validated separately per bid",
+    )
     ask.add_argument("--question", required=True)
     ask.add_argument("--qdrant-url", default=LOCAL_QDRANT)
     ask.add_argument(

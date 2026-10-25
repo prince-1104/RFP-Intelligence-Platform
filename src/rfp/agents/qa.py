@@ -5,7 +5,8 @@ each linked to quotes from numbered passages. A reply is accepted only when ever
 contiguous span of its passage (`quotes.py`), every claim is lexically supported by its own
 quotes (`grounding.py`), deadline answers respect explicit addendum revisions, and list questions
 address every named item found in the evidence (`checklist.py`). Otherwise a bounded correction
-is requested; if that also fails the answer is an abstention.
+is requested; if that also fails the answer is an abstention, unless an earlier attempt produced
+claims that passed every check, which are then returned with the failures listed.
 """
 
 import json
@@ -583,6 +584,68 @@ def gather_evidence(
     ]
 
 
+def answer_limitations(checked: Checked, list_question: bool) -> list[str]:
+    limitations = [LIST_LIMITATION] if list_question else []
+    if checked.completeness and checked.completeness.omitted:
+        omitted = ", ".join(checked.completeness.omitted)
+        limitations.append(f"Named in retrieved evidence but not addressed: {omitted}.")
+    if checked.dropped:
+        limitations.append(
+            f"{len(checked.dropped)} claim(s) were removed because their quotes did not "
+            "support them; see validation.reasons."
+        )
+    if checked.discarded:
+        limitations.append(
+            f"{len(checked.discarded)} non-verbatim quote(s) were discarded; the remaining "
+            "citations support each claim."
+        )
+    return limitations
+
+
+Finish = Callable[[QAStatus, Checked | None, QAValidation], tuple[QAResponse, QATrace]]
+
+
+def usable(reply: ModelReply | None, checked: Checked) -> bool:
+    """An answered reply with at least one claim that passed every deterministic check."""
+    return (
+        reply is not None
+        and reply.status == "answered"
+        and bool(checked.claims)
+        and not checked.reply_reasons
+    )
+
+
+def keep_validated(
+    best: tuple[int, Checked], attempts: int, finish: Finish
+) -> tuple[QAResponse, QATrace]:
+    """A later abstention or failed correction does not discard claims already validated.
+
+    The correction prompt allows not_found, so a model can retreat from claims whose quotes were
+    verified. Those claims are returned; the rest stay listed as dropped or unaddressed.
+    """
+    return finish("answered", best[1], kept_validation(best, attempts))
+
+
+def kept_validation(best: tuple[int, Checked], attempts: int) -> QAValidation:
+    attempt, checked = best
+    kept = (
+        [
+            f"Kept claims validated on attempt {attempt}; attempt {attempts} did not "
+            "produce a validated answer"
+        ]
+        if attempt != attempts
+        else []
+    )
+    return QAValidation(
+        passed=True,
+        attempts=attempts,
+        checks=checked.checks,
+        reasons=kept
+        + [f"Dropped unsupported claim: {claim}" for claim in checked.dropped]
+        + [f"Discarded non-verbatim quote: {item}" for item in checked.discarded],
+    )
+
+
 def ask(
     bid_label: str,
     bid_uuid: UUID,
@@ -609,20 +672,7 @@ def ask(
     ) -> tuple[QAResponse, QATrace]:
         metadata = ModelMetadata(provider=provider, model=model_name)
         answered = status != "not_found" and checked is not None
-        limitations = [LIST_LIMITATION] if list_question and answered else []
-        if answered and checked and checked.completeness and checked.completeness.omitted:
-            omitted = ", ".join(checked.completeness.omitted)
-            limitations.append(f"Named in retrieved evidence but not addressed: {omitted}.")
-        if answered and checked and checked.dropped:
-            limitations.append(
-                f"{len(checked.dropped)} claim(s) were removed because their quotes did not "
-                "support them; see validation.reasons."
-            )
-        if answered and checked and checked.discarded:
-            limitations.append(
-                f"{len(checked.discarded)} non-verbatim quote(s) were discarded; the remaining "
-                "citations support each claim."
-            )
+        limitations = answer_limitations(checked, list_question) if answered and checked else []
         response = QAResponse(
             bid_id=bid_label,
             question=text,
@@ -662,6 +712,7 @@ def ask(
 
     request = answer_request(text, hits, items, config)
     checked = Checked()
+    best: tuple[int, Checked] | None = None
     attempts = 0
     while attempts <= config.max_corrections:
         attempts += 1
@@ -695,7 +746,11 @@ def ask(
                 evidence=checked.quotes,
             )
         )
+        if usable(reply, checked):
+            best = (attempts, checked)
         if reply is not None and not checked.reasons and (not omitted or last):
+            if reply.status == "not_found" and best is not None:
+                return keep_validated(best, attempts, finish)
             if reply.status == "not_found":
                 return finish(
                     "not_found",
@@ -728,6 +783,8 @@ def ask(
                 ),
             )
         request = correction_request(text, hits, items, retry_reasons, config)
+    if best is not None:
+        return keep_validated(best, attempts, finish)
     return finish(
         "not_found",
         None,

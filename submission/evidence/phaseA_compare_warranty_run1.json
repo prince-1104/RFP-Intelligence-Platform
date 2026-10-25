@@ -1,0 +1,192 @@
+{
+  "mode": "comparison",
+  "question": "Compare the warranty requirements of both bids.",
+  "bid_ids": [
+    "Bid1",
+    "Bid2"
+  ],
+  "status": "answered",
+  "answer": "Bid1: The warranty period is a minimum of three years. Warranty service and repairs will be performed at no cost within five business days.\nBid2: The warranty period is three years following the date of delivery.\nwarranty period: cited statements differ between Bid1, Bid2.\nwarranty service: stated only for Bid1; no validated statement for Bid2.",
+  "findings": [
+    {
+      "bid_id": "Bid1",
+      "status": "answered",
+      "answer": "The warranty period is a minimum of three years. Warranty service and repairs will be performed at no cost within five business days.",
+      "claims": [
+        {
+          "text": "The warranty period is a minimum of three years.",
+          "citation_ids": [
+            "C1"
+          ]
+        },
+        {
+          "text": "Warranty service and repairs will be performed at no cost within five business days.",
+          "citation_ids": [
+            "C2"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "evidence_id": "A1",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 6,
+          "page_end": 6,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Warranty: 3-year minimum"
+        },
+        {
+          "citation_id": "C2",
+          "evidence_id": "A2",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 4,
+          "page_end": 4,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Dallas ISD expects that all warranty service and repairs or replacements will be performed by the awarded vendors at no cost within five (5) business days of the District reporting the issue to the vendor."
+        }
+      ],
+      "completeness": null,
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 2,
+        "checks": [
+          {
+            "evidence_id": "A1",
+            "valid": true,
+            "reason": null
+          },
+          {
+            "evidence_id": "A2",
+            "valid": true,
+            "reason": null
+          }
+        ],
+        "reasons": []
+      },
+      "evidence_count": 8
+    },
+    {
+      "bid_id": "Bid2",
+      "status": "answered",
+      "answer": "The warranty period is three years following the date of delivery.",
+      "claims": [
+        {
+          "text": "The warranty period is three years following the date of delivery.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "evidence_id": "B1",
+          "document": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 3,
+          "page_end": 3,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Extended for all machines purchased - 3 Years"
+        }
+      ],
+      "completeness": null,
+      "limitations": [
+        "1 claim(s) were removed because their quotes did not support them; see validation.reasons."
+      ],
+      "validation": {
+        "passed": true,
+        "attempts": 2,
+        "checks": [
+          {
+            "evidence_id": "B1",
+            "valid": true,
+            "reason": null
+          },
+          {
+            "evidence_id": "B1",
+            "valid": true,
+            "reason": null
+          }
+        ],
+        "reasons": [
+          "Kept claims validated on attempt 2; attempt 2 did not produce a validated answer",
+          "Dropped unsupported claim: A warranty certificate or affidavit must be presented upon award."
+        ]
+      },
+      "evidence_count": 8
+    }
+  ],
+  "aspects": [
+    {
+      "aspect": "warranty period",
+      "relation": "different",
+      "claims": {
+        "Bid1": [
+          "The warranty period is a minimum of three years."
+        ],
+        "Bid2": [
+          "The warranty period is three years following the date of delivery."
+        ]
+      }
+    },
+    {
+      "aspect": "warranty service",
+      "relation": "one_sided",
+      "claims": {
+        "Bid1": [
+          "Warranty service and repairs will be performed at no cost within five business days."
+        ]
+      }
+    }
+  ],
+  "missing_evidence": [],
+  "limitations": [
+    "Aspect relations compare the validated claim and quote text; they are lexical, not a judgement of legal equivalence."
+  ],
+  "validation": {
+    "passed": true,
+    "attempts": 2,
+    "checks": [
+      {
+        "evidence_id": "A1",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "A2",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "B1",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "B1",
+        "valid": true,
+        "reason": null
+      }
+    ],
+    "reasons": [
+      "Bid2: Kept claims validated on attempt 2; attempt 2 did not produce a validated answer",
+      "Bid2: Dropped unsupported claim: A warranty certificate or affidavit must be presented upon award."
+    ]
+  },
+  "trace_id": "320cc715-6643-40a1-9858-fdc5127e6d6f",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "evidence_count": {
+    "Bid1": 8,
+    "Bid2": 8
+  }
+}

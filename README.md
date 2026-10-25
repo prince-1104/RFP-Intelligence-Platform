@@ -634,7 +634,9 @@ A rejected reply gets one correction request (`max_corrections=1`) that lists th
 final attempt, unsupported claims are dropped and reported in `validation.reasons` and
 `limitations` if at least one claim survives; otherwise the answer is `Not found in documents`.
 A non-verbatim quote is discarded rather than sinking its claim, but only when another quote in
-that claim is valid and supports it.
+that claim is valid and supports it. Claims that passed every check on an earlier attempt are kept
+when the correction attempt abstains or fails; `validation.reasons` then starts with "Kept claims
+validated on attempt N" and the dropped claims and unaddressed items stay listed.
 Malformed model output is handled the same way. The grounding check is lexical, not semantic
 entailment: a claim made of supported words can still misread its quote. Provider errors (`llm_timeout`, `llm_provider_error`) and
 missing configuration (`llm_not_configured`) exit 1 without an answer.
@@ -1066,8 +1068,8 @@ stage lists every failed page in `run_summary.json` (`page_warnings`) and the ru
 - **Confidence is not calibrated.** Each field's `confidence` is a fixed value per validation
   status: 0.86 accepted, 0.74 not found, 0.35 unresolved. It is a status code, not a probability.
   Q&A answers report `confidence: null`.
-- **No cross-bid questions.** `ask` answers about one bid. "Compare the warranty requirements of both
-  bids" (an example in assignment section 7.3) needs two `ask` calls and a manual comparison.
+- **Cross-bid questions use `ask --compare-bids`** (Phase A, below). Aspect relations are lexical,
+  and only the CLI supports comparison.
 - **Repeated page headers and footers are not removed.**
 - **The REST API has no `/ask` endpoint.** Q&A is CLI-only; search and indexing have API routes.
 
@@ -1161,6 +1163,81 @@ On 2026-10-24 the first command returned `not_found` with model `gpt-4o-mini`, a
 | 6:30–7:30 | Step 2, `tests/test_pipeline.py` | Synthetic unseen bid, offline; not live accuracy |
 | 7:30–9:00 | `docs/final_submission_audit.md` | Partial fields, OCR on host, confidence, human review still needed |
 
+## Phase A: cross-bid comparison and the affidavit fix
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli ask --compare-bids Bid1 Bid2 --question "Compare the warranty requirements of both bids."
+```
+
+`--compare-bids` takes 2–4 bid labels or UUIDs instead of `--bid-id`; `ask --bid-id` is unchanged.
+An empty or single-bid list, a duplicate (by label or resolved UUID), an invalid label or more than
+four bids exits 2 (`invalid_comparison`, `duplicate_bid`, `invalid_bid_id`). A bid with no indexed
+passages in the local collection exits 2 with `unknown_bid`, found by one bid-scoped dense
+probe before any model call. `--collection`, `--qdrant-url` (loopback only), `--top-k`,
+`--trace-dir`, `--output` and `--llm-mode` behave as for single-bid `ask`.
+
+How it works (`agents/compare.py`):
+
+- Comparison wording ("compare", "both bids") is removed from the retrieval query. Each bid then
+  runs the single-bid retrieval plan (`gather_evidence`) separately, so every search carries exactly
+  one bid filter. There is no unscoped search.
+- The model sees one section per bid. Evidence ids name the section (A1, A2 for the first bid, B1
+  for the second). It returns claims per bid, each with an aspect label and verbatim quotes.
+- Each bid's claims are checked by the single-bid validator (`check_reply`: verbatim quotes,
+  lexical claim support, list completeness) against that bid's passages only. A claim citing
+  another bid's passage is dropped (`cross_bid`), and a quote that is not in the cited passage is
+  rejected. One correction request is allowed (`max_corrections`), and claims already validated
+  are kept as in single-bid `ask`.
+- A bid without validated claims is reported as `Not found in documents`. It is never compared
+  from the other bid's evidence.
+- Aspect relations are computed from the validated claims, not by the model. `identical` means the
+  same normalized claim text or the same quotes, `different` means anything else, and `one_sided`
+  means only one bid has a validated statement. This is a lexical comparison, not a judgement of
+  equivalence: "3-year minimum" and "3 Years" are reported as `different`.
+
+Response (`ComparisonResponse`):
+
+| Field | Meaning |
+|---|---|
+| `mode` | `"comparison"` |
+| `question`, `bid_ids` | The question and the selected bids, in order |
+| `status` | `answered` (every bid has a finding), `partial` (some), `not_found` (none) |
+| `answer` | One line per bid, then one line per aspect; exactly `Not found in documents` when no bid has a finding |
+| `findings[]` | Per bid: `bid_id`, `status` (`answered` or `not_found`), `answer`, `claims` (text plus citation ids), `citations` (document, page or HTML element id, document type, addendum number, excerpt), `completeness`, `limitations`, `validation`, `evidence_count` |
+| `aspects[]` | `aspect`, `relation`, `claims` (bid label to claim texts) |
+| `missing_evidence` | Bids reported as not found |
+| `limitations`, `validation` | Overall notes; per-bid reasons prefixed with the bid label |
+| `trace_id`, `model`, `evidence_count` | Trace reference, provider and model, passages retrieved per bid |
+
+The trace (`qa_compare_<trace_id>.json`) records each bid's probe and searches (`field` is the bid
+label), the model attempts with per-bid decisions and quote checks, and token counts.
+
+**Affidavit false abstention.** The live `qa_v7` run asked Bid2 "Which affidavits must vendors
+submit with their proposal?". It retrieved PORFP page 2 ("The Master Contractor must provide a
+Mercury Affidavit") as the top passage. The first reply's Mercury claim passed validation, but two
+other claims ("Vendors must submit a Proposal / Contract Affidavit") had no requirement in their
+quotes. The correction prompt allows `not_found`, the model took it, and `ask` returned that
+abstention, discarding the validated Mercury claim. Retrieval, passage truncation, parsing and
+quote validation were not at fault. `ask` now keeps the latest validated claims when a later
+attempt abstains or fails (`usable`, `keep_validated` in `agents/qa.py`). Replaying the `qa_v7`
+reply sequence against the local index returns `not_found` with the committed code and the cited
+Mercury claim with the fix.
+
+**Live runs** (`gpt-4o-mini`, 2026-10-25, `artifacts/phaseA_qa/`; masked copies in
+`submission/evidence/phaseA_*.json`):
+
+| Run | Result |
+|---|---|
+| Bid2 affidavits | Answered: Mercury Affidavit, PORFP p2. Contract and Proposal Affidavit claims dropped (no requirement quote) and listed as unaddressed. Kept from attempt 1 after attempt 2 failed |
+| Warranty comparison (run 1) | Bid1 3-year minimum (FINAL p6) and 5-business-day repairs (p4); Bid2 3 years (PORFP p3). The Bid2 claim adds "following the date of delivery", which is on p3 but not in its quote |
+| Warranty comparison (run 2, after a reason-text fix) | Same findings; the Bid2 claim now quotes "3 years following the date of delivery". The Bid1 claim says "for staff laptops", narrower than the source, which lists the 3-year minimum under several device tiers |
+| Isolation probe (Mercury Affidavit in both bids) | Bid1 not found; Bid2 answered from its own PORFP and Mercury_Affidavit.pdf |
+| Unanswerable comparison (vendor parking) | `not_found` for both bids |
+
+Fake-model tests: `tests/test_compare_qa.py` (21 tests: selection errors, unknown bid, remote
+Qdrant, CLI routing, different, identical and one-sided comparisons, both missing, cross-bid and
+fabricated citations, malformed output, timeout, retry limit, and the affidavit regressions).
+
 ## Submission Evidence and Reproducibility
 
 Generated outputs are written to `artifacts/`, which is git-ignored. The files the assignment asks
@@ -1178,6 +1255,8 @@ what was left out. No output has been reviewed by a human.
 | `submission_audit.json` | Automated artifact checks | `audit_submission.py` |
 | `Bid2_process_bid_run_summary.json` | One-command pipeline stages and exit code | `process-bid` (live) |
 | `demo_ask_*.json` | Cited answer, separate collection, abstention | `ask` (live) |
+| `phaseA_ask_bid2_affidavits.json` | Affidavit answer after the false-abstention fix | `ask` (live) |
+| `phaseA_compare_*.json` | Warranty comparison (two runs), isolation probe, unanswerable comparison | `ask --compare-bids` (live) |
 
 **Commands that produced the originals** (Windows PowerShell; live steps need local Qdrant with the
 assessment bids indexed, cached models, and the assessment bid folders in `data/assessment/`):
@@ -1198,6 +1277,10 @@ assessment bids indexed, cached models, and the assessment bid folders in `data/
 # One-command pipeline and demo answers
 .\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid2 --output artifacts\pipeline_v1\Bid2 --collection pipeline_check
 .\.venv\Scripts\python -m rfp.cli ask --bid-id Bid1 --question "What is the final proposal due date after all addenda?" --trace-dir artifacts\final_demo\traces --output artifacts\final_demo\ask_bid1_due_date.json
+
+# Phase A (affidavit question and comparisons)
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --question "Which affidavits must vendors submit with their proposal?" --trace-dir artifacts\phaseA_qa\traces --output artifacts\phaseA_qa\01_affidavit_bid2.json
+.\.venv\Scripts\python -m rfp.cli ask --compare-bids Bid1 Bid2 --question "Compare the warranty requirements of both bids." --trace-dir artifacts\phaseA_qa\traces --output artifacts\phaseA_qa\05_warranty_compare_after_reason_fix.json
 
 # Artifact audit and evidence copies
 .\.venv\Scripts\python scripts\audit_submission.py --out artifacts\eval\submission_audit.json
@@ -1235,8 +1318,10 @@ rerank 0.772 / 0.769. The full table is in the retrieval section above.
   documentation, product and specification fields.
 - `extraction_v4` is the chosen Phase 9 run. Earlier attempts ran on changing code, and a same-code
   repeat differed in some fields (`docs/live_validation.md`). Values vary between runs.
-- Q&A: 5 false abstentions on the 14-case gold set (9/14 correct), including the Bid2 affidavits
-  question. Cross-bid comparison questions are not supported.
+- Q&A: 5 false abstentions on the 14-case gold set (9/14 correct) in the `qa_v7` run, including the
+  Bid2 affidavits question. The affidavit cause is fixed and the live re-run answered it (Mercury
+  Affidavit only, item completeness 1/2). The 14-case set has not been re-run as a whole.
+- Cross-bid comparison is CLI-only, and its aspect relations are lexical.
 - No real unseen bid was tested; only a synthetic fixture.
 - Retrieval labels and Q&A gold answers are assistant-made and not human-approved.
 - Confidence values are fixed per status, not calibrated. Only the due date is reconciled from addenda.

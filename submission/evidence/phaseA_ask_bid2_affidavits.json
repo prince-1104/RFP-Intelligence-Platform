@@ -1,0 +1,92 @@
+{
+  "bid_id": "Bid2",
+  "question": "Which affidavits must vendors submit with their proposal?",
+  "answer": "Vendors must submit a Mercury Affidavit.",
+  "status": "answered",
+  "claims": [
+    {
+      "text": "Vendors must submit a Mercury Affidavit.",
+      "citation_ids": [
+        "C1"
+      ]
+    }
+  ],
+  "citations": [
+    {
+      "citation_id": "C1",
+      "evidence_id": "E1",
+      "document": "PORFP_-_Dell_Laptop_Final.pdf",
+      "page": 2,
+      "page_end": 2,
+      "html_element_id": null,
+      "document_type": "rfp",
+      "addendum_number": null,
+      "excerpt": "The Master Contractor must provide a Mercury Affidavit:"
+    }
+  ],
+  "completeness": {
+    "list_question": true,
+    "candidates": [
+      "Mercury Affidavit",
+      "Proposal Affidavit",
+      "Contract Affidavit"
+    ],
+    "covered": [
+      "Mercury Affidavit"
+    ],
+    "unresolved": [],
+    "omitted": [
+      "Proposal Affidavit",
+      "Contract Affidavit"
+    ],
+    "exhaustive": false
+  },
+  "limitations": [
+    "List built from retrieved passages only; the documents were not checked exhaustively.",
+    "Named in retrieved evidence but not addressed: Proposal Affidavit, Contract Affidavit.",
+    "2 claim(s) were removed because their quotes did not support them; see validation.reasons."
+  ],
+  "confidence": null,
+  "validation": {
+    "passed": true,
+    "attempts": 2,
+    "checks": [
+      {
+        "evidence_id": "E1",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "E6",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "E6",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "E8",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "E10",
+        "valid": true,
+        "reason": null
+      }
+    ],
+    "reasons": [
+      "Kept claims validated on attempt 1; attempt 2 did not produce a validated answer",
+      "Dropped unsupported claim: Vendors must submit a Proposal Affidavit.",
+      "Dropped unsupported claim: Vendors must submit a Contract Affidavit."
+    ]
+  },
+  "trace_id": "fa10e609-dd21-475f-b561-54fe3175b6b3",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "evidence_count": 12
+}

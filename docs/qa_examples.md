@@ -59,6 +59,32 @@ cells into one quote, or names entities absent from its quote. Those replies now
 answering, which is why correctness fell. Run-to-run variation is also visible: the affidavit
 answer was complete in `qa_v2`, partially correct in `qa_v4`, and abstained in `qa_v5`.
 
+## Phase A: affidavit fix and cross-bid comparison (live, 2026-10-25)
+
+Model `openai` / `gpt-4o-mini`. Outputs are in `artifacts/phaseA_qa/` (git-ignored; its
+`README.md` lists every run), with masked copies in `submission/evidence/phaseA_*.json`. Every run
+made is listed here, including the superseded one. Each excerpt was checked against the
+source text (local Qdrant passages) by the assistant; no human has reviewed these.
+
+**Cause of the `qa_v5`/`qa_v7` affidavit abstention.** Retrieval returned PORFP p2 ("The Master
+Contractor must provide a Mercury Affidavit") first, and the first reply's Mercury claim passed
+validation. Two other claims ("Vendors must submit a Proposal / Contract Affidavit") failed,
+because no quote states a requirement for them. The correction prompt allows `not_found`; the model
+took it, and the validated Mercury claim was discarded. `ask` now keeps the latest validated claims
+when a later attempt abstains or fails. The fix does not mention affidavits or bids.
+
+| Question | Status | Answer and citations | Review |
+|---|---|---|---|
+| Bid2: Which affidavits must vendors submit with their proposal? | answered | "Vendors must submit a Mercury Affidavit." — PORFP p2: "The Master Contractor must provide a Mercury Affidavit:" | Correct; gold item completeness 1/2. The Contract Affidavit (and the Proposal Affidavit it refers to) are listed as "named in retrieved evidence but not addressed" because no passage says they are due with the proposal. Kept from attempt 1; attempt 2 failed |
+| Compare the warranty requirements of both bids (run 1) | answered | Bid1: "minimum of three years" (FINAL p6 "Warranty: 3-year minimum"); repairs at no cost within five business days (FINAL p4). Bid2: "three years following the date of delivery" (PORFP p3 "Extended for all machines purchased - 3 Years") | Facts true. The Bid2 claim's "following the date of delivery" is on p3 but not in its quote. Bid1 omits Addendum 1 (one-year Chromebooks, three-year Windows laptops, OEM warranties) and the 1-year tablet minimum, although Addendum 1 p1 was retrieved |
+| Compare the warranty requirements of both bids (run 2) | answered | Bid1: 3-year minimum (FINAL p6), warranties equal to or exceeding those offered to the public (p4), no-cost repairs within five business days (p4). Bid2: "3 years following the date of delivery" (PORFP p3, quoted exactly) | Same Addendum 1 omission. The Bid1 claim says "for staff laptops", which is narrower than the source (the 3-year minimum is listed under several device tiers). Aspect `warranty period` is `different` lexically ("3-year minimum" vs "3 Years") |
+| Compare the Mercury Affidavit requirements of both bids (isolation probe) | partial | Bid1: Not found in documents. Bid2: Mercury Affidavit required (PORFP p2) and "The product(s) offered do not contain mercury." (Mercury_Affidavit.pdf p1) | Correct isolation: Bid2's documents were not used for Bid1 |
+| Compare the on-site vendor parking arrangements described in both bids | not_found | Not found in documents (both bids) | Correct abstention |
+
+Gold scoring of the affidavit answer (`score` on `bid2-affidavits`): answer correctness 1, source
+accuracy 1, false abstention 0, item completeness 0.5. The 14-case set was not re-run as a whole in
+Phase A, so the table above it still describes `qa_v5`.
+
 ## Per-case review of the baseline answers
 
 | Case | Baseline verdict |
