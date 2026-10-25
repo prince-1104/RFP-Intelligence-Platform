@@ -4,7 +4,9 @@ Evidence is gathered separately for each bid with the single-bid retrieval plan,
 carries exactly one bid filter. Passages are shown to the model in one section per bid, with
 evidence ids that name the section (A1, A2 for the first bid, B1 for the second). The model returns
 claims per bid; each bid's claims are checked with `check_reply` against that bid's passages only,
-and a claim citing another bid's passage is dropped. Bids without validated claims are reported as
+and a claim citing another bid's passage is dropped. Addendum revisions are detected per bid from
+that bid's passages only, and a material one the bid's claims do not cite triggers a correction and
+then a limitation. Bids without validated claims are reported as
 "Not found in documents". Aspect relations (identical, different, one_sided) are computed
 lexically from the validated claims, never taken from the model.
 """
@@ -44,9 +46,12 @@ from rfp.agents.qa import (
     check_reply,
     gather_evidence,
     kept_validation,
+    question_revisions,
+    revisions_block,
     usable,
 )
 from rfp.agents.retrieval import query_hash, retrieve
+from rfp.agents.revisions import Revision
 from rfp.agents.runner import resolve_bid
 from rfp.agents.schemas import EvidenceHit, ModelMetadata, TokenUsage, TraceEvent
 from rfp.agents.trace import clock
@@ -168,6 +173,7 @@ class Section(Contract):
     bid_uuid: UUID
     hits: list[EvidenceHit] = Field(default_factory=list)
     items: dict[str, list[str]] = Field(default_factory=dict)
+    revisions: list[Revision] = Field(default_factory=list)
 
 
 def resolve_bids(values: list[str]) -> list[tuple[str, UUID]]:
@@ -231,7 +237,8 @@ def _sections_block(sections: list[Section], config: QAConfig) -> str:
             else "(No passages were retrieved for this bid.)\n"
         )
         items = _items_block(section.items).strip()
-        blocks.append("\n".join(part for part in (heading, items, body) if part))
+        revisions = revisions_block(section.revisions).strip()
+        blocks.append("\n".join(part for part in (heading, items, revisions, body) if part))
     return "\n".join(blocks)
 
 
@@ -302,7 +309,7 @@ def check_bid(
         retained.append(ModelClaim(text=claim.text, citations=claim.citations))
         aspects[text] = _aspect(claim.aspect)
     reply = ModelReply(status=entry.status, claims=retained, unresolved=entry.unresolved)
-    checked = check_reply(question, reply, section.hits, section.items)
+    checked = check_reply(question, reply, section.hits, section.items, section.revisions)
     checked.checks = foreign + checked.checks
     checked.reasons = reasons + checked.reasons
     checked.dropped = dropped + checked.dropped
@@ -455,6 +462,7 @@ def compare(
                 bid_uuid=bid_uuid,
                 hits=hits,
                 items=candidates(text, hits),
+                revisions=question_revisions(focus, hits, bid_uuid),
             )
         )
     owners = {hit.evidence_id: s.label for s in sections for hit in s.hits}
@@ -505,13 +513,18 @@ def compare(
                 checked, aspects_map, reply = check_bid(text, section, found, owners)
             aspects_by_bid.setdefault(section.label, {}).update(aspects_map)
             omitted = checked.completeness.omitted if checked.completeness else []
-            reasons = checked.reasons + [f"Item not addressed: {name}" for name in omitted]
+            reasons = (
+                checked.reasons
+                + [f"Item not addressed: {name}" for name in omitted]
+                + [f"Addendum not addressed: {item}" for item in checked.unaddressed]
+            )
             quotes.extend({**q, "bid": section.label} for q in checked.quotes)
             last_reasons[section.label] = reasons
             last_checks[section.label] = checked.checks
             if usable(reply, checked):
                 best[section.label] = (attempts, checked)
-            if reply is not None and not checked.reasons and (not omitted or last):
+            complete = not omitted and not checked.unaddressed
+            if reply is not None and not checked.reasons and (complete or last):
                 if reply.status == "not_found" and section.label in best:
                     final[section.label] = kept(best[section.label], attempts)
                 elif reply.status == "not_found":

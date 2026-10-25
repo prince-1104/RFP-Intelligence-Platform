@@ -1004,7 +1004,8 @@ about a bid that `process-bid` indexed into a separate collection, pass the same
 - Live values vary between runs, so partial fields remain.
 - A single synthetic fixture does not prove generalization.
 - No real unseen bid was available to test.
-- Only the due date is reconciled from addenda.
+- Addendum reconciliation covers the due date and 12 requirement fields (Phase B, below), not the
+  identity fields.
 - OCR needs Tesseract on the machine that runs the command.
 
 ## Final submission: status, setup notes and demo
@@ -1061,10 +1062,10 @@ stage lists every failed page in `run_summary.json` (`page_warnings`) and the ru
 
 ### Known scope limits
 
-- **Addendum reconciliation covers the due date only.** `agents/reconciliation.py` records a change
-  when addendum text states a new date for the due date. Other addendum changes are not applied to
-  fields. They can appear in a field only if the extractor cites the addendum directly, and the
-  `addendum_changes` list contains only due-date changes.
+- **Addendum reconciliation covers the due date and 12 requirement fields** (Phase B, below). Bid
+  Number, Title, Model_no, Part_no, contact_info, company_name and Bid Summary are not reconciled.
+  Addendum issue dates are not in the index, so a later change wins only when the addendum says
+  what it supersedes. Otherwise competing changes are reported as a conflict.
 - **Confidence is not calibrated.** Each field's `confidence` is a fixed value per validation
   status: 0.86 accepted, 0.74 not found, 0.35 unresolved. It is a status code, not a probability.
   Q&A answers report `confidence: null`.
@@ -1158,7 +1159,7 @@ On 2026-10-24 the first command returned `not_found` with model `gpt-4o-mini`, a
 | 0:00–0:45 | Assignment goals, `docs/architecture.md` diagram | Search engine plus agents; every value cited |
 | 0:45–2:00 | Retrieval section table, step 6 | Hybrid, reranking, filters; 55 cases; labels not human-approved |
 | 2:00–4:00 | Step 3 run and step 4 files | Stages, exit codes, 20 fields, sources, validator, trace |
-| 4:00–5:00 | Bid1 `extraction_v4` Due Date and `addendum_changes` | Addendum 2 moves the due date; only the due date is reconciled |
+| 4:00–5:00 | Bid1 `extraction_v4` Due Date and `addendum_changes` | Addendum 2 moves the due date; Addendum 1 clarifications are recorded per field (Phase B) |
 | 5:00–6:30 | Step 5 and step 7 | Verbatim citations; "Not found in documents"; bid isolation |
 | 6:30–7:30 | Step 2, `tests/test_pipeline.py` | Synthetic unseen bid, offline; not live accuracy |
 | 7:30–9:00 | `docs/final_submission_audit.md` | Partial fields, OCR on host, confidence, human review still needed |
@@ -1238,6 +1239,117 @@ Fake-model tests: `tests/test_compare_qa.py` (21 tests: selection errors, unknow
 Qdrant, CLI routing, different, identical and one-sided comparisons, both missing, cross-bid and
 fabricated citations, malformed output, timeout, retry limit, and the affidavit regressions).
 
+## Phase B: addendum reconciliation
+
+`agents/revisions.py` reconciles requirements against addenda. The same code is used by
+extraction (`reconciliation.py`), single-bid `ask` (`qa.py`) and `ask --compare-bids`
+(`compare.py`). It is deterministic: change types and order come from the document wording, never
+from the model.
+
+**Rules.**
+- The original solicitation is the baseline. An addendum passage bears on a requirement only when
+  its own text names the requirement's subject. Subjects come from the field's terms
+  (`FIELD_TERMS`) or, in Q&A, from the content words of the question.
+- Q&A addenda are read one numbered answer at a time. A numbered vendor question without an
+  answer is skipped, and page furniture after a page-number line is dropped. If the subject
+  appears only in the vendor's question, the answer is context and never counts as a change.
+- Change types come from explicit wording:
+  - `remove`: deleted, no longer required;
+  - `replace`: amended, extended, new date, shall now, instead of;
+  - `add`: added, is also required;
+  - `clarify`: Q&A answers and clarification wording;
+  - `unknown`: anything else.
+
+  "Not required" is `remove` in amendment text and `clarify` in a Q&A answer, because the
+  question may concern something the solicitation never asked for. Sentences such as "remains
+  unchanged" or "does not anticipate extending" are not changes.
+- A change is **material** when it names the subject and is a replace, remove or add, or a
+  clarification that states a requirement (must, shall, required, will ask…).
+- Statuses are `applied`, `superseded`, `conflict` and `not_applied`. Unknown changes are
+  `not_applied`.
+
+**Choosing the latest change.**
+- Two material changes compete when they come from different addenda, share subject terms, and
+  at least one is a replace or remove. Additions and clarifications coexist. Changes within one
+  addendum are treated as separate requirements.
+- A competing change wins (and the other becomes `superseded`) only when:
+  - its passage says it supersedes, revises or amends the other addendum by number; or
+  - both documents carry distinct issue dates (the optional `dates` mapping).
+- Addendum numbers alone are labels, not dates. Deadlines inside the text are never used as
+  issue dates.
+- When neither condition holds, both changes are marked `conflict` with `orderable: false`, and
+  every source is kept.
+- A later addendum does not retire requirements it does not mention. Baseline lines are marked
+  retired only when an applied replace or remove shares their terms.
+- The due date keeps its existing rule (`reconcile_due_date`), now tagged with `status` and
+  `orderable`.
+
+**Extraction.**
+- The 12 reconciled fields are: Bid Submission Type, Term of Bid, Pre Bid Meeting, Installation,
+  Bid Bond Requirement, Delivery Date, Payment Terms, Any Additional Documentation Required, MFG
+  for Registration, Contract or Cooperative to use, Product, and Product Specification. The Due
+  Date is also reconciled.
+- For each field, a bid-scoped, addendum-only search (top 5) is run. Its results are used only for
+  the check, never to fill the field. A failed search leaves the field unchanged.
+- The validator rejects a field that:
+  - has unordered competing changes ("conflicting addendum changes for …"), which leaves the field
+    unresolved with both citations; or
+  - ignores an applied replace or remove.
+- Material changes become `addendum_changes` records, extending the existing schema with
+  defaulted keys:
+  - `change_type`, `status`, `orderable`, `addendum_date` and a verbatim `quote`;
+  - `sources` cite the addendum and, for a replace or remove, the original passage;
+  - `revised_value` is null for removals and conflicts.
+- Additions and clarifications are also noted in the field's `notes`.
+- A field with no value and a field with conflicting values stay distinct (`not_found` versus
+  `unresolved`). The 20-field contract is unchanged.
+
+**Q&A.**
+- `gather_evidence` adds addendum passages that carry a material revision for the question's
+  terms, even beyond the evidence cap. The retrieval is bid-scoped, and passages without a
+  revision are not added.
+- The prompt lists the revisions with their passage ids. The answer check reports each material
+  revision the reply does not cite, which triggers one correction. If it is still uncited, the
+  answer carries the limitation "Addendum statements in the retrieved evidence that the answer
+  does not cite: …".
+- A claim that names "Addendum N" must cite a passage from that addendum. A conflict must be
+  reported with both citations.
+- Comparison runs this per bid section, so isolation is unchanged.
+
+**Tests.** `tests/test_revisions.py` has 24 tests, all with fake models and constructed passages:
+- replace, add, remove and clarify;
+- supersession by wording and by metadata dates;
+- unordered conflicts and missing metadata;
+- unchanged statements, unrelated requirements, and changes within one addendum;
+- vendor-question context, bid isolation and repeated statements;
+- extraction rejection and both citations;
+- single-bid and comparison Q&A, including an omitted addendum;
+- a failed addendum search;
+- no bid identifiers in the resolver.
+
+**Live results** (2026-10-25, `artifacts/phaseB_addenda/`, local Qdrant read-only, `gpt-4o-mini`):
+- Bid1 warranty (`ask`): one-year Chromebook and three-year Windows laptop minimums, plus OEM
+  warranties, citing Addendum 1 p1. This is correct per the gold answer. The original tablet and
+  desktop/monitor tiers are not mentioned.
+- Bid1 due date: July 9, 2024 at 2:00 PM CST, citing Addendum 2. Extraction records it as an
+  applied replace from 27-JUN-2024 14:00:00.
+- Warranty comparison: attempt 1 omitted the OEM statement, the revision check flagged it, and
+  attempt 2 cites Addendum 1 p1–p2 for Bid1 and PORFP p3 for Bid2.
+- Extraction counts are unchanged from `extraction_v4`: Bid1 16/1/3, Bid2 16/0/4. Bid1 has ten
+  change records, nine of them Addendum 1 clarifications.
+- `scripts/report_addenda.py` (no model) checked 103 quotes, all verbatim on their cited pages.
+- Failures, recorded as is:
+  - "Which devices require etching?" abstained after non-verbatim quotes;
+  - the due-date comparison abstained for Bid2.
+
+**Limitations.**
+- Bid1/Bid2 contain no competing, superseding or removing addendum change, so those paths are
+  tested offline only.
+- Addendum issue dates are parsed but not stored in the index, and re-indexing was out of scope.
+  Live ordering therefore relies on explicit wording.
+- Subject matching is lexical, and the identity fields are not reconciled.
+- Only clarifications were seen in live runs.
+
 ## Submission Evidence and Reproducibility
 
 Generated outputs are written to `artifacts/`, which is git-ignored. The files the assignment asks
@@ -1257,6 +1369,10 @@ what was left out. No output has been reviewed by a human.
 | `demo_ask_*.json` | Cited answer, separate collection, abstention | `ask` (live) |
 | `phaseA_ask_bid2_affidavits.json` | Affidavit answer after the false-abstention fix | `ask` (live) |
 | `phaseA_compare_*.json` | Warranty comparison (two runs), isolation probe, unanswerable comparison | `ask --compare-bids` (live) |
+| `phaseB_ask_bid1_warranty.json` | Bid1 warranty answer citing Addendum 1 | `ask` (live) |
+| `phaseB_compare_warranty.json` | Warranty comparison with Bid1 Addendum 1 terms | `ask --compare-bids` (live) |
+| `phaseB_Bid1_extraction.json` | Extraction with per-field addendum change records | `extract-bid` (live) |
+| `phaseB_reconciliation_Bid1.json` | Per-field requirement history: baseline, revisions, status, quotes | `scripts/report_addenda.py` (local search, no LLM) |
 
 **Commands that produced the originals** (Windows PowerShell; live steps need local Qdrant with the
 assessment bids indexed, cached models, and the assessment bid folders in `data/assessment/`):
@@ -1282,6 +1398,12 @@ assessment bids indexed, cached models, and the assessment bid folders in `data/
 .\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --question "Which affidavits must vendors submit with their proposal?" --trace-dir artifacts\phaseA_qa\traces --output artifacts\phaseA_qa\01_affidavit_bid2.json
 .\.venv\Scripts\python -m rfp.cli ask --compare-bids Bid1 Bid2 --question "Compare the warranty requirements of both bids." --trace-dir artifacts\phaseA_qa\traces --output artifacts\phaseA_qa\05_warranty_compare_after_reason_fix.json
 
+# Phase B (addendum reconciliation)
+.\.venv\Scripts\python scripts\report_addenda.py --bid-id Bid1 --bid-id Bid2 --question "What warranty is required for the computing devices?" --question "What is the final proposal submission deadline after all addenda?" --question "Which devices require etching?" --output artifacts\phaseB_addenda\reconciliation
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts\phaseB_addenda\extraction --trace-dir artifacts\phaseB_addenda\extraction\traces --llm-mode live
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid1 --question "What warranty is required for the computing devices?" --trace-dir artifacts\phaseB_addenda\qa\traces --output artifacts\phaseB_addenda\qa\bid1_warranty.json
+.\.venv\Scripts\python -m rfp.cli ask --compare-bids Bid1 Bid2 --question "Compare the warranty requirements of both bids." --trace-dir artifacts\phaseB_addenda\qa\traces --output artifacts\phaseB_addenda\qa\compare_warranty.json
+
 # Artifact audit and evidence copies
 .\.venv\Scripts\python scripts\audit_submission.py --out artifacts\eval\submission_audit.json
 .\.venv\Scripts\python scripts\build_submission_evidence.py build
@@ -1304,8 +1426,8 @@ evidence used `openai` / `gpt-4o-mini`, as recorded in each trace. Keys are neve
 `verify_extraction.py` and `audit_submission.py` scan for them.
 
 **Live versus offline.** Every file in `submission/evidence/` came from live runs on the two
-assessment bids, or from local search with no LLM (retrieval). The test suite (407 offline tests,
-6 integration tests) uses fake models and constructed or synthetic documents. `tests/test_pipeline.py`
+assessment bids, or from local search with no LLM (retrieval and `phaseB_reconciliation_Bid1.json`).
+The test suite (452 offline tests, 6 integration tests) uses fake models and constructed or synthetic documents. `tests/test_pipeline.py`
 runs `process-bid` on a fictional bid, and it is not evidence of live accuracy.
 
 **Retrieval results** (55 cases, 50 scored, default rerank depth 20; rerun on 2026-10-24 with identical
@@ -1324,5 +1446,7 @@ rerank 0.772 / 0.769. The full table is in the retrieval section above.
 - Cross-bid comparison is CLI-only, and its aspect relations are lexical.
 - No real unseen bid was tested; only a synthetic fixture.
 - Retrieval labels and Q&A gold answers are assistant-made and not human-approved.
-- Confidence values are fixed per status, not calibrated. Only the due date is reconciled from addenda.
+- Confidence values are fixed per status, not calibrated.
+- Addendum supersession and conflict handling are tested offline only. Bid1/Bid2 have no
+  competing addendum changes.
 - Masked excerpts in `qa_examples.json` (examples 2 and 11) are no longer verbatim.

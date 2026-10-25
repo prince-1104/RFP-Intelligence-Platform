@@ -1,5 +1,6 @@
 """Structured agent messages and the assignment's per-bid JSON contract."""
 
+from datetime import date
 from typing import Literal
 from uuid import UUID
 
@@ -76,6 +77,10 @@ class FieldOutput(Contract):
         return self
 
 
+ChangeType = Literal["replace", "add", "remove", "clarify", "unknown"]
+ChangeStatus = Literal["applied", "superseded", "conflict", "not_applied"]
+
+
 class AddendumChange(Contract):
     field: str
     original_value: str | None
@@ -84,6 +89,13 @@ class AddendumChange(Contract):
     sources: list[OutputSource]
     explanation: str = Field(min_length=1)
     conflict: bool = False
+    # Defaults keep records written before requirement-level reconciliation valid.
+    change_type: ChangeType = "replace"
+    status: ChangeStatus | None = None
+    # Date the addendum was issued, from document metadata; never a deadline stated inside it.
+    addendum_date: date | None = None
+    orderable: bool | None = None
+    quote: str | None = None
 
 
 class ValidationCounts(Contract):

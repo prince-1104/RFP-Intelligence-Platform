@@ -21,6 +21,7 @@ Classifications: **Safe to publish**, **Requires redaction** (a masked copy is p
 | Machine-readable verification report | `submission_audit.json` | Not required; supporting |
 | Demo output or run summary | `Bid2_process_bid_run_summary.json`, `demo_ask_*.json` | Not required; supporting |
 | Section 7.3 examples: affidavits, warranty comparison | `phaseA_ask_bid2_affidavits.json`, `phaseA_compare_*.json` (Phase A) | Supporting; shows the required example tasks |
+| Addendum reconciliation (7.1) and addendum-aware Q&A | `phaseB_*.json` (Phase B) | Supporting |
 
 ## Candidates
 
@@ -38,6 +39,10 @@ Classifications: **Safe to publish**, **Requires redaction** (a masked copy is p
 | `artifacts/pipeline_v1/Bid2/run_summary.json` | One-command run summary | Yes | None | None | Loopback Qdrant URL and collection name only | None | Safe to publish | Copied unchanged as `Bid2_process_bid_run_summary.json` |
 | `artifacts/final_demo/ask_*.json` (3) | Live Q&A demo outputs | Yes | Short quotes | None | None | None | Safe to publish | Copied unchanged as `demo_ask_*.json` |
 | `artifacts/phaseA_qa/0[1-5]_*.json` (5) | Phase A live outputs: affidavit answer, two warranty comparisons, isolation probe, unanswerable comparison | Yes | Short verbatim quotes (longest about 200 chars) | None found (build masked 0 values) | None | None | Safe to publish | Copied as `phaseA_*.json` through the same masking build; all five runs included, none selected out |
+| `artifacts/phaseB_addenda/qa/bid1_warranty.json`, `compare_warranty.json` | Phase B live answers | Yes | Short verbatim quotes | None found (build masked 0 values) | None | None | Safe to publish | Copied as `phaseB_ask_bid1_warranty.json`, `phaseB_compare_warranty.json`. The other four Phase B Q&A runs (deadline, etching, Bid2 warranty, due-date comparison) are described in `docs/qa_examples.md` and not copied |
+| `artifacts/phaseB_addenda/extraction/Bid1.json` | Extraction with addendum change records | Yes | Same as `extraction_v4/Bid1.json` | Buyer email and phone in `contact_info` | Public solicitation terms only | None | Requires redaction | Copied as `phaseB_Bid1_extraction.json`, email and phone masked |
+| `artifacts/phaseB_addenda/reconciliation/reconciliation_Bid1.json` | Deterministic reconciliation report | Yes | Short quotes (statements ≤500 chars, baseline lines ≤240) | None found | None | None | Safe to publish | Copied unchanged as `phaseB_reconciliation_Bid1.json` |
+| `artifacts/phaseB_addenda/` (Bid2 files, traces, `verification.json`) | Phase B supporting outputs | Yes | Yes | Contacts in Bid2 extraction and verification | None | None | Requires redaction | **Not included**: Bid2 has no addenda; not required |
 | `artifacts/phaseA_qa/traces/*.json` | Q&A and comparison traces | Yes | None (question stored as a hash) | None | None | None | Safe to publish | **Not included**: not required |
 | `artifacts/final_demo/traces/*.json` | Q&A traces | Yes | None (question stored as a hash) | None | None | None | Safe to publish | **Not included**: not required |
 | `artifacts/eval/extraction_v4_check.json` | Per-field citation support | Yes | Yes, repeats every extraction value | Same contacts as the extraction files | None | None | Requires redaction | **Not included**: duplicates the extraction values; `submission_audit.json` covers verification; reproducible with `verify_extraction.py` |
@@ -52,7 +57,8 @@ Classifications: **Safe to publish**, **Requires redaction** (a masked copy is p
 JSON string values with `[email redacted]` and `[phone redacted]`. It changes nothing else.
 `submission/evidence/redactions.json` lists each masked JSON path and the SHA-256 of each source.
 A structural comparison confirmed that the copies differ from the originals only at those 10
-paths. Effects:
+paths. The Phase B build added one masked path (`contact_info` in `phaseB_Bid1_extraction.json`,
+one email and one phone). Effects:
 
 - Names and organizations are kept. The `contact_info` fields still show who to contact, but not
   how.
@@ -83,5 +89,5 @@ invalidates existing clones). None of these was done.
 
 - `.gitignore` is unchanged. `submission/` matches no rule; `artifacts/`, `data/assessment/*`,
   `.env`, caches and logs remain ignored (`git check-ignore`).
-- Files proposed for staging: `submission/evidence/` (12 files), `scripts/build_submission_evidence.py`,
+- Files proposed for staging: `submission/evidence/` (19 files after Phases A and B), `scripts/build_submission_evidence.py`,
   `docs/submission_artifacts_manifest.md`, `README.md`.

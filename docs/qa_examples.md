@@ -85,6 +85,23 @@ Gold scoring of the affidavit answer (`score` on `bid2-affidavits`): answer corr
 accuracy 1, false abstention 0, item completeness 0.5. The 14-case set was not re-run as a whole in
 Phase A, so the table above it still describes `qa_v5`.
 
+## Phase B: addendum-aware answers (live, 2026-10-25)
+
+Model `openai` / `gpt-4o-mini`, local Qdrant read-only. Outputs are in `artifacts/phaseB_addenda/qa/`
+(git-ignored; its `README.md` lists every run). Masked copies of the warranty answer and the
+warranty comparison are in `submission/evidence/phaseB_*.json`. All six runs made are listed. Each
+citation in an answered result was checked by the assistant against the parsed source page. No
+human has reviewed these.
+
+| Question | Status | Answer and citations | Review |
+|---|---|---|---|
+| Bid1: What warranty is required for the computing devices? | answered (attempt 1) | One-year minimum for Chromebooks and three-year minimum for Windows laptops; OEM warranties required — Addendum 1 p1 | Correct per gold `bid1-warranty` (quotes valid). The original tablet 1-year and desktop/monitor 3-year tiers are not mentioned |
+| Bid1: What is the final proposal submission deadline after all addenda? | answered | July 9, 2024 at 2:00 PM CST — Addendum 2 p1 | Correct per gold |
+| Bid1: Which devices require etching? | not_found | Not found in documents | Live quoting failure: both attempts quoted a passage non-verbatim. The Addendum 1 etching answer was listed as an addendum statement the answer did not cite |
+| Bid2: What extended warranty is required for the Dell laptops? | answered | 3 Years — PORFP p3 | Correct per gold; Bid2 has no addenda and none were added |
+| Compare the warranty requirements of both bids | answered | Bid1: Addendum 1 p1 and p2 (Chromebook and Windows minimums, OEM warranties). Bid2: PORFP p3 (3 years) | Attempt 1 omitted the OEM statement. The revision check named it, and attempt 2 cited it. This resolves the Phase A omission of Addendum 1 |
+| Compare the proposal due dates of both bids | partial | Bid1: July 9, 2024 at 2:00 PM CST (Addendum 2). Bid2: Not found in documents | Bid2 abstained after quoting the BidNet date non-verbatim twice. This is an existing weakness, the same as the `qa_v5` Bid2 due-date abstention |
+
 ## Per-case review of the baseline answers
 
 | Case | Baseline verdict |

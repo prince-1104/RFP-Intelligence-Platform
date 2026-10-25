@@ -26,6 +26,10 @@ assistant-assisted.
 | `phaseA_compare_warranty_run1.json` | `artifacts/phaseA_qa/02_warranty_compare.json` | Live | First run of the same question, kept rather than replaced; one Bid2 claim is broader than its quote | Same |
 | `phaseA_compare_isolation_probe.json` | `artifacts/phaseA_qa/03_isolation_probe_compare.json` | Live | Mercury Affidavit compared across bids: Bid1 not found, Bid2 answered from its own documents | Bid isolation (7.2) |
 | `phaseA_compare_unanswerable.json` | `artifacts/phaseA_qa/04_unanswerable_compare.json` | Live | A comparison neither bid answers: `Not found in documents` | Guardrail (7.2) |
+| `phaseB_ask_bid1_warranty.json` | `artifacts/phaseB_addenda/qa/bid1_warranty.json` | Live, 2026-10-25 | Bid1 warranty after addendum reconciliation: Chromebook one-year and Windows laptop three-year minimums, OEM warranties, cited to Addendum 1 p1 | Q&A example 7.3; addenda (7.1) |
+| `phaseB_compare_warranty.json` | `artifacts/phaseB_addenda/qa/compare_warranty.json` | Live | Warranty comparison in which the Bid1 finding cites Addendum 1 p1–p2 and the Bid2 finding cites PORFP p3 | Q&A example 7.3 (cross-bid) |
+| `phaseB_Bid1_extraction.json` | `artifacts/phaseB_addenda/extraction/Bid1.json` | Live | Bid1 extraction with ten `addendum_changes` records (Due Date replace by Addendum 2; nine Addendum 1 clarifications), each with change type, status and verbatim quote | Addendum reconciliation (7.1, 8.1) |
+| `phaseB_reconciliation_Bid1.json` | `artifacts/phaseB_addenda/reconciliation/reconciliation_Bid1.json` | Local search, no LLM | Per-field requirement history: baseline passages, each addendum revision with type, status, reason and sources | Addendum reconciliation (7.1) |
 | `redactions.json` | Generated | — | Masked paths and source hashes | — |
 
 The evaluation questions and labels are already tracked in `evaluation/` (`assessment_retrieval.json`,
@@ -34,7 +38,8 @@ here came from them.
 
 ## Effect of the redaction
 
-- Masked: `contact_info` in both extraction files (one email and one phone number each), and six
+- Masked: `contact_info` in both extraction files and in `phaseB_Bid1_extraction.json` (one email
+  and one phone number each), and six
   email addresses in Q&A examples 2 and 11 (answer, claim, citation excerpt, review note).
 - Names, organizations, values, citations, metrics and every other field are unchanged.
 - The masked excerpts are no longer verbatim copies of the source. They were verified before
@@ -53,7 +58,9 @@ From a clone (no `artifacts/`, models, Qdrant or keys needed):
 This checks that every file parses, that both extraction files have the 20 fields with no uncited
 value, that the trace comes from a live model and covers the 20 fields, that at least 10 Q&A answers
 carry citations, that the Phase A files validate against the Q&A and comparison schemas and came
-from a live model, and that the README retrieval table matches `retrieval_evaluation.json`.
+from a live model, that the Phase B answers are live and cite an addendum, that the Phase B
+extraction records an applied Due Date change with sources, that the reconciliation report is
+complete, and that the README retrieval table matches `retrieval_evaluation.json`.
 
 With the local artifacts present (the machine that produced them):
 

@@ -346,8 +346,12 @@ def test_cli_json_output_and_trace(tmp_path, monkeypatch, capsys):
     trace_text = (tmp_path / "t" / f"qa_{payload['trace_id']}.json").read_text(encoding="utf-8")
     trace = json.loads(trace_text)
     assert trace["question_chars"] == len(question) and question not in trace_text
-    assert [e["agent"] for e in trace["events"]] == ["retrieval", "qa"]
-    assert [e["sequence"] for e in trace["events"]] == [0, 1]
+    assert [(e["agent"], e["task"]) for e in trace["events"]] == [
+        ("retrieval", "search"),
+        ("retrieval", "addendum_revisions"),
+        ("qa", "answer"),
+    ]
+    assert [e["sequence"] for e in trace["events"]] == [0, 1, 2]
     assert WARRANTY not in trace_text
 
     assert cli.main(["ask", "--bid-id", "../x", "--question", "q?", "--llm-mode", "test"]) == 2

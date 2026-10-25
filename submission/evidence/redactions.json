@@ -131,6 +131,37 @@
       "source": "artifacts/phaseA_qa/04_unanswerable_compare.json",
       "source_sha256": "a4488fb6f9c1a2c98818c65a11d0ec446027ca8bb9764f961b1a55fac072dc2c",
       "redactions": []
+    },
+    "phaseB_ask_bid1_warranty.json": {
+      "source": "artifacts/phaseB_addenda/qa/bid1_warranty.json",
+      "source_sha256": "6195217430dc84fcfd38bd1aa948ed0957053e179dd49e9d3f96c13b373749a3",
+      "redactions": []
+    },
+    "phaseB_compare_warranty.json": {
+      "source": "artifacts/phaseB_addenda/qa/compare_warranty.json",
+      "source_sha256": "45e2166f7c2ec1ca8a91cb1465c37efab864bc15562db45e237c9138556c5f89",
+      "redactions": []
+    },
+    "phaseB_Bid1_extraction.json": {
+      "source": "artifacts/phaseB_addenda/extraction/Bid1.json",
+      "source_sha256": "bfce311965a34f73d73d8625d481fa91243b655c284701570ef2efa934c482bd",
+      "redactions": [
+        {
+          "path": "/fields/contact_info/value",
+          "kind": "email",
+          "count": 1
+        },
+        {
+          "path": "/fields/contact_info/value",
+          "kind": "phone",
+          "count": 1
+        }
+      ]
+    },
+    "phaseB_reconciliation_Bid1.json": {
+      "source": "artifacts/phaseB_addenda/reconciliation/reconciliation_Bid1.json",
+      "source_sha256": "339a07e2216ebd50d32a61462bbbabf3293d2a74909d9b5f53cf9428ea44d071",
+      "redactions": []
     }
   }
 }

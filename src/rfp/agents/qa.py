@@ -4,7 +4,10 @@ Retrieval goes through `SearchService.search` with a single-bid filter. The mode
 each linked to quotes from numbered passages. A reply is accepted only when every quote is a
 contiguous span of its passage (`quotes.py`), every claim is lexically supported by its own
 quotes (`grounding.py`), deadline answers respect explicit addendum revisions, and list questions
-address every named item found in the evidence (`checklist.py`). Otherwise a bounded correction
+address every named item found in the evidence (`checklist.py`). Addendum statements on the
+question's subject (`revisions.py`) are retrieved from the bid's addenda, listed in the prompt, and
+must be cited; an answer that ignores one is corrected once and otherwise carries a limitation
+naming it. A claim that names an addendum must cite that addendum. Otherwise a bounded correction
 is requested; if that also fails the answer is an abstention, unless an earlier attempt produced
 claims that passed every check, which are then returned with the failures listed.
 """
@@ -34,6 +37,7 @@ from rfp.agents.llm import LanguageModel, ModelRequest, ModelResponse, account, 
 from rfp.agents.quotes import verbatim
 from rfp.agents.reconciliation import reconcile_due_date
 from rfp.agents.retrieval import cited_pages, query_hash, retrieve
+from rfp.agents.revisions import Revision, describe, question_terms, reconcile
 from rfp.agents.schemas import DraftField, EvidenceHit, ModelMetadata, TokenUsage, TraceEvent
 from rfp.agents.trace import clock
 from rfp.agents.validator import contained, date_phrases, locator_problem
@@ -215,6 +219,8 @@ class Checked(Contract):
     discarded: list[str] = Field(default_factory=list)
     completeness: Completeness | None = None
     quotes: list[dict[str, str | int | None]] = Field(default_factory=list)
+    # Material addendum revisions in the evidence that the answer neither cites nor reports.
+    unaddressed: list[str] = Field(default_factory=list)
 
 
 def _distinct(citations: list[QACitation]) -> set[tuple[str, int | None, str | None]]:
@@ -315,14 +321,31 @@ def _items_block(items: dict[str, list[str]]) -> str:
     return f"\n\nItems to address (named in the passages):\n{listed}"
 
 
+def revisions_block(revisions: list[Revision]) -> str:
+    if not revisions:
+        return ""
+    listed = "\n".join(f"- {describe(revision)}" for revision in revisions)
+    return (
+        "\n\nAddendum statements in these passages that bear on the question (the original "
+        f"solicitation is the baseline):\n{listed}\n"
+        "Use the current requirement: state what each applicable addendum says and cite its "
+        "passage; when the answer also relies on the original wording, cite that too and say "
+        "it is the original. If addenda conflict, use status conflict and cite each one."
+    )
+
+
 def answer_request(
-    question: str, hits: list[EvidenceHit], items: dict[str, list[str]], config: QAConfig
+    question: str,
+    hits: list[EvidenceHit],
+    items: dict[str, list[str]],
+    config: QAConfig,
+    revisions: list[Revision] | None = None,
 ) -> ModelRequest:
     return ModelRequest(
         purpose="qa:answer",
         system=SYSTEM,
         user=(
-            f"Question: {question}{_items_block(items)}\n\n"
+            f"Question: {question}{_items_block(items)}{revisions_block(revisions or [])}\n\n"
             f"Passages:\n{_evidence_block(hits, config.excerpt_chars)}"
         ),
     )
@@ -334,19 +357,41 @@ def correction_request(
     items: dict[str, list[str]],
     reasons: list[str],
     config: QAConfig,
+    revisions: list[Revision] | None = None,
 ) -> ModelRequest:
     listed = "\n".join(f"- {reason}" for reason in reasons)
     return ModelRequest(
         purpose="qa:correct",
         system=SYSTEM,
         user=(
-            f"Question: {question}{_items_block(items)}\n\n"
+            f"Question: {question}{_items_block(items)}{revisions_block(revisions or [])}\n\n"
             f"Your previous reply was rejected:\n{listed}\n"
             "Copy quotes exactly from the passage text below, drop any detail your quotes do not "
             "state, address every listed item, or answer not_found.\n\n"
             f"Passages:\n{_evidence_block(hits, config.excerpt_chars)}"
         ),
     )
+
+
+def question_revisions(
+    question: str, hits: list[EvidenceHit], bid_uuid: UUID | None = None
+) -> list[Revision]:
+    """Material addendum revisions in the evidence on the question's subject terms."""
+    return reconcile("question", question_terms(question), hits, bid_uuid).material
+
+
+def unaddressed(
+    revisions: list[Revision], citations: list[QACitation], status: QAStatus
+) -> list[str]:
+    cited = {citation.evidence_id for citation in citations}
+    missing = [describe(r) for r in revisions if not (r.evidence_ids & cited)]
+    conflicts = [r for r in revisions if r.status == "conflict"]
+    if conflicts and status == "answered":
+        missing.append(
+            "Addenda make competing changes that cannot be ordered; report status conflict "
+            "citing " + ", ".join(sorted({i for r in conflicts for i in r.evidence_ids}))
+        )
+    return missing
 
 
 def parse_reply(text: str) -> ModelReply:
@@ -387,6 +432,7 @@ def check_reply(
     reply: ModelReply,
     hits: list[EvidenceHit],
     items: dict[str, list[str]] | None = None,
+    revisions: list[Revision] | None = None,
 ) -> Checked:
     """Deterministic quote, claim, addendum and checklist checks."""
     items = items or {}
@@ -450,6 +496,13 @@ def check_reply(
         elif unquoted:
             result.reasons.extend(unquoted)
             result.discarded.extend(unquoted)
+        named = {int(n) for n in ADDENDUM_NUMBER.findall(claim_text)}
+        missing = sorted(named - {hit.addendum_number for hit, _ in cited})
+        if cited and missing:
+            listed = ", ".join(str(number) for number in missing)
+            claim_reasons.append(
+                f"Claim '{claim_text[:80]}' names addendum {listed} but cites no passage from it"
+            )
         if cited and not claim_reasons:
             strict = any(mentions(name, claim_text) for name in items)
             for problem in claim_problems(
@@ -495,6 +548,7 @@ def check_reply(
         decision = reconcile_due_date(draft, hits)
         if decision.change is not None and decision.reject_reason:
             result.reply_reasons.append(f"Addendum check: {decision.reject_reason}")
+    result.unaddressed = unaddressed(revisions or [], result.citations, reply.status)
     result.reasons = result.reply_reasons + result.reasons
     unresolved = [
         UnresolvedItem(item=" ".join(u.item.split()), reason=" ".join(u.reason.split()))
@@ -541,7 +595,8 @@ def gather_evidence(
 ) -> list[EvidenceHit]:
     collected: list[EvidenceHit] = []
     lock = threading.Lock()
-    for query, mode, doc_types, addenda, top_k in plan_queries(question, config):
+    plan = plan_queries(question, config)
+    for query, mode, doc_types, addenda, top_k in plan:
         started, stamp = clock(), time.perf_counter()
         hits, response = retrieve(
             search,
@@ -573,15 +628,75 @@ def gather_evidence(
     seen: set[tuple[str, int | None, str | None, str]] = set()
     unique: list[EvidenceHit] = []
     for hit in collected:
-        source = hit.sources[0]
-        key = (source.relative_path, source.page, source.html_element_id, hit.text)
+        key = _hit_key(hit)
         if key not in seen:
             seen.add(key)
             unique.append(hit)
+    chosen = unique[: config.max_evidence]
+    if not any(DocumentType.addendum in doc_types for _, _, doc_types, _, _ in plan):
+        chosen += _revision_hits(question, bid_uuid, search, config, events, chosen, lock)
     return [
         hit.model_copy(update={"evidence_id": f"E{index}"})
-        for index, hit in enumerate(unique[: config.max_evidence], start=1)
+        for index, hit in enumerate(chosen, start=1)
     ]
+
+
+def _hit_key(hit: EvidenceHit) -> tuple[str, int | None, str | None, str]:
+    source = hit.sources[0]
+    return (source.relative_path, source.page, source.html_element_id, hit.text)
+
+
+def _revision_hits(
+    question: str,
+    bid_uuid: UUID,
+    search: Callable[[SearchRequest], SearchResponse],
+    config: QAConfig,
+    events: list[TraceEvent],
+    chosen: list[EvidenceHit],
+    lock: threading.Lock,
+) -> list[EvidenceHit]:
+    """Addendum passages that revise the question's subject, added beyond the evidence cap.
+
+    Only passages carrying a material revision are added, so questions that no addendum touches
+    see the same evidence as before. The search stays limited to this bid.
+    """
+    terms = question_terms(question)
+    if not terms:
+        return []
+    started, stamp = clock(), time.perf_counter()
+    hits, response = retrieve(
+        search,
+        bid_uuid,
+        question,
+        mode=config.mode,
+        top_k=config.addendum_top_k,
+        doc_types=[DocumentType.addendum],
+        addendum_numbers=[],
+        evidence_prefix="rev",
+        lock=lock,
+    )
+    present = {_hit_key(hit) for hit in chosen}
+    added = [
+        hit
+        for hit in hits
+        if _hit_key(hit) not in present and question_revisions(question, [hit], bid_uuid)
+    ]
+    events.append(
+        _event(
+            "retrieval",
+            "addendum_revisions",
+            started,
+            stamp,
+            query_hash=query_hash(question),
+            mode=response.mode.value,
+            top_k=config.addendum_top_k,
+            doc_types=[DocumentType.addendum.value],
+            result_count=len(hits),
+            evidence=_refs(added),
+            decision=f"{len(added)} addendum passage(s) with material revisions added",
+        )
+    )
+    return added
 
 
 def answer_limitations(checked: Checked, list_question: bool) -> list[str]:
@@ -598,6 +713,11 @@ def answer_limitations(checked: Checked, list_question: bool) -> list[str]:
         limitations.append(
             f"{len(checked.discarded)} non-verbatim quote(s) were discarded; the remaining "
             "citations support each claim."
+        )
+    if checked.unaddressed:
+        limitations.append(
+            "Addendum statements in the retrieved evidence that the answer does not cite: "
+            + "; ".join(checked.unaddressed)
         )
     return limitations
 
@@ -710,7 +830,8 @@ def ask(
             QAValidation(passed=True, attempts=0, reasons=["No evidence retrieved for this bid"]),
         )
 
-    request = answer_request(text, hits, items, config)
+    revisions = question_revisions(text, hits, bid_uuid)
+    request = answer_request(text, hits, items, config, revisions)
     checked = Checked()
     best: tuple[int, Checked] | None = None
     attempts = 0
@@ -724,12 +845,16 @@ def ask(
         reply: ModelReply | None
         try:
             reply = parse_reply(completion.text)
-            checked = check_reply(text, reply, hits, items)
+            checked = check_reply(text, reply, hits, items, revisions)
         except ModelError as exc:
             reply = None
             checked = Checked(reasons=[f"{exc.code}: {exc.message}"])
         omitted = checked.completeness.omitted if checked.completeness else []
-        retry_reasons = checked.reasons + [f"Item not addressed: {name}" for name in omitted]
+        retry_reasons = (
+            checked.reasons
+            + [f"Item not addressed: {name}" for name in omitted]
+            + [f"Addendum not addressed: {item}" for item in checked.unaddressed]
+        )
         events.append(
             _event(
                 "qa",
@@ -748,7 +873,8 @@ def ask(
         )
         if usable(reply, checked):
             best = (attempts, checked)
-        if reply is not None and not checked.reasons and (not omitted or last):
+        complete = not omitted and not checked.unaddressed
+        if reply is not None and not checked.reasons and (complete or last):
             if reply.status == "not_found" and best is not None:
                 return keep_validated(best, attempts, finish)
             if reply.status == "not_found":
@@ -782,7 +908,7 @@ def ask(
                     + [f"Discarded non-verbatim quote: {item}" for item in checked.discarded],
                 ),
             )
-        request = correction_request(text, hits, items, retry_reasons, config)
+        request = correction_request(text, hits, items, retry_reasons, config, revisions)
     if best is not None:
         return keep_validated(best, attempts, finish)
     return finish(

@@ -26,6 +26,20 @@ fixed the affidavit false abstention (`agents/qa.py` `keep_validated`). The evid
 
 Every other row is unchanged from the Phase 12 audit.
 
+**Phase B update (2026-10-25).** Rows 33, 48, 59 and 65, gaps 1–2, the counts, sections 4–6 and
+11–12, and a Phase B verification table (end of section 13) were updated after Phase B added
+requirement-level addendum reconciliation (`agents/revisions.py`). It is used by extraction
+(`reconciliation.reconcile_field`, orchestrator addendum check), single-bid Q&A and comparison.
+The evidence is:
+
+- `tests/test_revisions.py` (24 fake-model tests);
+- the deterministic report `scripts/report_addenda.py`;
+- live `gpt-4o-mini` runs in `artifacts/phaseB_addenda/`, with masked copies in
+  `submission/evidence/phaseB_*.json`.
+
+The Bid1/Bid2 addenda contain clarifications and one due-date replacement only. The conflict and
+supersession paths are therefore tested offline only.
+
 ## 1. Executive summary
 
 The core system is in place and verified. It has:
@@ -37,19 +51,26 @@ The core system is in place and verified. It has:
 - grounded single-bid Q&A and, since Phase A, cross-bid comparison with per-bid evidence;
 - the exact 20-field JSON structure;
 - a one-command pipeline;
-- 428 offline tests and 6 integration tests, all passing (407 at the Phase 12 audit).
+- 452 offline tests and 6 integration tests, all passing (428 after Phase A, 407 at the Phase 12
+  audit).
 
 These parts should not be rebuilt.
 
 The gaps that matter for the assignment:
 
-1. **Cross-bid Q&A is supported but incomplete** (7.3, "Compare the warranty requirements of both
-   bids"). Phase A added `ask --compare-bids`. In both live runs the findings are cited and true,
-   but Bid1 omits the Addendum 1 warranty terms even though that page was retrieved. **PARTIAL**
-   (was FAIL).
-2. **Addendum reconciliation covers only the Due Date** (7.1 asks to apply "the latest valid change
-   to each field"). Conflicting addendum dates are reported rather than resolved to the latest.
-   **PARTIAL.**
+1. **Cross-bid Q&A** (7.3, "Compare the warranty requirements of both bids"). Phase A added
+   `ask --compare-bids`; Phase B made answers addendum-aware. In the Phase B live comparison, Bid1
+   cites Addendum 1 for the one-year Chromebook and three-year Windows laptop minimums and the OEM
+   requirement, and Bid2 cites its PORFP. **PASS** (was PARTIAL). Aspect relations remain lexical.
+2. **Addendum reconciliation** (7.1, "the latest valid change to each field"). Phase B covers the
+   Due Date and 12 other fields, with these rules:
+   - change types: replace, add, remove, clarify and unknown;
+   - a change wins only when chronology is explicit;
+   - competing changes that cannot be ordered stay unresolved.
+
+   Seven fields are not reconciled: Bid Number, Title, Model_no, Part_no, contact_info,
+   company_name and Bid Summary. The real addenda have no replacement other than the due date, so
+   ordering and conflicts are tested offline only. **PARTIAL** (narrower than before).
 3. **No demo video** (11). **FAIL** until a video is recorded or a live session is agreed.
 4. **Repeated headers and footers are not removed** (5). **FAIL.**
 5. **Extraction accuracy is partial** (not a FAIL). By assistant review, 12 of 40 field values are partial,
@@ -65,10 +86,15 @@ Further PARTIAL items:
 - the README has no prompt-design section;
 - real unseen-bid behavior is UNVERIFIED.
 
-Requirement-matrix counts (section 2, 70 rows): **PASS 51, PARTIAL 15, FAIL 2, UNVERIFIED 1,
+Requirement-matrix counts (section 2, 70 rows): **PASS 52, PARTIAL 14, FAIL 2, UNVERIFIED 1,
 OPTIONAL 1** (OCR, listed in Part A). Section 10 lists the other bonus features separately. The two
-FAILs are header and footer removal and the demo video. At the Phase 12 audit the counts were
-PASS 50, PARTIAL 15, FAIL 3: row 2 moved from PARTIAL to PASS and row 48 from FAIL to PARTIAL.
+FAILs are header and footer removal and the demo video.
+
+How the counts changed:
+
+- **Phase 12 audit:** PASS 50, PARTIAL 15, FAIL 3.
+- **Phase A:** row 2 moved from PARTIAL to PASS, and row 48 from FAIL to PARTIAL.
+- **Phase B:** row 48 moved from PARTIAL to PASS. Row 33 stays PARTIAL with a narrower gap.
 
 ## 13. Verification run (2026-10-25)
 
@@ -90,6 +116,22 @@ PASS 50, PARTIAL 15, FAIL 3: row 2 moved from PARTIAL to PASS and row 48 from FA
 No live-model call was made in this audit. Live evidence cited below comes from earlier saved runs
 (`gpt-4o-mini`, recorded in each trace). The retrieval rerun that reproduced every metric was done
 on 2026-10-24 (`artifacts/eval/retrieval_phase11.json`). It was not repeated here.
+
+**Phase B verification (2026-10-25).** Local Qdrant was used read-only and no index was rebuilt.
+
+| Command | Exit | Result |
+|---|---|---|
+| `pytest -q` (full suite) | 0 | 458 passed: 452 non-integration (24 new in `test_revisions.py`) and the 6 integration tests |
+| `pytest -m integration -q` (local Qdrant, `RFP_MODEL_SMOKE=1`) | 0 | 6 passed |
+| `ruff check`, `ruff format --check`, `mypy src` | 0 | Clean (86 source files) |
+| `scripts/report_addenda.py --bid-id Bid1 --bid-id Bid2 …` | 0 | Bid1: 6 fields amended, 6 unchanged, Due Date replaced by Addendum 2; Bid2: all unchanged |
+| Quote check of both reports against parsed pages (scratch script) | — | 103 of 103 quotes verbatim on the cited page |
+| `extract-bid --bid-id Bid1/Bid2 --llm-mode live` into `artifacts/phaseB_addenda/extraction` | 0 | Bid1 16/1/3 and Bid2 16/0/4, the same as `extraction_v4`; Bid1 has 10 change records, all quotes verified |
+| `scripts/verify_extraction.py --outputs artifacts/phaseB_addenda/extraction` | 0 | No problems; no secret leaks |
+| Live `ask` / `ask --compare-bids` (6 runs) | 0 | See `artifacts/phaseB_addenda/README.md`; gold scorer: `bid1-warranty`, `bid1-final-deadline`, `bid2-warranty` correct |
+| `evaluate_retrieval.py verify`, `evaluate_qa.py verify` | 0 | OK; retrieval code and labels unchanged |
+| `build_submission_evidence.py build`, `verify`, `check` | 0 | 19 files, 0 problems; earlier copies unchanged |
+| `scripts/audit_submission.py` | 0 | 0 problems |
 
 ## 2. Requirement matrix
 
@@ -146,7 +188,7 @@ on 2026-10-24 (`artifacts/eval/retrieval_phase11.json`). It was not repeated her
 | 30 | §7.1 p3 | Ingestion agent: detect type, parse, clean, metadata, trigger indexing | `pipeline.py` validate, parse, chunk and index stages | `test_pipeline.py` | `Bid2_process_bid_run_summary.json` | Code | PARTIAL | Deterministic stages, not an agent in the orchestrator. The PDF allows merged roles "if you explain why"; the reason (no model needed) appears only in audit docs, not in the README agent section | Phase E (docs) |
 | 31 | §7.1 p3 | Retrieval agent: rewrite/expand, search, filters, rerank, cited evidence | `agents/retrieval.py` plus search service | `test_extraction.py` | Trace retrieval steps (queries, modes, doc types, locators) | Trace | PASS | Deterministic, not an LLM agent | — |
 | 32 | §7.1 p3 | Extraction agents from retrieved evidence only; specialists allowed | `agents/extractors.py` (identity, logistics, commercial, product, summary) | `test_extraction.py`, `test_semantics.py` | Trace agents | Trace | PASS | — | — |
-| 33 | §7.1 p3 | Addendum reconciliation: apply the latest valid change to each field; change log | `agents/reconciliation.py` `reconcile_field` returns nothing unless `name == "Due Date"` | `test_extraction.py::test_addendum_due_date_requires_text…`, `test_pipeline.py` (synthetic addendum) | Bid1 `addendum_changes`: original and revised due date with sources | Code read | PARTIAL | **Due Date only.** Two addenda with different dates yield `conflict=True` and no revised value, rather than the latest valid change | Phase B |
+| 33 | §7.1 p3 | Addendum reconciliation: apply the latest valid change to each field; change log | `agents/revisions.py` (requirement histories: replace/add/remove/clarify/unknown; applied, superseded, conflict or not_applied). `reconciliation.reconcile_field`: Due Date rule plus `FIELD_TERMS` for 12 fields. Orchestrator addendum check search per accepted field | `test_revisions.py` (24), `test_extraction.py` due-date tests, `test_pipeline.py` (synthetic addendum) | `phaseB_Bid1_extraction.json`: 10 change records (Due Date replace from Addendum 2; 9 Addendum 1 clarifications) with verified quotes; `phaseB_reconciliation_Bid1.json` | Tests; quotes checked on parsed pages; live run | PARTIAL | Seven fields are not reconciled (identifiers, contact, company, summary). A change wins only on explicit supersession wording or distinct issue dates, and the index stores no issue dates, so unordered changes stay a conflict. Ordering and conflicts are tested offline only; the real addenda have none | Reconcile identity fields if needed; store document dates at the next re-index |
 | 34 | §7.1 p4 | Validator / critic: support, format, consistency, hallucination; send failures back; report and confidence | `agents/validator.py`, `semantics.py`, critic step in `orchestrator.py` | `test_extraction.py`, `test_semantics.py`, `test_final_accuracy.py` | Trace: 24 validator and 17 critic steps; retries 0/1/2 | Trace; `verify_extraction.py` | PARTIAL | Confidence is a fixed value per status (0.35, 0.74 or 0.86), not a score. Consistency checks cover a few fields | Phase D (decide) |
 | 35 | §7.1 p4 | Q&A / report agent: answers with citations; final JSON and human-readable summary | `agents/qa.py`; JSON from orchestrator; `Bid Summary` field | `test_qa.py`, `test_qa_grounding.py`, `test_ask_collection.py` | `qa_examples.json`, `demo_ask_*.json` | Code; Phase A tests | PARTIAL | Cross-bid questions are now supported (`ask --compare-bids`). Still no human-readable extraction report besides the `Bid Summary` field | Decide whether a report is needed |
 | 36 | §7.2 p4 | Framework chosen and explained | Own orchestrator | — | `src/rfp/agents/README.md` | Read | PASS | — | — |
@@ -161,7 +203,7 @@ on 2026-10-24 (`artifacts/eval/retrieval_phase11.json`). It was not repeated her
 | 45 | §7.3 p4 | Q&A mode with citations | `ask`, `ask-samples` | `test_qa*.py` | 13 cited live answers | Audit | PASS | Single bid (row 35) | — |
 | 46 | §7.3 p4 | Example: deadline for Bid1 after all addendums | `qa.py` addendum-aware retrieval | `test_qa.py` | `demo_ask_bid1_due_date.json` | Saved live answer | PASS | — | — |
 | 47 | §7.3 p4 | Example: affidavits required for the Dell laptop bid | `qa.py` (`keep_validated`), `checklist.py` | `test_qa_grounding.py::test_affidavit_candidates…`; `test_compare_qa.py` affidavit regressions (5 tests) | `submission/evidence/phaseA_ask_bid2_affidavits.json` (live) | Scripted `qa_v7` replay: `not_found` before the fix, answered after; gold score: correct, source hit, item completeness 0.5 | PARTIAL | False abstention fixed. The live answer names the Mercury Affidavit (PORFP p2) and leaves the Contract Affidavit unaddressed (listed in `limitations`) | Item completeness (later phase) |
-| 48 | §7.3 p4 | Example: compare warranty requirements of both bids | `agents/compare.py`; `cli.py ask --compare-bids` | `test_compare_qa.py` (21 tests: different, identical, one-sided, both missing, cross-bid and fabricated citations, invalid, duplicate and unknown bids, remote Qdrant, malformed output, timeout) | `phaseA_compare_warranty.json`, `_run1.json`, `_isolation_probe.json`, `_unanswerable.json` (live) | Excerpts checked against local passages; every search carries one bid filter | PARTIAL | Supported and validated. Live findings are true and cited, but Bid1 omits Addendum 1 (one-year Chromebooks, three-year Windows laptops, OEM) although it was retrieved. Run 2 narrows the Bid1 claim to "staff laptops". Relations are lexical | Addendum-aware answers (Phase B) |
+| 48 | §7.3 p4 | Example: compare warranty requirements of both bids | `agents/compare.py`; `cli.py ask --compare-bids` | `test_compare_qa.py` (21 tests: different, identical, one-sided, both missing, cross-bid and fabricated citations, invalid, duplicate and unknown bids, remote Qdrant, malformed output, timeout) | `phaseA_compare_warranty.json`, `_run1.json`, `_isolation_probe.json`, `_unanswerable.json` (live) | Excerpts checked against local passages; every search carries one bid filter | PASS | Phase B: `phaseB_compare_warranty.json` (live). Bid1 cites Addendum 1 p1–p2: one-year Chromebooks, three-year Windows laptops, OEM. The first attempt omitted OEM; the revision check named it and the correction cited it. Bid2 cites PORFP p3. The Phase A runs omitted Addendum 1. Relations remain lexical, and Bid1's original tablet and monitor tiers are not mentioned | — |
 | 49 | §7.3 p4 | Example: is a bid bond required, and how much | `qa.py` | — | `qa_v7` (local) | Gold: correct abstention for both bids | PASS | Assistant-made gold | — |
 | 50 | §7.3 p4 | Example: what changed in Addendum 2 | `qa.py` addendum lookup | `test_qa.py::test_addendum_number_in_question_scopes_lookup` | `qa_v7` (local) | Gold: correct | PASS | Reports only the due-date change, which gold accepts | — |
 
@@ -177,7 +219,7 @@ on 2026-10-24 (`artifacts/eval/retrieval_phase11.json`). It was not repeated her
 | 56 | §8.1 p5 | Each field: value, sources, confidence (and notes) | `FieldOutput` schema | Schema tests | Field keys = {value, sources, confidence, notes} | Format script | PASS | Sources add `html_element_id` (an extension, not a conflict) | — |
 | 57 | §8.1 p5 | Null with a reason when absent | Validator notes | `test_pipeline.py` | 7 nulls with "Not found in documents"; 1 with "Validation failed: …" | Format script | PASS | — | — |
 | 58 | §8.1 p5–6 | Confidence score per field | `orchestrator.py` status → confidence | — | Values only 0.35, 0.74, 0.86 | Format script | PARTIAL | Fixed per status; documented as uncalibrated | Phase D (decide) |
-| 59 | §8.1 p6 | `addendum_changes` list | `AddendumChange` | Reconciliation tests | Bid1: 1 change with original, revised and sources | Format script | PASS | Only due-date changes ever appear (row 33) | — |
+| 59 | §8.1 p6 | `addendum_changes` list | `AddendumChange`; Phase B added defaulted keys `change_type`, `status`, `addendum_date`, `orderable` and `quote` (old records still load) | Reconciliation tests, `test_revisions.py` | Published v4 Bid1: 1 change. Phase B Bid1: 10 changes, each with sources | Format script; quotes verified on pages | PASS | The published `Bid1_extraction.json` is still the v4 run; the Phase B run is published separately | — |
 | 60 | §8.1 p6 | `validation` with passed, failed, not_found | `BidExtraction.validation` | — | Bid1 16/1/3 (+ unresolved 1); Bid2 16/0/4 | Recount equals block | PASS | Extra `unresolved` key duplicates `failed` | — |
 
 ### Section 9: technical requirements
@@ -188,7 +230,7 @@ on 2026-10-24 (`artifacts/eval/retrieval_phase11.json`). It was not repeated her
 | 62 | §9 p6 | Keys and model names from environment or config; no secrets in code | `LLM_*` from `.env` / environment | Secret scans | No key-shaped strings in `src`, `scripts`, `tests`, `examples` | `rg` scan; `verify_extraction.py` | PASS | — | — |
 | 63 | §9 p6 | One command after setup | `python -m rfp.cli process-bid --input <folder> --output <new>` | `test_pipeline.py` | Run summaries (Bid2 exit 0; Bid1 exit 3, host OCR) | Saved live runs | PASS | Setup still needs local Qdrant, `init-models` and keys | — |
 | 64 | §9 p6 | Modular structure | `ingestion/`, `chunking/`, `search/`, `agents/`, `api/`, `evaluation/`, `tests/` | — | — | Tree | PASS | — | — |
-| 65 | §9 p6 | Unit tests for parsing and search, at minimum | `tests/test_parsers.py`, `test_search_*.py` and others | 428 offline + 6 integration (Phase A) | — | Run | PASS | — | — |
+| 65 | §9 p6 | Unit tests for parsing and search, at minimum | `tests/test_parsers.py`, `test_search_*.py` and others | 452 offline + 6 integration (Phase B) | — | Run | PASS | — | — |
 | 66 | §9 p6, §3 p1 | Works on a new, unseen bid folder without code changes | Generic pipeline | `test_pipeline.py` (synthetic, fake model) | No real unseen bid | Section 4 | **UNVERIFIED** | Architecture and synthetic behavior verified; real-bid behavior not | Phase F |
 
 ### Section 11: deliverables
@@ -269,7 +311,9 @@ Schema-valid output is not proof of correctness; see section 7.
    independently with
    `python -m rfp.cli process-bid --input <new-bid-folder> --output <new-folder> --collection <name>`,
    then `ask --bid-id <label> --collection <name> --question "…"`. Expect partial fields similar to
-   Bid1/Bid2, and Due Date reconciliation only.
+   Bid1/Bid2. Expect addendum reconciliation for the Due Date and the 12 fields in `FIELD_TERMS`
+   (Phase B). The subject terms are generic procurement vocabulary, but no real unseen bid has
+   tested them.
 
 ## 5. Q&A supported-task matrix (§7.3)
 
@@ -277,7 +321,8 @@ Schema-valid output is not proof of correctness; see section 7.
 |---|---|---|---|---|---|
 | Submission deadline for Bid1 after all addendums | Yes (`ask`, CLI only) | Yes (bid filter) | Yes, verbatim, Addendum 2 p. 1 | `submission/evidence/demo_ask_bid1_due_date.json`; `qa_examples.json` #1 | Correct |
 | Affidavits required for the Dell laptop bid | Yes | Yes (PORFP p2 ranked first) | Yes, verbatim, PORFP p2 | `submission/evidence/phaseA_ask_bid2_affidavits.json` (live, Phase A) | **Correct but incomplete**: Mercury Affidavit; Contract Affidavit listed as unaddressed. Was a false abstention in `qa_v7` |
-| Compare warranty requirements of both bids | Yes (`ask --compare-bids`, CLI only; no `/ask`) | Yes: separate bid-filtered searches per bid | Yes: each bid's citations come from its own passages (FINAL p4/p6; PORFP p3) | `submission/evidence/phaseA_compare_warranty.json` and `_run1.json` (live) | **Partial**: true, cited findings; Bid1 omits Addendum 1 warranty terms |
+| Compare warranty requirements of both bids | Yes (`ask --compare-bids`, CLI only; no `/ask`) | Yes: separate bid-filtered searches per bid | Yes: each bid's citations come from its own passages (Phase B: Addendum 1 p1–p2 for Bid1; PORFP p3 for Bid2) | `submission/evidence/phaseB_compare_warranty.json` (live, Phase B); Phase A runs `phaseA_compare_warranty*.json` | **Correct**: Bid1 cites the Addendum 1 minimums and OEM terms. The Phase A runs omitted them |
+| Warranty for Bid1 (single bid, addendum-aware) | Yes | Yes | Yes, Addendum 1 p1 | `submission/evidence/phaseB_ask_bid1_warranty.json` (live) | Correct per gold `bid1-warranty`: one-year Chromebooks, three-year Windows laptops, OEM. Original tablet and desktop/monitor tiers not mentioned |
 | Bid bond required, and amount | Yes | Yes | n/a (abstained) | `qa_v7` (local) | Correct abstention, both bids (assistant gold) |
 | What changed in Addendum 2 | Yes | Yes (addendum scope) | Yes | `qa_v7` (local) | Correct per gold (the due-date change) |
 
@@ -306,10 +351,11 @@ Further checks:
 |---|---|---|---|
 | Detect a due-date change stated in addendum text (cue phrases) | Yes | Yes (`test_extraction.py`, synthetic addendum in `test_pipeline.py`) | Bid1: 27-JUN-2024 14:00:00 → July 9, 2024 at 2:00 PM CST, Addendum 2 |
 | Ignore an addendum number without change text | Yes | Yes (`test_addendum_due_date_requires_text_and_ignores_number_alone`) | — |
-| Record original value, revised value, addendum number and sources | Yes (Due Date) | Yes | Bid1 `addendum_changes` |
-| Several addenda with different dates → latest wins | **No**: recorded as a conflict with no revised value | Conflict path in code | — |
-| Changes to any other field (scope, quantities, specs, warranty, documents, dates other than due) | **No** (`reconcile_field` returns early) | No | Bid1 Addendum 1 contains specification and warranty content (Q&A #7, `qa_v7` warranty case), which the extraction does not reconcile |
-| Q&A answers about addenda | Yes (addendum-scoped retrieval) | Yes | `qa_examples.json` #7; `qa_v7` |
+| Record original value, revised value, addendum number and sources | Yes (Due Date and 12 other fields; plus change type, status, `orderable`, verbatim quote) | Yes (`test_revisions.py`) | `phaseB_Bid1_extraction.json` (10 records) |
+| Several addenda → latest wins | Yes, only when an addendum names the one it supersedes, or both carry distinct issue dates. Otherwise every competing change is kept as `conflict` and the field is rejected, leaving it unresolved | Yes (ordered, metadata-ordered, unordered, missing metadata) | Offline only: no such case in Bid1/Bid2 |
+| Changes to other fields (submission type, term, pre-bid, installation, bond, delivery, payment, documents, registration, cooperative, product quantity, specifications/warranty) | Yes. Replace and remove reject a value that ignores them; add and clarify are recorded and noted on the field | Yes | Bid1: warranty minimums, OEM, USB 3.1, etching, autopilot, delivery scheduling, Form 1295, samples, PDF version (all Addendum 1 clarifications) |
+| Not reconciled | Bid Number, Title, Model_no, Part_no, contact_info, company_name, Bid Summary | — | — |
+| Q&A answers about addenda | Yes. Addendum-scoped retrieval adds passages with material revisions beyond the evidence cap. Revisions are listed in the prompt, and an answer that ignores one is corrected once and then carries a limitation. A claim that names an addendum must cite it | Yes | `phaseB_ask_bid1_warranty.json`, `phaseB_compare_warranty.json`; `qa_examples.json` #7 |
 
 ## 7. Retrieval and extraction evaluation evidence
 
@@ -380,19 +426,19 @@ remain ignored. `git status` was clean before this file was added.
 |---|---|
 | Web UI | OPTIONAL: not implemented |
 | OCR | OPTIONAL: implemented; verified in Docker artifacts; host lacks Tesseract |
-| Dedicated bid-comparison agent | OPTIONAL: partly covered. `ask --compare-bids` (Phase A) compares bids per question as fixed pipeline steps, not as an autonomous agent; there is no field-by-field comparison of the extraction JSON. The **required** cross-bid example question is row 48 (PARTIAL) |
+| Dedicated bid-comparison agent | OPTIONAL: partly covered. `ask --compare-bids` (Phase A) compares bids per question as fixed pipeline steps, not as an autonomous agent; there is no field-by-field comparison of the extraction JSON. The **required** cross-bid example question is row 48 (PASS since Phase B) |
 | Go / no-go recommendation | OPTIONAL: not implemented |
 | Semantic caching; cost and latency tracking | OPTIONAL: tokens and per-step latency in traces; no query cache; no currency cost |
 | Docker deployment and CI | OPTIONAL: `Dockerfile`, `compose.yaml` (only Qdrant used in validation); no CI pipeline |
 
 ## 11. Prioritized gaps
 
-1. **Cross-bid Q&A completeness** (row 48, PARTIAL since Phase A). `agents/compare.py` is in
-   place and tested. In the live warranty comparison, Bid1's Addendum 1 page was retrieved but not
-   used, so answers need addendum awareness, which is the next item.
-2. **Addendum reconciliation scope** (row 33). `agents/reconciliation.py` `reconcile_field` (early
-   return for fields other than Due Date) and `reconcile_due_date` (conflict path). This affects
-   extraction accuracy (20% weight) and the §7.1 agent role.
+1. **Cross-bid Q&A completeness** (row 48): resolved in Phase B. Bid1's comparison finding now
+   cites Addendum 1. Aspect relations are still lexical.
+2. **Addendum reconciliation scope** (row 33, PARTIAL). Phase B generalized it. Remaining:
+   - identity fields are not reconciled;
+   - issue dates are not stored in the index, so ordering relies on explicit wording;
+   - ordering and conflicts are tested offline only.
 3. **Demo video** (row 69). No code change.
 4. **Header and footer removal** (row 9). `chunking/normalize.py` `normalize`, or a page-level step
    in `ingestion/pdf.py`. Requires re-chunking and re-indexing, so plan it in its own phase with a
@@ -420,8 +466,10 @@ remain ignored. `git status` was clean before this file was added.
 1. **Phase A (done 2026-10-25):** cross-bid Q&A and the affidavit fix. The comparison, affidavit,
    isolation and unanswerable live runs are published. Live bid bond and Addendum 2 examples are
    still only in local artifacts.
-2. **Phase B:** addendum reconciliation beyond the Due Date, with "latest valid change wins" and a
-   change log per field. Tests on the synthetic bid, plus a live rerun into a new output folder.
+2. **Phase B (done 2026-10-25):** requirement-level addendum reconciliation in extraction,
+   single-bid Q&A and comparison (`agents/revisions.py`). It comes with 24 offline tests, a
+   deterministic report and live runs in `artifacts/phaseB_addenda/`. The warranty answer,
+   comparison, extraction and report are published as `submission/evidence/phaseB_*.json`.
 3. **Phase C:** repeated header and footer removal, with a retrieval regression on a separate
    collection before touching the main index.
 4. **Phase D:** extraction partials (Due Date time and zone, product quantity, lists), and a
@@ -434,4 +482,5 @@ Already satisfied, do not rebuild: ingestion and parsing core; search engine (hy
 reranking, expansion, citations, incremental indexing); retrieval evaluation and its README table;
 orchestrator, specialists, validator, critic and bounded retries; error handling; the 20-field JSON
 structure; `process-bid`; local-only safety and bid isolation; the test suite; cross-bid
-comparison (`agents/compare.py`, Phase A).
+comparison (`agents/compare.py`, Phase A); addendum reconciliation (`agents/revisions.py`,
+Phase B).

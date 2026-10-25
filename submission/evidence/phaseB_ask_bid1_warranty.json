@@ -1,0 +1,70 @@
+{
+  "bid_id": "Bid1",
+  "question": "What warranty is required for the computing devices?",
+  "answer": "Dallas ISD is asking for a one-year warranty for student Chromebooks and three years for student and staff Windows laptops. Dallas ISD will ask all warranties to be made by OEM.",
+  "status": "answered",
+  "claims": [
+    {
+      "text": "Dallas ISD is asking for a one-year warranty for student Chromebooks and three years for student and staff Windows laptops.",
+      "citation_ids": [
+        "C1"
+      ]
+    },
+    {
+      "text": "Dallas ISD will ask all warranties to be made by OEM.",
+      "citation_ids": [
+        "C2"
+      ]
+    }
+  ],
+  "citations": [
+    {
+      "citation_id": "C1",
+      "evidence_id": "E4",
+      "document": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+      "page": 1,
+      "page_end": 1,
+      "html_element_id": null,
+      "document_type": "addendum",
+      "addendum_number": 1,
+      "excerpt": "As a minimum requirement, Dallas ISD is asking for a one-year warranty for student Chromebooks and three years for student and staff Windows laptops."
+    },
+    {
+      "citation_id": "C2",
+      "evidence_id": "E9",
+      "document": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+      "page": 1,
+      "page_end": 1,
+      "html_element_id": null,
+      "document_type": "addendum",
+      "addendum_number": 1,
+      "excerpt": "Dallas ISD will ask all warranties to be made by OEM."
+    }
+  ],
+  "completeness": null,
+  "limitations": [],
+  "confidence": null,
+  "validation": {
+    "passed": true,
+    "attempts": 1,
+    "checks": [
+      {
+        "evidence_id": "E4",
+        "valid": true,
+        "reason": null
+      },
+      {
+        "evidence_id": "E9",
+        "valid": true,
+        "reason": null
+      }
+    ],
+    "reasons": []
+  },
+  "trace_id": "a9a37810-27bd-425f-84e3-98167d1a9ed6",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "evidence_count": 9
+}

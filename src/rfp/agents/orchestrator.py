@@ -25,7 +25,7 @@ from rfp.agents.extractors import (
     steps_for,
 )
 from rfp.agents.llm import LanguageModel, ModelResponse, account, parse_json_object
-from rfp.agents.reconciliation import reconcile_field
+from rfp.agents.reconciliation import FIELD_TERMS, reconcile_field
 from rfp.agents.retrieval import cited_pages, retrieve
 from rfp.agents.schemas import (
     REQUIRED_FIELDS,
@@ -45,8 +45,11 @@ from rfp.agents.semantics import grounded_notes, identifier_aliases, only_incomp
 from rfp.agents.state import ExtractionState
 from rfp.agents.trace import Tracer, clock
 from rfp.agents.validator import contained, validate_field
+from rfp.schemas.parsed import DocumentType
 from rfp.schemas.search import SearchRequest, SearchResponse
 from rfp.search.errors import SearchServiceError
+
+ADDENDUM_CHECK_TOP_K = 5
 
 
 def _borrow_shown(
@@ -451,9 +454,9 @@ class Orchestrator:
                     name, drafts[name], evidence[name], validation, result, events, attempt
                 )
             if validation.status == "accepted":
-                decision = reconcile_field(name, drafts[name], evidence[name])
-                if decision.change is not None:
-                    result.changes.append(decision.change)
+                extra = self._addendum_evidence(bid_id, name, attempt, result, events)
+                decision = reconcile_field(name, drafts[name], evidence[name] + extra, bid_id)
+                result.changes.extend(decision.all_changes)
                 if decision.reject_reason:
                     validation = FieldValidation(
                         name=name,
@@ -489,6 +492,74 @@ class Orchestrator:
                 )
             )
         return result
+
+    def _addendum_evidence(
+        self,
+        bid_id: UUID,
+        name: str,
+        attempt: int,
+        result: AttemptResult,
+        events: list[TraceEvent],
+    ) -> list[EvidenceHit]:
+        """Addendum passages on the field's subject, used only to check for revisions.
+
+        They are not shown to the extraction model; a replacement they reveal rejects the value,
+        and the retry then retrieves addenda for the model.
+        """
+        terms = FIELD_TERMS.get(name)
+        if not terms:
+            return []
+        query = " ".join([name, *terms])
+        started, stamp = clock(), time.perf_counter()
+        try:
+            hits, response = retrieve(
+                self.search,
+                bid_id,
+                query,
+                mode=self.config.mode,
+                top_k=ADDENDUM_CHECK_TOP_K,
+                doc_types=[DocumentType.addendum],
+                addendum_numbers=[],
+                evidence_prefix=f"{evidence_prefix(name)}-addendum-",
+                lock=self._search_lock,
+            )
+        except SearchServiceError as exc:
+            result.search_failed += 1
+            events.append(
+                _event(
+                    "reconciliation",
+                    "search",
+                    started,
+                    stamp,
+                    field=name,
+                    query=query[:500],
+                    mode=self.config.mode.value,
+                    top_k=ADDENDUM_CHECK_TOP_K,
+                    doc_types=[DocumentType.addendum.value],
+                    result_count=0,
+                    retry=attempt,
+                    error=exc.code,
+                )
+            )
+            return []
+        result.search_ok += 1
+        events.append(
+            _event(
+                "reconciliation",
+                "search",
+                started,
+                stamp,
+                field=name,
+                query=query[:500],
+                mode=response.mode.value,
+                top_k=response.top_k,
+                doc_types=[DocumentType.addendum.value],
+                result_count=len(hits),
+                evidence=_evidence_refs(hits),
+                retry=attempt,
+            )
+        )
+        return hits
 
     def _critic(
         self,
@@ -579,13 +650,14 @@ class Orchestrator:
             if attempt > 0:
                 slot.retry_count = attempt
             state.remember_documents(slot.evidence)
+        renewed = {change.field for change in result.changes}
+        kept = [item for item in state.addendum_changes if item.field not in renewed]
         for change in result.changes:
-            state.addendum_changes = [
-                item for item in state.addendum_changes if item.field != change.field
-            ]
-            state.addendum_changes.append(change)
+            if change not in kept:
+                kept.append(change)
             if change.conflict and change.explanation not in state.conflicts:
                 state.conflicts.append(change.explanation)
+        state.addendum_changes = sorted(kept, key=_change_order)
 
     def _finalize(self, state: ExtractionState, skip_summary: bool) -> None:
         for name in REQUIRED_FIELDS:
@@ -638,8 +710,8 @@ class Orchestrator:
                     continue
                 passed += 1
                 cited = [hit.text for hit in slot.evidence if hit.evidence_id in draft.evidence_ids]
-                change = next((item for item in state.addendum_changes if item.field == name), None)
-                notes = grounded_notes(draft.notes, cited, _change_note(change))
+                changes = [item for item in state.addendum_changes if item.field == name]
+                notes = grounded_notes(draft.notes, cited, _change_notes(changes))
                 if name == "Bid Number":
                     notes = " ".join(filter(None, [notes, _alias_note(draft.value, slot.evidence)]))
                 if slot.incomplete:
@@ -679,16 +751,34 @@ class Orchestrator:
         )
 
 
+def _change_order(change: AddendumChange) -> tuple[int, bool, int, str]:
+    position = REQUIRED_FIELDS.index(change.field) if change.field in REQUIRED_FIELDS else 99
+    number = change.addendum_number
+    return position, number is None, number or 0, change.quote or change.revised_value or ""
+
+
 def _change_note(change: AddendumChange | None) -> str | None:
-    if change is None or change.conflict or not change.revised_value:
+    if change is None or change.conflict or change.status == "superseded":
         return None
     addendum = f"Addendum {change.addendum_number}" if change.addendum_number else "An addendum"
+    if change.change_type == "remove" and change.quote:
+        return f'{addendum} removes: "{change.quote}".'
+    if change.change_type in {"add", "clarify"} and change.quote:
+        verb = "adds" if change.change_type == "add" else "clarifies"
+        return f'{addendum} {verb}: "{change.quote}".'
+    if not change.revised_value:
+        return None
     if change.original_value:
         return (
             f"{addendum} states {change.revised_value}; the base document stated "
             f"{change.original_value}."
         )
     return f"{addendum} states {change.revised_value}."
+
+
+def _change_notes(changes: list[AddendumChange]) -> str | None:
+    notes = [note for note in (_change_note(change) for change in changes) if note]
+    return " ".join(notes) or None
 
 
 def _alias_note(value: str, evidence: list[EvidenceHit]) -> str | None:

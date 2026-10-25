@@ -234,6 +234,14 @@ sees. The prompt names the exact field keys. The reconciler takes the original d
 a date that follows a due-date label, never from the first date on a page. Output `confidence`
 is a fixed value per validation status, not a calibrated probability.
 
+Phase B adds `revisions.py`, which is shared by extraction, `ask` and `ask --compare-bids`. It
+reads addendum passages, keeping only the statements that name the requirement. It classifies each
+statement as replace, add, remove, clarify or unknown from its wording. A competing change is
+ordered only by explicit supersession wording or distinct issue dates; otherwise both are kept as
+a conflict. For each reconciled field, the orchestrator runs one extra bid-scoped, addendum-only
+search for the check. Q&A adds addendum passages that carry material revisions, and requires the
+answer to cite them or report a limitation.
+
 ## Phase 6 Q&A
 
 ```mermaid

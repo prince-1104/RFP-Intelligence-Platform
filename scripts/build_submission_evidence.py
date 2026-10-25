@@ -36,8 +36,14 @@ SOURCES = {
     "phaseA_compare_warranty.json": "artifacts/phaseA_qa/05_warranty_compare_after_reason_fix.json",
     "phaseA_compare_isolation_probe.json": "artifacts/phaseA_qa/03_isolation_probe_compare.json",
     "phaseA_compare_unanswerable.json": "artifacts/phaseA_qa/04_unanswerable_compare.json",
+    "phaseB_ask_bid1_warranty.json": "artifacts/phaseB_addenda/qa/bid1_warranty.json",
+    "phaseB_compare_warranty.json": "artifacts/phaseB_addenda/qa/compare_warranty.json",
+    "phaseB_Bid1_extraction.json": "artifacts/phaseB_addenda/extraction/Bid1.json",
+    "phaseB_reconciliation_Bid1.json": (
+        "artifacts/phaseB_addenda/reconciliation/reconciliation_Bid1.json"
+    ),
 }
-COMPARISONS = [name for name in SOURCES if name.startswith("phaseA_compare_")]
+COMPARISONS = [name for name in SOURCES if name.startswith(("phaseA_compare_", "phaseB_compare_"))]
 PATTERNS = {
     "email": (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "[email redacted]"),
     "phone": (re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}\b"), "[phone redacted]"),
@@ -119,6 +125,7 @@ def verify() -> list[str]:
             problems.append(f"{name}: not produced by a live model")
         if response.bid_ids != ["Bid1", "Bid2"]:
             problems.append(f"{name}: expected a Bid1/Bid2 comparison")
+    problems += _phase_b(data, QAResponse, ComparisonResponse, BidExtraction)
     modes = data["retrieval_evaluation.json"]["modes"]
     table = readme_table(ROOT / "README.md")
     if len(table) < 2:
@@ -127,6 +134,30 @@ def verify() -> list[str]:
         for metric in METRICS:
             if abs(modes[mode][metric] - values[metric]) > 0.0005 + 1e-9:
                 problems.append(f"{mode} {metric}: README differs from retrieval_evaluation.json")
+    return problems
+
+
+def _phase_b(data: dict, qa_model: Any, comparison_model: Any, extraction_model: Any) -> list[str]:
+    """Addendum-aware evidence: the reconciled answers must cite an addendum passage."""
+    problems = []
+    warranty = qa_model.model_validate(data["phaseB_ask_bid1_warranty.json"])
+    if warranty.model.provider == "fake" or warranty.status != "answered":
+        problems.append("phaseB warranty answer is not a live, answered response")
+    if not any(c.document_type.value == "addendum" for c in warranty.citations):
+        problems.append("phaseB warranty answer cites no addendum")
+    compared = comparison_model.model_validate(data["phaseB_compare_warranty.json"])
+    bid1 = next((f for f in compared.findings if f.bid_id == "Bid1"), None)
+    if bid1 is None or not any(c.document_type.value == "addendum" for c in bid1.citations):
+        problems.append("phaseB comparison: Bid1 finding cites no addendum")
+    extraction = extraction_model.model_validate(data["phaseB_Bid1_extraction.json"])
+    due = [c for c in extraction.addendum_changes if c.field == "Due Date"]
+    if not due or due[0].status != "applied" or due[0].addendum_number is None:
+        problems.append("phaseB extraction: no applied Due Date addendum change")
+    if any(not c.sources for c in extraction.addendum_changes):
+        problems.append("phaseB extraction: an addendum change has no source")
+    report = data["phaseB_reconciliation_Bid1.json"]
+    if report.get("bid_id") != "Bid1" or "Product Specification" not in report.get("fields", {}):
+        problems.append("phaseB reconciliation report is incomplete")
     return problems
 
 
