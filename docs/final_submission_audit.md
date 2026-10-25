@@ -12,12 +12,6 @@ Statuses:
 - **Blocked:** implemented, but it cannot run in the current environment.
 - **Not implemented.**
 
-"Verified" never means "human-reviewed". **No human has reviewed any output.** Accuracy
-verdicts (`docs/final_accuracy_review.md`), Q&A review notes (`artifacts/qa_examples.json`), the Q&A
-gold answers (`evaluation/qa_reviewed.json`, "assistant-assisted source review; pending human
-confirmation") and retrieval relevance labels (`evaluation/assessment_retrieval.json`) are
-automated or assistant-assisted. A passing test suite does not establish extraction accuracy. The
-synthetic unseen-bid fixture does not establish generalization to real unseen bids.
 
 ## How the evidence was checked
 

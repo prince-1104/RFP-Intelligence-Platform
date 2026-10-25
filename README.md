@@ -136,6 +136,42 @@ in `X-Request-ID`. API errors use an `error` envelope with code, safe message an
 Application logs use JSON events without URLs, headers, payloads or exception contents.
 Uvicorn access logging is disabled to avoid logging query-string secrets.
 
+## Local workbench
+
+The workbench is a second app. It does not mount the production routers and does not open
+Postgres, Redis, Celery or R2. Qdrant must be the loopback address `http://127.0.0.1:6333`.
+`local_settings()` ignores `.env` and sends an empty Qdrant API key. The UI talks only to
+`http://127.0.0.1:8000`.
+
+Start local Qdrant, then the workbench, then the Vite app:
+
+```powershell
+docker compose up -d qdrant
+$env:PYTHONPATH = "src"
+uv run --frozen uvicorn rfp.api.workbench:create_workbench_app --factory --host 127.0.0.1 --port 8000
+cd web
+npm install
+npm run dev -- --host 127.0.0.1 --port 4000
+```
+
+The Vite server is `http://127.0.0.1:4000`. Override the API origin with `VITE_WORKBENCH_URL`
+and no other frontend variable. Live answers, extraction and ingest call the model through the
+existing loader. That loader reads `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_BASE_URL`,
+`LLM_TIMEOUT_SECONDS` and `LLM_MAX_OUTPUT_TOKENS` from the process environment. Do not put those
+values in the frontend.
+
+Ingest writes only to a new collection whose name starts with `workbench`. `bid_documents` and
+the other existing local collections are refused as write targets. Extract and evaluation read
+a local collection and write new files under `artifacts/workbench/`. An evaluation file that
+already exists is left in place. Uploads are PDF or HTML, at most 50 MB, and land under
+`artifacts/workbench/uploads/`. Source folders must be under `data/` or that upload directory. An upload is the raw file
+bytes, with the filename in the `filename` query parameter.
+
+Single-bid Q&A has no `partial` status. Partial coverage is `completeness` on an answered
+response. The backend does not return a per-field correct or incorrect grade. Page preview is
+the cited excerpt, not a rendered PDF. Ingest and evaluation stay manual. The production
+`/api/v1/index` route is not used. Session Q&A history stays in the browser.
+
 ## R2 connectivity
 
 After configuring a private bucket and credentials with appropriate object permissions:
