@@ -448,16 +448,23 @@ MONTH_OF_YEAR = re.compile(
     re.I,
 )
 ORDERING_CUE = r"\bquot(?:e|es|ing|ation)|\border(?:s|ing)?\b|\baward|\bpurchas|\bfund"
+MONTH_YEAR = re.compile(
+    r"\b(?:January|February|March|April|May|June|July|August|September|October|November|"
+    r"December)\s+\d{4}\b",
+    re.I,
+)
 
 
 def delivery_problems(value: str, texts: list[str]) -> list[str]:
-    """A delivery date must come from a sentence about delivery, not about quotes or award."""
+    """A delivery date must come from a sentence about delivery, not about quotes or award.
+    The sentence is found by the whole value or, for a paraphrased value, by its dates."""
     value = MONTH_OF_YEAR.sub(r"\1 \2", value)
+    needles = [value, *MONTH_YEAR.findall(value), *DATE_RE.findall(value)]
     sentences = [
         segment
         for text in texts
         for segment in _segments(MONTH_OF_YEAR.sub(r"\1 \2", join_split_emails(text)))
-        if _mentions(value, segment)
+        if any(_mentions(needle, segment) for needle in needles)
     ]
     if not sentences or any(re.search(DELIVERY_CUE, item, re.I) for item in sentences):
         return []

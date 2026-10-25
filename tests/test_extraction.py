@@ -183,6 +183,8 @@ def test_known_miss_queries_are_explicit():
     assert any(DocumentType.specs in step.doc_types for step in specs)
     assert any(step.hard for step in specs)
     assert CATALOG["Due Date"].steps[1].doc_types == (DocumentType.addendum,)
+    listing = [s for s in CATALOG["Due Date"].steps if DocumentType.bid_page in s.doc_types]
+    assert len(listing) == 1 and listing[0].hard
 
 
 def test_state_records_retries_without_dropping_other_fields():

@@ -175,3 +175,24 @@ def test_local_search_uses_the_named_collection_and_otherwise_the_default(monkey
 
     assert configured == [COLLECTION, local_settings(LOCAL).qdrant_collection]
     assert configured[1] != COLLECTION
+
+
+def test_extract_bid_reads_the_named_collection_and_otherwise_the_default(monkeypatch, tmp_path):
+    configured: list[str] = []
+
+    class Stub:
+        def search(self, request):
+            raise IndexUnavailable()
+
+    def fake_service(current):
+        configured.append(current.qdrant_collection)
+        return Stub()
+
+    monkeypatch.setattr("rfp.search.wiring.search_service", fake_service)
+    base = ["extract-bid", "--bid-id", LABEL, "--llm-mode", "test"]
+    main([*base, "--output", str(tmp_path / "a"), "--collection", COLLECTION])
+    main([*base, "--output", str(tmp_path / "b")])
+
+    assert configured == [COLLECTION, local_settings(LOCAL).qdrant_collection]
+    with pytest.raises(SystemExit):
+        main([*base, "--output", str(tmp_path / "c"), "--collection", "Bad Name!"])

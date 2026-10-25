@@ -1563,6 +1563,62 @@ pages, not human-reviewed; `artifacts/phaseD_extraction/`):
 
 These tests are synthetic and are not evidence of live accuracy.
 
+## Phase E: summary claims, HTML labels and reliability
+
+**Root causes and fixes.**
+- **Summary relations.** The summary prompt listed validated facts as flat `field: value` lines, and
+  validation checked only the summary's overall word coverage. The Phase D Bid2 summary therefore
+  made the Mercury Affidavit and the warranty certificate part of the invoice. Two changes fix it:
+  - `validator.summary_claim_problems` requires each sentence to be supported by the cited
+    passages, keeping its numbers and at least half its content words.
+  - In a clause that states a requirement or deadline, "X including / such as / along with Y" must
+    have Y in the same source paragraph, numbered item or table row as X.
+
+  The prompt also asks the model to keep each fact attached to what its own passage attaches it
+  to. Descriptive lists ("proposals for devices, including laptops") are not checked as relations.
+- **Bid2 Due Date time and zone.** The listing states `Closing Date` and `06/10/2024 02:00 PM EDT`
+  in one field, but the HTML parser dropped the label `<span>`, so the time became unlabelled text.
+  `ingestion/html.py` (parser 2.2.0) now prefixes a block with its own field label. The label must
+  be a `label`/`dt` element or a class ending in `label`, placed directly before the value in the
+  same container. Unrelated nearby text is never attached. A Due Date query on the bid listing
+  page brings the labelled block to the extractor.
+- **Paraphrased delivery dates.** The ordering-date rule found the source sentence only by the whole
+  value, so "Anticipated requests for quotes starting in September 2024" bypassed it. It now also
+  looks for the source sentence by the dates in the value.
+- `extract-bid --collection` reads a named local collection (loopback only, as before).
+
+**Live runs** (`gpt-4o-mini`, local collection `phasee_labels`, final run `extraction_r3`, verdicts
+checked by the agent against rendered pages, not human-reviewed; `artifacts/phaseE_reliability/`):
+
+| Bid (Phase D → Phase E) | Complete | Incomplete | Correctly not found | Incorrect | Missed |
+|---|---|---|---|---|---|
+| Bid1 | 10 → 8 | 5 → 3 | 5 → 5 | 0 → 4 | 0 → 0 |
+| Bid2 | 14 → 14 | 1 → 1 | 4 → 4 | 1 → 0 | 0 → 1 |
+
+- **Improved:**
+  - The Bid2 summary keeps the invoice deadline and the documentation requirements separate.
+  - The Bid2 Due Date is `06/10/2024 02:00 PM EDT`. Its citation names the first block (g_249)
+    of the chunk that holds the value, because HTML citations are chunk-level.
+- **Regressed, Bid1:**
+  - Product and the summary copy three wrong page 35 quantities. The PDF's prose text for that
+    page is shifted by one row against its table, while the table chunk is correct. The HTML
+    label on the description chunk changed the evidence order, and the model chose page 35 over
+    page 34 ("1 Each").
+  - Product Specification gives the staff desktops a battery life.
+  - Installation adds "imaging", which appears only in a vendor question; a Phase D iteration
+    did the same.
+- **Missed, Bid2:** Part_no is null, as in 3 of the 4 Phase D runs.
+- **Retrieval on `phasee_labels`:** hybrid Recall@5 0.736 → 0.756, hybrid_rerank 0.772 → 0.762.
+  There were no citation errors or cross-bid leaks.
+
+**RRF test.** `test_app_rrf_matches_server_side_rrf_ordering` failed once in Phase D. It passed in
+every one of more than 100 Phase E repetitions (isolated runs, file runs, scripted runs, runs under
+load and full suites). The cause is undetermined, and the failure is reported as unresolved. The
+assertion is unchanged and now prints diagnostics when it fails.
+
+**Tests.** `tests/test_summary_claims.py` (8) and `tests/test_html_labels.py` (6) are synthetic;
+they are not evidence of live accuracy.
+
 ## Submission Evidence and Reproducibility
 
 Generated outputs are written to `artifacts/`, which is git-ignored. The files the assignment asks

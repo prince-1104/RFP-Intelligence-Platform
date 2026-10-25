@@ -6,6 +6,37 @@ from rfp.ingestion.metadata import normalize_text
 from rfp.ingestion.options import ParserOptions
 from rfp.schemas.parsed import ParsedBlock, ParsedPage, ParsedTable, SourceLocator
 
+LABEL_DEPTH = 3
+"""How many ancestors up a block may sit below the element its label belongs to."""
+
+
+def _is_label(tag: Tag) -> bool:
+    return tag.name in {"label", "dt"} or any(
+        str(name).endswith("label") for name in tag.get("class") or []
+    )
+
+
+def field_label(element: Tag) -> str | None:
+    """The explicit label of the field holding ``element``: a label element that is the
+    immediate previous sibling of the element or of one of its nearest ancestors, as in
+    ``<span class="field-label">Closing Date</span><div><p>value</p></div>`` or
+    ``<dt>Due</dt><dd>value</dd>``. Text that merely sits nearby is never used."""
+    if element.find_parent(_is_label) is not None:
+        return None
+    node: Tag | None = element
+    for _ in range(LABEL_DEPTH):
+        if node is None or node.name in {"body", "html"}:
+            return None
+        previous = node.find_previous_sibling()
+        if isinstance(previous, Tag) and _is_label(previous):
+            label = normalize_text(previous.get_text(" ")).rstrip(":").strip()
+            return label or None
+        if previous is not None:
+            return None
+        parent = node.parent
+        node = parent if isinstance(parent, Tag) else None
+    return None
+
 
 def parse_html(
     data: bytes, relative_path: str, options: ParserOptions
@@ -82,6 +113,9 @@ def parse_html(
         text = normalize_text(element.get_text(" "))
         if not text:
             continue
+        label = None if name.startswith("h") else field_label(element)
+        if label and not text.casefold().startswith(label.casefold()):
+            text = f"{label}: {text}"
         kind: Literal["heading", "paragraph", "list_item", "link"] = (
             "heading"
             if name.startswith("h")

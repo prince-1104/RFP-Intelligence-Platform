@@ -147,6 +147,7 @@ def execute(
     config: ExtractionConfig | None = None,
     model: LanguageModel | None = None,
     documents: list[str] | None = None,
+    collection: str | None = None,
 ) -> tuple[int, dict]:
     safe_url = assert_local_qdrant(qdrant_url)
     label, bid_uuid = resolve_bid(bid)
@@ -157,7 +158,10 @@ def execute(
         from rfp.cli import local_settings
         from rfp.search.wiring import search_service
 
-        search = search_service(local_settings(safe_url)).search
+        settings = local_settings(safe_url)
+        if collection:
+            settings.qdrant_collection = collection
+        search = search_service(settings).search
     document, state, events = run_extraction(
         label,
         bid_uuid,

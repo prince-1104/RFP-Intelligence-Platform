@@ -155,6 +155,7 @@ def run_extract(args: argparse.Namespace) -> int:
             fixture=args.fixture,
             search=None,
             config=config,
+            collection=args.collection,
         )
     except (ExtractionError, ModelError) as exc:
         _print_error(exc.code, exc.message)
@@ -455,6 +456,9 @@ def main(argv: list[str] | None = None) -> int:
     extract.add_argument("--output", type=Path, required=True)
     extract.add_argument("--trace-dir", type=Path)
     extract.add_argument("--qdrant-url", default=LOCAL_QDRANT)
+    extract.add_argument(
+        "--collection", type=collection_name, help="Local collection (default: configured)"
+    )
     extract.add_argument("--llm-mode", choices=["live", "test"], default="live")
     extract.add_argument(
         "--fixture", type=Path, help="JSON list of model responses for --llm-mode test"

@@ -143,7 +143,14 @@ def test_app_rrf_matches_server_side_rrf_ordering(live):
         {"dense": [str(p.id) for p in dense_hits], "sparse": [str(p.id) for p in sparse_hits]}
     )
     # Equal-score ties may legitimately break differently; compare the score-ordered sets.
-    assert {str(p.id) for p in server} == {str(i) for i, _ in ours[: len(server)]}
+    detail = {
+        "points": client.count(report.collection, exact=True).count,
+        "server": [(str(p.id), p.score) for p in server],
+        "dense": [(str(p.id), p.score) for p in dense_hits],
+        "sparse": [(str(p.id), p.score) for p in sparse_hits],
+        "ours": [(str(i), s) for i, s in ours],
+    }
+    assert {str(p.id) for p in server} == {str(i) for i, _ in ours[: len(server)]}, detail
 
 
 @pytest.mark.skipif(os.environ.get("RFP_MODEL_SMOKE") != "1", reason="RFP_MODEL_SMOKE!=1")

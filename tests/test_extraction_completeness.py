@@ -412,6 +412,9 @@ def test_delivery_date_must_come_from_a_delivery_sentence():
     quotes = _check("Delivery Date", "starting in September of 2024", answer)
     assert quotes.status == "rejected"
     assert any("quotes, orders or the award" in reason for reason in quotes.reasons)
+    paraphrase = _check("Delivery Date", "Requesting quotes starting in September 2024", answer)
+    assert paraphrase.status == "rejected"
+    assert any("quotes, orders or the award" in reason for reason in paraphrase.reasons)
     schedule = (
         "Any awarded vendor will need to coordinate a schedule of deliveries with the "
         "technology department."

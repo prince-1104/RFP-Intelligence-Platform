@@ -174,6 +174,12 @@ def _catalog() -> dict[str, FieldSpec]:
                     (DocumentType.rfp,),
                     hard=True,
                 ),
+                QueryStep(
+                    "closing date and time on the bid listing",
+                    RetrievalMode.hybrid_rerank,
+                    (DocumentType.bid_page,),
+                    hard=True,
+                ),
             ),
         ),
         FieldSpec(
@@ -370,6 +376,12 @@ LIST_FIELDS = frozenset(
     {"Product", "Product Specification", "Any Additional Documentation Required", "Bid Summary"}
 )
 """Fields whose answer is several distinct requirements, often spread over passages."""
+SUMMARY_RELATION_INSTRUCTION = (
+    "Each validated value is a separate fact. Keep every requirement, condition, document "
+    "and deadline attached to what its own passage attaches it to: do not make one field's "
+    "items part of another (for example, documents required with the proposal are not "
+    "invoice contents unless a passage says so). Write each requirement as its own clause."
+)
 LIST_INSTRUCTION = (
     "This field can hold several distinct requirements spread over passages. List each one "
     "with the device, item or condition it applies to; keep different quantities, units, "
@@ -455,6 +467,7 @@ def extraction_request(
                 "Validated field values (cite the id in brackets when the summary uses one):"
             )
             lines.extend(f"[{evidence_id}] {field}: {value}" for field, value, evidence_id in facts)
+            lines.append(SUMMARY_RELATION_INSTRUCTION)
         if reasons.get(name):
             lines.append("Previous rejection: " + "; ".join(reasons[name]))
             if rejected and rejected.get(name):

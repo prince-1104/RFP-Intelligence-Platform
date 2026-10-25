@@ -48,6 +48,13 @@ the validator runs. A value whose individual facts are all cited but whose relat
 them is wrong still scores as supported. In the Phase D Bid2 run, the incorrect summary scored
 0.6 and the incomplete Payment Terms scored 0.8.
 
+The Bid Summary is also checked claim by claim (`validator.summary_claim_problems`). Each
+sentence must be supported by the cited passages. In a clause that states a requirement or
+deadline, a link marked by "including", "such as", "along with" or a similar cue must be stated
+within one source paragraph, numbered item or table row. The check is lexical. It does not catch
+wrong values that the cited text itself states, links without a cue word, or links in
+descriptive lists. A summary that passes still gets a heuristic score, not a calibrated one.
+
 `python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts/extraction` reads loopback
 Qdrant only. A remote host or a URL with credentials is refused. Test mode (`--llm-mode test`)
 returns "Not found in documents" for every field unless `--fixture` supplies scripted responses.
