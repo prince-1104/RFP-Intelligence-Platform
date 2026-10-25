@@ -7,6 +7,7 @@ are never acceptable for a field. Problems become rejection reasons, so the
 orchestrator's bounded retry decides what happens next.
 """
 
+import json
 import re
 from dataclasses import dataclass
 
@@ -316,7 +317,13 @@ WARRANTY_PROBLEM = (
     "Product Specification gives one warranty term while the cited passages state different "
     "warranty terms; keep each device's warranty with its device"
 )
-OMISSIONS = frozenset({DUE_TIME_PROBLEM, DUE_ZONE_PROBLEM, WARRANTY_PROBLEM})
+UNNAMED_DEVICE_PROBLEM = (
+    "Product Specification lists the minimums of several devices without naming them; put "
+    "each device's minimums under its device or tier name"
+)
+OMISSIONS = frozenset(
+    {DUE_TIME_PROBLEM, DUE_ZONE_PROBLEM, WARRANTY_PROBLEM, UNNAMED_DEVICE_PROBLEM}
+)
 
 
 def only_incomplete(reasons: list[str]) -> bool:
@@ -419,13 +426,44 @@ def due_date_problems(value: str, texts: list[str]) -> list[str]:
 SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n\s*\n")
 
 
+CELL_ITEM = re.compile(r"\n(?=\s*(?:\d{1,3}\.|[\u2022*-])\s)")
+
+
+def _cell_sentences(row: str) -> list[str]:
+    """Items and sentences of the multi-line cells of a serialized table row; empty when the
+    row has no multi-line cell. Other cells are left out, since in a boxed form they are
+    often unrelated headings such as "Security Requirements (if applicable):"."""
+    try:
+        cells = json.loads(row)
+    except ValueError:
+        return []
+    if not isinstance(cells, list):
+        return []
+    found: list[str] = []
+    for cell in cells:
+        if not isinstance(cell, str) or "\n" not in cell:
+            continue
+        for item in CELL_ITEM.split(cell):
+            found.extend(
+                flat for part in SENTENCE_SPLIT.split(item) if (flat := " ".join(part.split()))
+            )
+    return found
+
+
 def _segments(text: str) -> list[str]:
-    """Sentences of prose, and whole rows of a table chunk (cells joined by spaces)."""
+    """Sentences of prose, and whole rows of a table chunk (cells joined by spaces).
+
+    A row with a multi-line cell, such as a numbered list in one box, contributes that
+    cell's items and sentences instead, so a condition in one item neither attaches to nor
+    is hidden by the others.
+    """
     segments: list[str] = []
     for block in text.split("\n"):
         stripped = block.strip()
         if stripped.startswith("[") and stripped.endswith("]"):
-            segments.append(" ".join(TABLE_CELLS_RE.sub(" ", stripped).split()))
+            segments.extend(
+                _cell_sentences(stripped) or [" ".join(TABLE_CELLS_RE.sub(" ", stripped).split())]
+            )
     prose = "\n".join(block for block in text.split("\n") if not block.strip().startswith("["))
     for part in SENTENCE_SPLIT.split(prose):
         flat = " ".join(part.split())
@@ -564,6 +602,227 @@ def warranty_problems(value: str, texts: list[str]) -> list[str]:
     return []
 
 
+BULLET = re.compile(r"^(?:[\u2022\u25aa\u25cf\u2023\u2043*\-\u2013]|o\s|\(?[a-z0-9]{1,2}\)\s)")
+SPEC_FILLER = frozenset(
+    {"minimum", "maximum", "requirements", "requirement", "specifications", "equivalent", "and"}
+)
+
+
+def _tokens(text: str) -> list[str]:
+    return [word for word in re.findall(r"[a-z0-9]+", text.casefold()) if word not in SPEC_FILLER]
+
+
+def _lines(text: str) -> list[str]:
+    """Lines of prose, or of the cells of a table chunk."""
+    lines = []
+    for line in text.replace("\\n", "\n").replace('\\"', '"').split("\n"):
+        line = re.sub(r'^[\s\["]+|[\s\]",]+$|\bnull\b', "", line).strip()
+        if line:
+            lines.append(line)
+    return lines
+
+
+@dataclass
+class Section:
+    heading: str
+    body: list[str]
+    closed: bool = False
+
+
+def _sections(text: str) -> list[Section]:
+    """Headed bullet lists of a text.
+
+    A heading is a line followed by bullet lines; its section is closed by the next line
+    that is not a bullet. A section still open at the end of the text may continue in
+    another chunk.
+    """
+    lines = _lines(text)
+    sections: list[Section] = []
+    current: Section | None = None
+    for index, line in enumerate(lines):
+        if BULLET.match(line):
+            if current is not None:
+                current.body.append(line)
+            continue
+        if current is not None:
+            current.closed = True
+            current = None
+        following = lines[index + 1] if index + 1 < len(lines) else ""
+        if BULLET.match(following):
+            current = Section(line, [])
+            sections.append(current)
+    return sections
+
+
+def _numbers(text: str) -> set[str]:
+    return set(re.findall(r"\d+(?:\.\d+)?", text))
+
+
+def _attribute_stated(attribute: str, text: str) -> bool:
+    numbers = _numbers(attribute)
+    words = [_stem(word) for word in _tokens(attribute) if len(word) >= 3 and not word.isdigit()]
+    found = {_stem(word) for word in _tokens(text)}
+    if not numbers <= _numbers(text):
+        return False
+    return not words or sum(word in found for word in words) * 2 >= len(words)
+
+
+def _names_device(value: str, sections: list[Section]) -> bool:
+    for raw in re.split(r"\s*;\s*", value):
+        name, colon, _ = raw.partition(":")
+        words = set(_tokens(name))
+        if colon and len(words) >= 2 and any(words <= set(_tokens(s.heading)) for s in sections):
+            return True
+    return False
+
+
+def unnamed_device_problems(value: str, texts: list[str]) -> list[str]:
+    """Minimums taken from several device sections must say which device each belongs to.
+
+    Reported when at least two cited sections each state an item of the value that the
+    other sections do not, and the value names none of the section headings.
+    """
+    sections = [section for text in texts for section in _sections(text)]
+    if len(sections) < 2 or _names_device(value, sections):
+        return []
+    bodies = ["\n".join([section.heading, *section.body]) for section in sections]
+    owners = set()
+    for raw in re.split(r"\s*;\s*", value):
+        item = raw.strip().strip(".")
+        stating = [index for index, body in enumerate(bodies) if _attribute_stated(item, body)]
+        if len(stating) == 1:
+            owners.add(stating[0])
+    return [UNNAMED_DEVICE_PROBLEM] if len(owners) >= 2 else []
+
+
+def specification_scope_problems(value: str, texts: list[str]) -> list[str]:
+    """Each attribute listed under a device must be stated in that device's section.
+
+    A value item "Device: attribute; attribute" is matched to the cited headings that
+    contain every word of the device name. An attribute that the device's section does not
+    state, such as a battery life given only for another device, is reported. A device is
+    judged only when all its matched sections end inside their chunk, since an open section
+    may continue in a chunk that was not cited.
+    """
+    sections = [section for text in texts for section in _sections(text)]
+    if not sections:
+        return []
+    problems: list[str] = []
+    device: str | None = None
+    matched: list[Section] = []
+    for raw in re.split(r"\s*;\s*", value):
+        item = raw.strip().strip(".")
+        name, colon, rest = item.partition(":")
+        name_words = set(_tokens(name))
+        candidates = [
+            section
+            for section in sections
+            if colon and len(name_words) >= 2 and name_words <= set(_tokens(section.heading))
+        ]
+        if candidates:
+            device, matched, item = name.strip(), candidates, rest.strip()
+        elif any(
+            section not in matched and 2 <= len(heading) and heading <= set(_tokens(item))
+            for section in sections
+            for heading in [set(_tokens(section.heading))]
+        ):
+            device = None
+        if device is None or not item or not all(section.closed for section in matched):
+            continue
+        scope = "\n".join(line for section in matched for line in [section.heading, *section.body])
+        if not _attribute_stated(item, scope):
+            problems.append(
+                f"'{item}' is not stated for {device} in the cited specifications; "
+                "keep each attribute with the device it is listed under"
+            )
+    return problems
+
+
+ANSWER_MARK = re.compile(
+    r"(?im)^\s*(?:(?:answer|response|reply)\s*[:.]|a\s*:)|\b(?:Answer|Response)\s*:"
+)
+ITEM_START = re.compile(r"(?m)^(?=\s*(?:\d{1,3}\.\s|q\d*\s*[:.)]|question\s*\d*\s*[:.]))", re.I)
+AFFIRM = re.compile(r"^\W*(?:yes|correct|confirmed|agreed|that is correct)\b", re.I)
+SHORT_AFFIRM = re.compile(r"\b(?:yes|correct|confirmed|agreed|both|all|required|mandatory)\b", re.I)
+NEGATION = re.compile(r"\b(?:no|not|only|none|never|neither)\b", re.I)
+AFFIRM_WORDS = 6
+QUESTION_FIELDS = frozenset(
+    {
+        "Installation",
+        "MFG for Registration",
+        "Bid Bond Requirement",
+        "Payment Terms",
+        "Delivery Date",
+        "Product Specification",
+    }
+)
+
+
+def _stem(word: str) -> str:
+    for suffix in ("ing", "es", "ed", "s", "e"):
+        if word.endswith(suffix) and len(word) - len(suffix) >= 4:
+            return word[: -len(suffix)]
+    return word
+
+
+def _stems(text: str) -> set[str]:
+    return {_stem(word) for word in re.findall(r"[a-z]{4,}", text.casefold())}
+
+
+def _question_split(text: str) -> tuple[str, str]:
+    """(question text, statement text): vendor questions, and answers or solicitation text.
+
+    In an item with an answer marker, the text before the marker is the question. An answer
+    that affirms ("Yes.", or a short "Both are required.") adopts the question's wording.
+    Elsewhere, sentences ending in a question mark are questions.
+    """
+    questions: list[str] = []
+    statements: list[str] = []
+    for item in ITEM_START.split(text):
+        marker = ANSWER_MARK.search(item)
+        if marker:
+            question, answer = item[: marker.start()], item[marker.end() :]
+            statements.append(answer)
+            short = (
+                len(answer.split()) <= AFFIRM_WORDS
+                and SHORT_AFFIRM.search(answer) is not None
+                and not NEGATION.search(answer)
+            )
+            (statements if AFFIRM.search(answer) or short else questions).append(question)
+            continue
+        for sentence in SENTENCE_SPLIT.split(item):
+            (questions if sentence.rstrip().endswith("?") else statements).append(sentence)
+    return "\n".join(questions), "\n".join(statements)
+
+
+def question_only_problems(name: str, value: str, texts: list[str]) -> list[str]:
+    """A requirement word found only in a vendor's question is not a requirement.
+
+    Words of the value that the cited text uses only inside questions, never in an answer
+    or in the solicitation's own statements, are reported. Answers and statements still
+    support the value, so authoritative addendum responses count.
+    """
+    if name not in QUESTION_FIELDS:
+        return []
+    asked: set[str] = set()
+    stated: set[str] = set()
+    for text in texts:
+        question, statement = _question_split(join_split_emails(text))
+        asked |= _stems(question)
+        stated |= _stems(statement)
+    only = []
+    for word in re.findall(r"[A-Za-z]{4,}", value):
+        stem = _stem(word.casefold())
+        if stem in asked and stem not in stated and word.casefold() not in only:
+            only.append(word.casefold())
+    if not only:
+        return []
+    return [
+        f"{name} uses {', '.join(repr(word) for word in only)} from a vendor question that the "
+        "cited answers and solicitation text do not state as a requirement"
+    ]
+
+
 HEADING_NOUN = re.compile(
     r"\b(?:qualifications?|requirements?|registration|certifications?|terms|conditions|"
     r"specifications?|instructions)\s*:?\s*$",
@@ -665,6 +924,7 @@ def semantic_problems(name: str, value: str, texts: list[str]) -> list[str]:
         if any(re.search(rule.omits, part, re.I) for part in scope or windows(value, texts)):
             problems.append(rule.omits_problem)
     problems.extend(heading_problems(name, value))
+    problems.extend(question_only_problems(name, value, texts))
     if name == "Due Date":
         problems.extend(due_date_problems(value, texts))
     elif name == "Delivery Date":
@@ -673,4 +933,6 @@ def semantic_problems(name: str, value: str, texts: list[str]) -> list[str]:
         problems.extend(document_problems(value, texts))
     elif name == "Product Specification":
         problems.extend(warranty_problems(value, texts))
+        problems.extend(specification_scope_problems(value, texts))
+        problems.extend(unnamed_device_problems(value, texts))
     return problems

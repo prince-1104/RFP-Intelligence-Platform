@@ -14,7 +14,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", extra="ignore", hide_input_in_errors=True, env_nested_delimiter="__"
     )
-    chunking: ChunkConfig = Field(default_factory=lambda: ChunkConfig(page_furniture="repeated_v1"))
+    chunking: ChunkConfig = Field(
+        default_factory=lambda: ChunkConfig(page_furniture="repeated_v1", table_prose="layout_v1")
+    )
     search: SearchConfig = Field(default_factory=SearchConfig)
 
     database_url: SecretStr

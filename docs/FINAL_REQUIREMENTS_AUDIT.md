@@ -72,6 +72,26 @@ The evidence is:
 
 No published evidence was changed.
 
+**Phase F update (2026-10-25).** Rows 8, 34, 52 and 65 and a Phase F verification table (end of
+section 13) were updated after Phase F made these changes:
+
+- PDF tables record their cell boxes (parser 2.3.0);
+- text blocks inside a table whose reading order disagrees with the cells' order are read in cell
+  order (`table_prose="layout_v1"`, now the default); label rows stay with their numeric rows;
+- checks that reject an attribute borrowed from another device's specification section and a
+  requirement found only in a vendor question; numbered items in one table cell are judged
+  separately.
+
+The evidence is:
+
+- `tests/test_table_alignment.py` (25);
+- three live runs per bid on a new local collection `phasef_cells`, in
+  `artifacts/phaseF_extraction/` (git-ignored);
+- the field verdicts in `classification_phaseF.json`, checked by the agent against rendered PDF
+  pages. They are not a human review.
+
+No published evidence was changed.
+
 ## 1. Executive summary
 
 The core system is in place and verified. It has:
@@ -119,6 +139,13 @@ The gaps that matter for the assignment:
        layer.
      - Product Specification gives desktops a battery life.
      - Installation adds "imaging", which appears only in a vendor question.
+   - **Phase F (three live runs per bid, same review basis):**
+     - **Bid1:** 10 to 12 complete, 3 to 5 incomplete, 4 correctly not found, 1 unresolved and
+       0 incorrect. None of the three Phase E errors recurs. Product now gives the page 34
+       schedule's "1 Each" quantities rather than the evaluation target quantities; this needs
+       human review.
+     - **Bid2:** 13 complete, 1 incomplete, 4 correctly not found, 1 incorrect (Part_no) and
+       1 unresolved (the summary, valid in Phase E).
 
    Phase D had Bid1 at 10, 5 and 5. Live output varies between runs. The published JSON predates
    Phases D and E. **PARTIAL.**
@@ -149,6 +176,9 @@ How the counts changed:
   gaps.
 - **Phase E:** row 53 moved from PARTIAL to PASS. Rows 8, 34 and 52 stay PARTIAL, with new
   findings recorded in each row.
+- **Phase F:** no status changes. Rows 8, 34 and 52 stay PARTIAL: the table and specification
+  fixes are tested and the Phase E errors did not recur in live runs, but no human has reviewed
+  the tables or field values.
 
 ## 13. Verification run (2026-10-25)
 
@@ -254,6 +284,26 @@ and no warnings or errors. Every index write uses `wait=True`. The cause is unde
 assertion is unchanged; on failure it now also prints the point count, the server, dense and
 sparse ids with scores, and the application ordering.
 
+**Phase F verification (2026-10-25).** The existing collections were read only. Both bids were
+re-parsed with parser 2.3.0 (table and cell boxes) in the offline Docker image, which provides
+Tesseract. They were re-chunked with `table_prose="layout_v1"` and indexed into a new local
+collection, `phasef_cells__79fea6c89a6d` (514 points; a second indexing run left all 9
+generations unchanged). Outputs are in `artifacts/phaseF_extraction/`. Earlier Phase F variants
+are kept beside them with `_v1`, `_v2` and `_v3` suffixes.
+
+| Command | Exit | Result |
+|---|---|---|
+| `evaluate_retrieval.py verify --chunks artifacts/phaseF_extraction/chunks` | 0 | Labels still on their declared pages |
+| `evaluate_retrieval.py run --collection phasef_cells` | 0 | hybrid_rerank Recall@5 0.796, MRR@10 0.785, nDCG@10 0.794 (`phasee_labels`: 0.762 / 0.767 / 0.767; also reflects PDF furniture cleanup). 0 citation errors, 0 cross-bid leaks |
+| `extract-bid --llm-mode live --collection phasef_cells` (Bid1, Bid2), runs r1–r3 | 0 | Classified in `classification_phaseF.json`; Phase E comparison in `comparison_phaseE_r3_vs_phaseF.json` |
+| `verify_extraction.py` on r1, r2, r3 | 0 | Schema and 20 field names valid; values present on cited pages; no secret leaks |
+| `pytest -q` (integration URL set) | 0 | 544 passed (538 offline, 6 integration) |
+| `test_app_rrf_matches_server_side_rrf_ordering`, repeated | 0 | 30 of 30 isolated runs and 4 of 4 full suites passed. One full suite, run during a live extraction, failed `test_live_index_payload_indexes_and_search` once; it then passed 8 of 8 times under the same load and in the final full suite |
+| `ruff check`, `ruff format --check`, `mypy src` | 0 | Clean (88 source files) |
+| `evaluate_retrieval.py verify`, `evaluate_qa.py verify` | 0 | OK; labels and gold answers unchanged |
+| `build_submission_evidence.py verify`, `check`; `audit_submission.py` | 0 | 0 problems; published evidence unchanged |
+| Qdrant fingerprint against the Phase C snapshots (scratch script) | — | Existing collections unchanged; `phasee_labels` still 544 points |
+
 ## 2. Requirement matrix
 
 "Tests" lists the main test files; all of them passed in the run above.
@@ -274,7 +324,7 @@ sparse ids with scores, and the application ordering.
 |---|---|---|---|---|---|---|---|---|---|
 | 6 | §5 p2 | Parse HTML bid pages | `ingestion/html.py` (BeautifulSoup) | `test_parsers.py::test_malformed_html_missing_title_and_empty` and others | `artifacts/assessment/*/parsed`; HTML element citations resolve | `audit_submission.py` | PASS | — | — |
 | 7 | §5 p2 | Parse PDFs, keeping page structure | `ingestion/pdf.py` (PyMuPDF, pdfplumber) | `test_parsers.py::test_native_pdf_pages_and_tables` | Page citations resolve | Audit | PASS | — | — |
-| 8 | §5 p2 | Extract tables correctly (specs and bid info) | `pdf.py` tables, `html.py` tables, `chunking/engine.py` table chunks | `test_chunk_engine.py::test_tables_repeat_headers_preserve_rows…` | Table chunks in parsed artifacts | Tests; code | PARTIAL | Table correctness not reviewed against the documents. OCR pages have no table structure. Bid2's product table is serialized as JSON-like cells, and the model failed to read the quantity from it (`final_accuracy_review.md`). Phase E found that Bid1 FINAL page 35 also produces a prose chunk that is shifted by one row against the table (for example Tier 2 Large Chromebook 5,000 instead of 50,000). The table_rows chunk for that page is correct. Live Phase E extractions copied the shifted values | Review table output; drop or align prose duplicates of table pages |
+| 8 | §5 p2 | Extract tables correctly (specs and bid info) | `pdf.py` tables, `html.py` tables, `chunking/engine.py` table chunks | `test_chunk_engine.py::test_tables_repeat_headers_preserve_rows…` | Table chunks in parsed artifacts | Tests; code | PARTIAL | Table correctness not reviewed against the documents. OCR pages have no table structure. Bid2's product table is serialized as JSON-like cells, and the model failed to read the quantity from it (`final_accuracy_review.md`). Phase E found that Bid1 FINAL page 35 also produces a prose chunk that is shifted by one row against the table (for example Tier 2 Large Chromebook 5,000 instead of 50,000). The table_rows chunk for that page is correct. Live Phase E extractions copied the shifted values. Phase F: the parser records cell boxes, and blocks of a table whose reading order disagrees with its cells are read in cell order (`test_table_alignment.py`, including a check on the real Bid1 price schedule that fails under the old order at line 15.02). A table label row stays with its numeric rows. No Phase F run copied a shifted quantity. Other tables are still not reviewed | Human review of table output |
 | 9 | §5 p2 | Remove repeated headers and footers | `chunking/furniture.py` (detection), `chunking/engine.py` (skips detected blocks); on by default via `Settings.chunking.page_furniture="repeated_v1"` | `test_page_furniture.py` (20 tests) | `artifacts/phaseC_pdf_cleanup/` (report, cleaned chunks, `phasec_clean` collection, retrieval comparison) | Removed occurrences checked against old and new chunks; labels and citations checked against original pages | PASS | PDF only, from native text blocks; OCR pages are not processed. One copy per document is kept, except bare page counters. Running headers with requirement wording are kept (Bid1 "FEDERAL REQUIREMENTS (EDGAR)"). Page height is not stored, so the edge band comes from the text extent. The main collection was not rebuilt | Rebuild the main index when the owner agrees |
 | 10 | §5 p2 | Fix broken lines and hyphenation | `normalize.py`: joins wrapped lines; removes soft hyphens at line ends | Chunk tests | — | Code read | PARTIAL | Line breaks after an ordinary hyphen (`require-\nment`) are not joined. This is deliberate, to protect part numbers, but it is undocumented as a gap | Later phase (not part of Phase C) |
 | 11 | §5 p2 | Normalize whitespace | `normalize.py` | Chunk tests | — | Code | PASS | — | — |
@@ -310,7 +360,7 @@ sparse ids with scores, and the application ordering.
 | 31 | §7.1 p3 | Retrieval agent: rewrite/expand, search, filters, rerank, cited evidence | `agents/retrieval.py` plus search service | `test_extraction.py` | Trace retrieval steps (queries, modes, doc types, locators) | Trace | PASS | Deterministic, not an LLM agent | — |
 | 32 | §7.1 p3 | Extraction agents from retrieved evidence only; specialists allowed | `agents/extractors.py` (identity, logistics, commercial, product, summary) | `test_extraction.py`, `test_semantics.py` | Trace agents | Trace | PASS | — | — |
 | 33 | §7.1 p3 | Addendum reconciliation: apply the latest valid change to each field; change log | `agents/revisions.py` (requirement histories: replace/add/remove/clarify/unknown; applied, superseded, conflict or not_applied). `reconciliation.reconcile_field`: Due Date rule plus `FIELD_TERMS` for 12 fields. Orchestrator addendum check search per accepted field | `test_revisions.py` (24), `test_extraction.py` due-date tests, `test_pipeline.py` (synthetic addendum) | `phaseB_Bid1_extraction.json`: 10 change records (Due Date replace from Addendum 2; 9 Addendum 1 clarifications) with verified quotes; `phaseB_reconciliation_Bid1.json` | Tests; quotes checked on parsed pages; live run | PARTIAL | Seven fields are not reconciled (identifiers, contact, company, summary). A change wins only on explicit supersession wording or distinct issue dates, and the index stores no issue dates, so unordered changes stay a conflict. Ordering and conflicts are tested offline only; the real addenda have none | Reconcile identity fields if needed; store document dates at the next re-index |
-| 34 | §7.1 p4 | Validator / critic: support, format, consistency, hallucination; send failures back; report and confidence | `agents/validator.py`, `semantics.py`, critic step in `orchestrator.py` | `test_extraction.py`, `test_semantics.py`, `test_final_accuracy.py` | Trace: 24 validator and 17 critic steps; retries 0/1/2 | Trace; `verify_extraction.py` | PARTIAL | Phase D added checks: due-date time, zone and question-deadline; delivery versus ordering dates; documents (questions, examples, conditions, non-documents); warranty terms; heading-only values; whole identifiers. Confidence is now derived from these checks (row 58). Phase E added two checks. First, each summary sentence must be supported by the cited passages. Second, "X including Y" in a requirement or deadline clause must have Y and X in one source segment (`summary_claim_problems`, 8 tests); this rejects the Phase D Bid2 summary. A delivery value is now matched to its source sentence by its dates as well as its full text, so paraphrases no longer bypass the ordering-date rule. Still not detected: wrong values that the cited text itself states (a misparsed table, row 8); a word copied from a cited vendor question ("imaging"); links in descriptive lists or links not marked by a cue word; omissions without a rule (Bid2 Payment Terms) | Later phase |
+| 34 | §7.1 p4 | Validator / critic: support, format, consistency, hallucination; send failures back; report and confidence | `agents/validator.py`, `semantics.py`, critic step in `orchestrator.py` | `test_extraction.py`, `test_semantics.py`, `test_final_accuracy.py` | Trace: 24 validator and 17 critic steps; retries 0/1/2 | Trace; `verify_extraction.py` | PARTIAL | Phase D added checks: due-date time, zone and question-deadline; delivery versus ordering dates; documents (questions, examples, conditions, non-documents); warranty terms; heading-only values; whole identifiers. Confidence is now derived from these checks (row 58). Phase E added two checks. First, each summary sentence must be supported by the cited passages. Second, "X including Y" in a requirement or deadline clause must have Y and X in one source segment (`summary_claim_problems`, 8 tests); this rejects the Phase D Bid2 summary. A delivery value is now matched to its source sentence by its dates as well as its full text, so paraphrases no longer bypass the ordering-date rule. Phase F added `specification_scope_problems` (an attribute listed under a named device must be stated in that device's section) and `question_only_problems` (a requirement term found only in a vendor question, with no answer or solicitation text stating it, is rejected); replayed on Phase E output, they flag only the desktop battery life and "imaging". Still not detected: wrong values that the cited text itself states; links in descriptive lists or links not marked by a cue word; omissions without a rule (Bid2 Payment Terms) | Later phase |
 | 35 | §7.1 p4 | Q&A / report agent: answers with citations; final JSON and human-readable summary | `agents/qa.py`; JSON from orchestrator; `Bid Summary` field | `test_qa.py`, `test_qa_grounding.py`, `test_ask_collection.py` | `qa_examples.json`, `demo_ask_*.json` | Code; Phase A tests | PARTIAL | Cross-bid questions are now supported (`ask --compare-bids`). Still no human-readable extraction report besides the `Bid Summary` field | Decide whether a report is needed |
 | 36 | §7.2 p4 | Framework chosen and explained | Own orchestrator | — | `src/rfp/agents/README.md` | Read | PASS | — | — |
 | 37 | §7.2 p4 | Shared state: plan, evidence, drafts, validation, final output | `agents/state.py` `ExtractionState`, `FieldState` | `test_extraction.py` | — | Code read | PARTIAL | Evidence, drafts, validation, retries, changes and tokens are held. **The plan is not stored in state**; field groups live in the orchestrator | Low priority |
@@ -333,7 +383,7 @@ sparse ids with scores, and the application ordering.
 | # | § / page | Requirement | Implementation | Tests | Evidence | Verification | Status | Gap and impact | Next action |
 |---|---|---|---|---|---|---|---|---|---|
 | 51 | §8 p4–5 | The 20 fields, exact names | `agents/schemas.py` `REQUIRED_FIELDS` | `test_pipeline.py` | Both JSONs | Format script: exact names and order | PASS | — | — |
-| 52 | §8 p5 | Field accuracy and completeness for both bids | Whole workflow | — | `docs/final_accuracy_review.md` | Assistant review; Phase D live rerun checked against source pages (`artifacts/phaseD_extraction/comparison.json`) | PARTIAL | Phase D (one live run per bid, agent-verified, not human-reviewed): Bid1 10 complete, 5 incomplete, 5 correctly not found (baseline rerun 8/7/4, 1 incorrect). Bid2 14 complete, 1 incomplete, 4 correctly not found, 1 incorrect (baseline 12/3/4, 1 incorrect). The incorrect field is Bid2's summary. Phase E final run (`artifacts/phaseE_reliability/extraction_r3`, same review basis): Bid2 14 complete, 1 incomplete, 4 correctly not found, 1 missed. The summary is fixed; Part_no is null, as in 3 of 4 Phase D runs. Bid1 8 complete, 3 incomplete, 5 correctly not found, 4 incorrect: Product, summary, Product Specification and Installation (row 8 and `comparison.json`). The Product regression follows an evidence-order change from the new HTML label on the description chunk. Installation and Part_no vary between runs on unchanged code. Published JSON is still `extraction_v4` | Later phase |
+| 52 | §8 p5 | Field accuracy and completeness for both bids | Whole workflow | — | `docs/final_accuracy_review.md` | Assistant review; Phase D live rerun checked against source pages (`artifacts/phaseD_extraction/comparison.json`) | PARTIAL | Phase D (one live run per bid, agent-verified, not human-reviewed): Bid1 10 complete, 5 incomplete, 5 correctly not found (baseline rerun 8/7/4, 1 incorrect). Bid2 14 complete, 1 incomplete, 4 correctly not found, 1 incorrect (baseline 12/3/4, 1 incorrect). The incorrect field is Bid2's summary. Phase E final run (`artifacts/phaseE_reliability/extraction_r3`, same review basis): Bid2 14 complete, 1 incomplete, 4 correctly not found, 1 missed. The summary is fixed; Part_no is null, as in 3 of 4 Phase D runs. Bid1 8 complete, 3 incomplete, 5 correctly not found, 4 incorrect: Product, summary, Product Specification and Installation (row 8 and `comparison.json`). The Product regression follows an evidence-order change from the new HTML label on the description chunk. Installation and Part_no vary between runs on unchanged code. Phase F (three live runs per bid on `phasef_cells`, same review basis, `classification_phaseF.json`): Bid1 r1/r2/r3 10/11/12 complete, 5/4/3 incomplete, 4 correctly not found, 1 unresolved (Payment Terms), 0 incorrect. No shifted quantity, desktop battery life or "imaging" appears. Product now reports the page 34 schedule ("1 Each") and omits the evaluation target quantities, which needs human review. Bid2, all runs: 13 complete, 1 incomplete, 4 correctly not found, 1 incorrect (Part_no "SI# CC7802", the PORFP Model # cell), 1 unresolved (summary, valid in Phase E). Published JSON is still `extraction_v4` | Later phase |
 | 53 | §8 p5 | Due Date includes time and time zone and reflects addenda | Extractor and reconciliation | `test_extraction.py` due-date tests | Bid1 "July 9, 2024 at 2:00 PM CST" with addendum note; Bid2 "06/10/2024 02:00 PM EDT" (Phase E runs r2 and r3) | Format script; source check | PASS | Phase D: the validator rejects a due date that drops a time or zone printed with it, one that adds a zone not printed with it, and the questions deadline. Phase E: the HTML parser keeps a field label with its value (`Closing Date: 06/10/2024 02:00 PM EDT`, block g_250; labelled `<span>`, `<label>` and `<dt>` siblings only, never unrelated nearby text). A Due Date query on the bid listing brings that chunk to the extractor (`test_html_labels.py`, 6 tests). Caveat: HTML citations are chunk-level, so the field cites g_249, the first block of the two-block chunk that contains the value | - |
 | 54 | §8 p5 | Bid Summary of 3–6 sentences, system-generated | Summary extractor | — | Bid1 4 sentences, Bid2 3 | Format script | PASS | Content partial in both (row 52) | — |
 | 55 | §8.1 p5 | One JSON per bid | `pipeline.py`, `runner.py` | `test_pipeline.py` | Two files | — | PASS | — | — |
@@ -351,7 +401,7 @@ sparse ids with scores, and the application ordering.
 | 62 | §9 p6 | Keys and model names from environment or config; no secrets in code | `LLM_*` from `.env` / environment | Secret scans | No key-shaped strings in `src`, `scripts`, `tests`, `examples` | `rg` scan; `verify_extraction.py` | PASS | — | — |
 | 63 | §9 p6 | One command after setup | `python -m rfp.cli process-bid --input <folder> --output <new>` | `test_pipeline.py` | Run summaries (Bid2 exit 0; Bid1 exit 3, host OCR) | Saved live runs | PASS | Setup still needs local Qdrant, `init-models` and keys | — |
 | 64 | §9 p6 | Modular structure | `ingestion/`, `chunking/`, `search/`, `agents/`, `api/`, `evaluation/`, `tests/` | — | — | Tree | PASS | — | — |
-| 65 | §9 p6 | Unit tests for parsing and search, at minimum | `tests/test_parsers.py`, `test_search_*.py` and others | 513 offline + 6 integration (Phase E) | — | Run | PASS | — | — |
+| 65 | §9 p6 | Unit tests for parsing and search, at minimum | `tests/test_parsers.py`, `test_search_*.py` and others | 538 offline + 6 integration (Phase F) | — | Run | PASS | — | — |
 | 66 | §9 p6, §3 p1 | Works on a new, unseen bid folder without code changes | Generic pipeline | `test_pipeline.py` (synthetic, fake model) | No real unseen bid | Section 4 | **UNVERIFIED** | Architecture and synthetic behavior verified; real-bid behavior not | Phase F |
 
 ### Section 11: deliverables

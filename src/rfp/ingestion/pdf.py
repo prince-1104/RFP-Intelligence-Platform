@@ -31,9 +31,14 @@ def native_page(page, locator: SourceLocator) -> tuple[str, list[ParsedBlock]]:
 
 def native_tables(page, locator: SourceLocator) -> list[ParsedTable]:
     tables = []
-    for index, table in enumerate(page.extract_tables(), 1):
+    for index, found in enumerate(page.find_tables(), 1):
+        left, top, right, bottom = (float(value) for value in found.bbox)
         rows = [
-            [normalize_text(value) if value is not None else None for value in row] for row in table
+            [normalize_text(value) if value is not None else None for value in row]
+            for row in found.extract()
+        ]
+        cells = [
+            [_box(cell) if cell is not None else None for cell in row.cells] for row in found.rows
         ]
         source = locator.model_copy(update={"table_index": index})
         tables.append(
@@ -45,9 +50,16 @@ def native_tables(page, locator: SourceLocator) -> list[ParsedTable]:
                 source_locator=source,
                 extraction_method="pdfplumber",
                 warnings=["ambiguous_table_headers_first_row_preserved"],
+                layout=Layout(bbox=(left, top, right, bottom)),
+                cell_boxes=cells,
             )
         )
     return tables
+
+
+def _box(cell) -> tuple[float, float, float, float]:
+    left, top, right, bottom = (float(value) for value in cell)
+    return left, top, right, bottom
 
 
 def parse_pdf(

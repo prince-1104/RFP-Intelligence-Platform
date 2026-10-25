@@ -59,6 +59,10 @@ class ParsedTable(Contract):
     source_locator: SourceLocator
     extraction_method: str
     warnings: list[str] = Field(default_factory=list)
+    layout: Layout | None = None
+    cell_boxes: list[list[tuple[float, float, float, float] | None]] | None = None
+    """Bounding box of each cell, row by row in the layout's coordinates; None for a cell
+    covered by a merged neighbour."""
 
 
 class ParsedPage(Contract):

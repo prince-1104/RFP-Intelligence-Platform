@@ -21,7 +21,13 @@ from rfp.schemas.chunks import (
     sha256,
     stable_json,
 )
-from rfp.schemas.parsed import ParsedDocument, ParsedPage, ParseStatus, SourceLocator
+from rfp.schemas.parsed import (
+    ParsedDocument,
+    ParsedPage,
+    ParsedTable,
+    ParseStatus,
+    SourceLocator,
+)
 
 CONTENT_NAMESPACE = uuid.UUID("451246e0-aea3-4a38-b122-a37645c89fa9")
 logger = logging.getLogger("rfp.chunking.engine")
@@ -81,6 +87,92 @@ def _table_text(headers: list[str] | None, rows: list[list[str | None]]) -> str:
     return "\n".join(lines + [json.dumps(row, ensure_ascii=False) for row in rows])
 
 
+INSIDE_SHARE = 0.9
+"""Share of a text block's area that must lie within a table's bounding box."""
+LEAD_IN_ROWS = 3
+"""Most label rows moved forward to stay with the numeric rows they introduce."""
+LABEL_CHARS = 40
+"""Longest cell in a row that can still be a column-label row."""
+
+
+def _has_digit(row: list[str | None]) -> bool:
+    return any(cell and re.search(r"\d", cell) for cell in row)
+
+
+def _is_label(row: list[str | None]) -> bool:
+    return not _has_digit(row) and all(len(cell or "") <= LABEL_CHARS for cell in row)
+
+
+def _keep_lead_in(rows: list[list[str | None]], start: int, end: int) -> int:
+    """End of a row chunk that leaves trailing label rows (short cells, no digits) to the
+    next chunk when that chunk begins with a numeric row, so column labels such as "Qty"
+    stay with their values. At least one row always stays in the current chunk."""
+    if end >= len(rows) or not _has_digit(rows[end]):
+        return end
+    moved = end
+    while moved - 1 > start and end - moved < LEAD_IN_ROWS and _is_label(rows[moved - 1]):
+        moved -= 1
+    return moved
+
+
+def _words(text: str) -> set[str]:
+    return set(re.findall(r"\w+", text.casefold()))
+
+
+def _cell_order(
+    page: ParsedPage, table: ParsedTable, texts: list[str], config: ChunkConfig
+) -> list[tuple[int, tuple[int, int]]] | None:
+    """Text blocks laid out in the cells of a multi-column table whose reading order
+    disagrees with the cells' row and column order, each with its (row, column), or None.
+
+    Read in block order such a copy misleads, as when a quantity printed above its own
+    description reads as belonging to the row before. None means layout cannot decide or
+    the copy already reads in cell order (no geometry, a single-column box of prose, no
+    block inside), so the exact-match rule applies. An empty list means a block inside the
+    table holds words its cells do not, so its order is left alone.
+    """
+    if (
+        table.layout is None
+        or table.cell_boxes is None
+        or not any(sum(1 for cell in row if cell not in (None, "")) >= 2 for row in table.rows)
+    ):
+        return None
+    left, top, right, bottom = table.layout.bbox
+    cells = _words(" ".join(normalize(cell, config) for row in table.rows for cell in row if cell))
+    inside = False
+    placed: list[tuple[int, tuple[int, int]]] = []
+    for index, block in enumerate(page.blocks):
+        if block.layout is None or not texts[index]:
+            continue
+        x0, y0, x1, y1 = block.layout.bbox
+        area = max(x1 - x0, 0.0) * max(y1 - y0, 0.0)
+        overlap = max(min(x1, right) - max(x0, left), 0.0) * max(
+            min(y1, bottom) - max(y0, top), 0.0
+        )
+        if area <= 0 or overlap / area < INSIDE_SHARE:
+            continue
+        if not _words(texts[index]) <= cells:
+            return []
+        inside = True
+        cell = _cell_at(table.cell_boxes, (x0 + x1) / 2, (y0 + y1) / 2)
+        if cell is not None:
+            placed.append((index, cell))
+    cells_read = [cell for _, cell in placed]
+    if not inside or cells_read == sorted(cells_read):
+        return None
+    return placed
+
+
+def _cell_at(
+    boxes: list[list[tuple[float, float, float, float] | None]], x: float, y: float
+) -> tuple[int, int] | None:
+    for row_index, row in enumerate(boxes):
+        for column, box in enumerate(row):
+            if box is not None and box[0] <= x <= box[2] and box[1] <= y <= box[3]:
+                return row_index, column
+    return None
+
+
 def _page_pieces(
     page: ParsedPage,
     doc: ParsedDocument,
@@ -104,8 +196,24 @@ def _page_pieces(
     texts = [normalize(block.text, config) for block in page.blocks]
     flat_blocks = [_flat(value) for value in texts]
     excluded: set[int] = set()
-    for value in table_values:
-        if not value:
+    by_layout: set[int] = set()
+    reading = list(range(len(page.blocks)))
+    if config.table_prose == "layout_v1":
+        for table in page.tables:
+            placed = _cell_order(page, table, texts, config)
+            if placed is None:
+                continue
+            by_layout.add(id(table))
+            if not placed:
+                warnings.append("table_prose_overlap_uncertain")
+                continue
+            in_cell_order = [index for index, _ in sorted(placed, key=lambda item: item[1])]
+            for position, index in zip(
+                sorted(index for index, _ in placed), in_cell_order, strict=True
+            ):
+                reading[position] = index
+    for table, value in zip([t for t in page.tables if t.rows], table_values, strict=True):
+        if not value or id(table) in by_layout:
             continue
         matches = []
         for start in range(len(flat_blocks)):
@@ -126,7 +234,8 @@ def _page_pieces(
             excluded.update(range(start, end + 1))
         elif page.blocks:
             warnings.append("table_prose_overlap_uncertain")
-    for index, block in enumerate(page.blocks):
+    for index in reading:
+        block = page.blocks[index]
         # Furniture text is still subtracted from the page residual below, so it cannot return.
         if index in excluded or not texts[index] or block.block_id in furniture:
             continue
@@ -582,6 +691,8 @@ def chunk_document(
                         <= config.max_tokens
                     ):
                         end += 1
+                    if config.table_prose == "layout_v1" and table.layout is not None:
+                        end = _keep_lead_in(rows, start, end)
                     emit_rows(_table_text(headers, rows[start:end]), start, end)
                     start = end
             normalized_evidence.extend(

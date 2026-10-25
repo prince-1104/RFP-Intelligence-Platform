@@ -357,6 +357,7 @@ def test_cleanup_is_deterministic_and_idempotent():
 def test_configuration_hash_is_unchanged_when_cleanup_is_off():
     legacy = ChunkConfig(**ESTIMATED).model_dump(mode="json")
     legacy.pop("page_furniture")
+    legacy.pop("table_prose")
     assert ChunkConfig.model_validate(legacy).fingerprint == sha256(stable_json(legacy))
     assert CLEAN.fingerprint != KEEP.fingerprint
     assert local_settings().chunking.page_furniture == "repeated_v1"

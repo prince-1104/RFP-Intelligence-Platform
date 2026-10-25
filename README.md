@@ -371,6 +371,9 @@ preserved and flagged. Missing headers stay null. Scanned tables remain honest O
 An exact whole-table copy is removed from ordinary body blocks only when the structured rows
 match one unambiguous group of complete adjacent blocks. Uncertain copies are preserved with
 `table_prose_overlap_uncertain`. No repeated legal statement is removed as semantic duplication.
+With `table_prose="layout_v1"` (the default since Phase F), PDF text blocks inside a native
+table whose reading order disagrees with the cells' row and column order are read in cell order
+instead (see the Phase F section).
 
 Every occurrence records bid/document/source revision, type/addendum metadata, normalized text,
 section path, sequence, versions/configuration hash, estimated count/counter ID, parsing warnings
@@ -1618,6 +1621,57 @@ assertion is unchanged and now prints diagnostics when it fails.
 
 **Tests.** `tests/test_summary_claims.py` (8) and `tests/test_html_labels.py` (6) are synthetic;
 they are not evidence of live accuracy.
+
+## Phase F: table reading order and extraction regressions
+
+**Root causes and fixes.**
+- **Shifted page 35 quantities.** PyMuPDF orders text blocks by position. In a ruled table whose
+  short cells are printed higher than a wrapped description, a quantity reads before its own
+  description and right after the previous row's, so the prose copy paired Tier 2 with 5,000.
+  - The parser (2.3.0) now records each native table's bounding box and cell boxes.
+  - With `table_prose="layout_v1"`, the chunker places each block inside a multi-column table in
+    its cell. When the blocks' reading order differs from the cells' row and column order, it
+    reads them in cell order. Each block keeps its own provenance.
+  - Tables already in cell order, single-column boxes, OCR pages and HTML are chunked as before.
+  - A table label row with no digits (for example "Product Name … Qty") is kept in the chunk of
+    the numeric rows that follow it.
+  - Configurations written before the option keep their hash.
+- **Attributes borrowed across devices.** `semantics.specification_scope_problems` rejects an
+  attribute listed under a named device when that device's own section does not state it. A
+  section that may continue in another chunk is not judged.
+- **Vendor questions.** `semantics.question_only_problems` rejects a requirement term found only
+  in a vendor's question, unless an answer or the solicitation text states it.
+- **Multi-line table cells.** A numbered list inside one cell is checked item by item, so a
+  condition in one item neither attaches to nor hides the others.
+- The list prompt now asks for each quantity or attribute from its own row or device.
+
+**Live runs** (`gpt-4o-mini`, local collection `phasef_cells`, runs `extraction_r1`–`r3`, verdicts
+checked by the agent against rendered pages, not human-reviewed; `artifacts/phaseF_extraction/`):
+
+| Bid, run | Complete | Incomplete | Correctly not found | Incorrect | Unresolved |
+|---|---|---|---|---|---|
+| Bid1 r1 / r2 / r3 | 10 / 11 / 12 | 5 / 4 / 3 | 4 | 0 | 1 |
+| Bid2 r1 / r2 / r3 | 13 | 1 | 4 | 1 | 1 |
+
+- **Fixed, Bid1:**
+  - No run copies a shifted quantity.
+  - No staff desktop is given a battery life.
+  - Installation never uses the vendor question's "imaging".
+  - The summaries state no quantities.
+- **Incomplete, Bid1:** Product reports the page 34 schedule (lines 1–14, Target Quantity
+  "1 Each"), which now reads correctly. It omits the evaluation lines with the large target
+  quantities. Which schedule the field should report needs human review.
+- **Bid2:**
+  - Part_no is "SI# CC7802", the PORFP "Model #" cell, instead of the SKU 210-BLYZ (incorrect).
+  - The summary is unresolved: drafts were rejected for an unsupported paraphrase and for
+    citations that omit the page stating the model number. Phase E's summary was valid.
+- **Retrieval on `phasef_cells`:** hybrid_rerank Recall@5 0.796, MRR@10 0.785, nDCG@10 0.794. On
+  `phasee_labels` it was 0.762 / 0.767 / 0.767. This comparison also includes the PDF header and
+  footer cleanup, which the Phase E index lacked. There were no citation errors or cross-bid leaks.
+
+**Tests.** `tests/test_table_alignment.py` (25) uses synthetic PDFs, plus a check on the real
+Bid1 price schedule that is skipped when the documents are absent. The synthetic tests are not
+evidence of live accuracy.
 
 ## Submission Evidence and Reproducibility
 

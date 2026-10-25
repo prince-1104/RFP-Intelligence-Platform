@@ -386,6 +386,9 @@ LIST_INSTRUCTION = (
     "This field can hold several distinct requirements spread over passages. List each one "
     "with the device, item or condition it applies to; keep different quantities, units, "
     "model or part numbers and warranty terms separate; and cite every passage you use. "
+    "Take each quantity or attribute from the table row or passage that names its own item, "
+    "never from a neighbouring row or device, and leave out an attribute that the item's "
+    "own passage does not state. A vendor question is not a requirement; use the answer. "
     "Return the value as one string, items separated by semicolons."
 )
 DOCUMENT_INSTRUCTION = (
