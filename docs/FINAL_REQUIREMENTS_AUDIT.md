@@ -90,20 +90,26 @@ The gaps that matter for the assignment:
    real bids it removed 109 blocks in 9 groups and kept 7 groups. In a separate collection, every
    retrieval metric improved except sparse MRR@10 (−0.007), and the Phase B reconciliation
    decisions were unchanged. **PASS** (was FAIL). The main collection was not rebuilt.
-5. **Extraction accuracy is partial** (not a FAIL). By assistant review, 12 of 40 field values are partial,
-   including Bid2's Due Date without time or zone (8). The published JSON masks contact emails and
-   phones, so `contact_info` cannot be checked from the repository. **PARTIAL.**
+5. **Extraction accuracy is partial** (not a FAIL). The Phase D live rerun (one run per bid,
+   agent-verified against the source pages, not human-reviewed) has Bid1 at 10 complete, 5
+   incomplete and 5 correctly not found. Bid2 has 14 complete, 1 incomplete, 4 correctly not found
+   and 1 incorrect (the summary). Bid2's Due Date is still date-only, because the listing's time
+   and zone lose their label in HTML parsing. The published JSON predates Phase D and masks contact
+   emails and phones. **PARTIAL.**
+6. **Confidence** (58). Since Phase D, it is a documented evidence-quality heuristic
+   (`agents/confidence.py`), not a fixed value per status. It is not calibrated. **PASS** (was
+   PARTIAL).
 
 Further PARTIAL items:
 
 - observability does not record model-step inputs or accepted outputs;
-- confidence is a fixed value per status;
+- the confidence heuristic cannot see errors the validator misses (row 34);
 - the affidavits example no longer abstains (Phase A); it names the Mercury Affidavit and leaves
   the Contract Affidavit unaddressed;
 - the README has no prompt-design section;
 - real unseen-bid behavior is UNVERIFIED.
 
-Requirement-matrix counts (section 2, 70 rows): **PASS 53, PARTIAL 14, FAIL 1, UNVERIFIED 1,
+Requirement-matrix counts (section 2, 70 rows): **PASS 54, PARTIAL 13, FAIL 1, UNVERIFIED 1,
 OPTIONAL 1** (OCR, listed in Part A). Section 10 lists the other bonus features separately. The
 remaining FAIL is the demo video.
 
@@ -113,6 +119,8 @@ How the counts changed:
 - **Phase A:** row 2 moved from PARTIAL to PASS, and row 48 from FAIL to PARTIAL.
 - **Phase B:** row 48 moved from PARTIAL to PASS. Row 33 stays PARTIAL with a narrower gap.
 - **Phase C:** row 9 moved from FAIL to PASS.
+- **Phase D:** row 58 moved from PARTIAL to PASS. Rows 34, 52 and 53 stay PARTIAL with narrower
+  gaps.
 
 ## 13. Verification run (2026-10-25)
 
@@ -174,6 +182,21 @@ local collection, `phasec_clean__79fea6c89a6d`, through the loopback-guarded `in
 | `build_submission_evidence.py verify`, `check`; `audit_submission.py` | 0 | 19 files, 0 problems; published evidence unchanged |
 | Qdrant fingerprint before and after (scratch script) | — | `bid_documents` (533), `pipeline_check` (503) and `rfp_smoke` (6): point ids and payload hashes unchanged |
 
+**Phase D verification (2026-10-25).** Extraction read the main local collection only; no index
+was built or changed. Outputs are in `artifacts/phaseD_extraction/`.
+
+| Command | Exit | Result |
+|---|---|---|
+| `extract-bid --llm-mode live` (Bid1, Bid2) on the Phase C code, into `baseline_rerun/` | 0 | Field baseline; classified in `baseline_labels.json` and `baseline_classification.json` |
+| `extract-bid --llm-mode live` after the changes (iterations `after` to `after_r4`; `after_r4` is the final run) | 0 | Classified in `after_labels.json`; field-by-field comparison in `comparison.json` |
+| Citation check of both runs (scratch script; `verify_baseline_rerun.json`, `verify_after_r4.json`) | — | No cited file outside the bid; every source contains value tokens; no secret leaks |
+| `pytest -q` (full suite, integration URL set) | 1 | 503 passed, 1 failed: `test_app_rrf_matches_server_side_rrf_ordering`. It passed on its own and with its file (6 passed). It compares RRF orderings on a live server, and no search code changed in Phase D |
+| `pytest -m integration -q` (local Qdrant, `RFP_MODEL_SMOKE=1`) | 0 | 6 passed; 498 offline tests deselected (25 new in `test_extraction_completeness.py`) |
+| `ruff check`, `ruff format --check`, `mypy src` | 0 | Clean (88 source files) |
+| `evaluate_retrieval.py verify`, `evaluate_qa.py verify` | 0 | OK; labels and gold answers unchanged |
+| `build_submission_evidence.py verify`, `check`; `audit_submission.py` | 0 | 19 files, 0 problems; published evidence unchanged |
+| Qdrant fingerprint against the Phase C snapshots (scratch script) | — | All four local collections: point counts and payload hashes unchanged |
+
 ## 2. Requirement matrix
 
 "Tests" lists the main test files; all of them passed in the run above.
@@ -230,7 +253,7 @@ local collection, `phasec_clean__79fea6c89a6d`, through the loopback-guarded `in
 | 31 | §7.1 p3 | Retrieval agent: rewrite/expand, search, filters, rerank, cited evidence | `agents/retrieval.py` plus search service | `test_extraction.py` | Trace retrieval steps (queries, modes, doc types, locators) | Trace | PASS | Deterministic, not an LLM agent | — |
 | 32 | §7.1 p3 | Extraction agents from retrieved evidence only; specialists allowed | `agents/extractors.py` (identity, logistics, commercial, product, summary) | `test_extraction.py`, `test_semantics.py` | Trace agents | Trace | PASS | — | — |
 | 33 | §7.1 p3 | Addendum reconciliation: apply the latest valid change to each field; change log | `agents/revisions.py` (requirement histories: replace/add/remove/clarify/unknown; applied, superseded, conflict or not_applied). `reconciliation.reconcile_field`: Due Date rule plus `FIELD_TERMS` for 12 fields. Orchestrator addendum check search per accepted field | `test_revisions.py` (24), `test_extraction.py` due-date tests, `test_pipeline.py` (synthetic addendum) | `phaseB_Bid1_extraction.json`: 10 change records (Due Date replace from Addendum 2; 9 Addendum 1 clarifications) with verified quotes; `phaseB_reconciliation_Bid1.json` | Tests; quotes checked on parsed pages; live run | PARTIAL | Seven fields are not reconciled (identifiers, contact, company, summary). A change wins only on explicit supersession wording or distinct issue dates, and the index stores no issue dates, so unordered changes stay a conflict. Ordering and conflicts are tested offline only; the real addenda have none | Reconcile identity fields if needed; store document dates at the next re-index |
-| 34 | §7.1 p4 | Validator / critic: support, format, consistency, hallucination; send failures back; report and confidence | `agents/validator.py`, `semantics.py`, critic step in `orchestrator.py` | `test_extraction.py`, `test_semantics.py`, `test_final_accuracy.py` | Trace: 24 validator and 17 critic steps; retries 0/1/2 | Trace; `verify_extraction.py` | PARTIAL | Confidence is a fixed value per status (0.35, 0.74 or 0.86), not a score. Consistency checks cover a few fields | Phase D (decide) |
+| 34 | §7.1 p4 | Validator / critic: support, format, consistency, hallucination; send failures back; report and confidence | `agents/validator.py`, `semantics.py`, critic step in `orchestrator.py` | `test_extraction.py`, `test_semantics.py`, `test_final_accuracy.py` | Trace: 24 validator and 17 critic steps; retries 0/1/2 | Trace; `verify_extraction.py` | PARTIAL | Phase D added checks: due-date time, zone and question-deadline; delivery versus ordering dates; documents (questions, examples, conditions, non-documents); warranty terms; heading-only values; whole identifiers. Confidence is now derived from these checks (row 58). The validator still cannot detect a wrong relation between individually cited facts (the Phase D Bid2 summary) or an omission it has no rule for (Bid2 Payment Terms) | Later phase |
 | 35 | §7.1 p4 | Q&A / report agent: answers with citations; final JSON and human-readable summary | `agents/qa.py`; JSON from orchestrator; `Bid Summary` field | `test_qa.py`, `test_qa_grounding.py`, `test_ask_collection.py` | `qa_examples.json`, `demo_ask_*.json` | Code; Phase A tests | PARTIAL | Cross-bid questions are now supported (`ask --compare-bids`). Still no human-readable extraction report besides the `Bid Summary` field | Decide whether a report is needed |
 | 36 | §7.2 p4 | Framework chosen and explained | Own orchestrator | — | `src/rfp/agents/README.md` | Read | PASS | — | — |
 | 37 | §7.2 p4 | Shared state: plan, evidence, drafts, validation, final output | `agents/state.py` `ExtractionState`, `FieldState` | `test_extraction.py` | — | Code read | PARTIAL | Evidence, drafts, validation, retries, changes and tokens are held. **The plan is not stored in state**; field groups live in the orchestrator | Low priority |
@@ -253,13 +276,13 @@ local collection, `phasec_clean__79fea6c89a6d`, through the loopback-guarded `in
 | # | § / page | Requirement | Implementation | Tests | Evidence | Verification | Status | Gap and impact | Next action |
 |---|---|---|---|---|---|---|---|---|---|
 | 51 | §8 p4–5 | The 20 fields, exact names | `agents/schemas.py` `REQUIRED_FIELDS` | `test_pipeline.py` | Both JSONs | Format script: exact names and order | PASS | — | — |
-| 52 | §8 p5 | Field accuracy and completeness for both bids | Whole workflow | — | `docs/final_accuracy_review.md` | Assistant review | PARTIAL | Bid1 9 correct, 7 partial; Bid2 11 correct, 5 partial; 0 wrong; 8 nulls judged right (section 7). Not human-reviewed | Phase D |
-| 53 | §8 p5 | Due Date includes time and time zone and reflects addenda | Extractor and reconciliation | `test_extraction.py` due-date tests | Bid1 "July 9, 2024 at 2:00 PM CST" with addendum note; Bid2 "06/10/2024" | Format script | PARTIAL | Bid2 lacks the time and zone, which its BidNet page states | Phase D |
+| 52 | §8 p5 | Field accuracy and completeness for both bids | Whole workflow | — | `docs/final_accuracy_review.md` | Assistant review; Phase D live rerun checked against source pages (`artifacts/phaseD_extraction/comparison.json`) | PARTIAL | Phase D (one live run per bid, agent-verified, not human-reviewed): Bid1 10 complete, 5 incomplete, 5 correctly not found (baseline rerun 8/7/4, 1 incorrect). Bid2 14 complete, 1 incomplete, 4 correctly not found, 1 incorrect (baseline 12/3/4, 1 incorrect). The incorrect field is Bid2's summary. Live output varies between runs. Published JSON is still `extraction_v4` | Later phase |
+| 53 | §8 p5 | Due Date includes time and time zone and reflects addenda | Extractor and reconciliation | `test_extraction.py` due-date tests | Bid1 "July 9, 2024 at 2:00 PM CST" with addendum note; Bid2 "06/10/2024" | Format script | PARTIAL | Phase D: the validator rejects a due date that drops a time or zone printed with it, one that adds a zone not printed with it, and the questions deadline (tests in `test_extraction_completeness.py`). Bid2 is still "06/10/2024": its PDF prints the date only, and the listing's time and zone become an unlabelled paragraph in HTML parsing, so attaching them would be inference. A parser fix is still needed | Later phase (HTML label parsing) |
 | 54 | §8 p5 | Bid Summary of 3–6 sentences, system-generated | Summary extractor | — | Bid1 4 sentences, Bid2 3 | Format script | PASS | Content partial in both (row 52) | — |
 | 55 | §8.1 p5 | One JSON per bid | `pipeline.py`, `runner.py` | `test_pipeline.py` | Two files | — | PASS | — | — |
 | 56 | §8.1 p5 | Each field: value, sources, confidence (and notes) | `FieldOutput` schema | Schema tests | Field keys = {value, sources, confidence, notes} | Format script | PASS | Sources add `html_element_id` (an extension, not a conflict) | — |
 | 57 | §8.1 p5 | Null with a reason when absent | Validator notes | `test_pipeline.py` | 7 nulls with "Not found in documents"; 1 with "Validation failed: …" | Format script | PASS | — | — |
-| 58 | §8.1 p5–6 | Confidence score per field | `orchestrator.py` status → confidence | — | Values only 0.35, 0.74, 0.86 | Format script | PARTIAL | Fixed per status; documented as uncalibrated | Phase D (decide) |
+| 58 | §8.1 p5–6 | Confidence score per field | `agents/confidence.py` (support kind, agreeing sources, retries, incomplete, conflict); signals in the trace | `test_extraction_completeness.py` (score responds to evidence; unresolved and incomplete never high) | Phase D live: accepted 0.5–0.9, not found 0.4–0.5, unresolved 0.15 | Tests; `comparison.json` | PASS | A heuristic, documented in `agents/README.md`; not calibrated. It scores evidence quality, so errors the validator misses still score medium (Bid2 summary 0.6). Published JSON predates it and still shows 0.35/0.74/0.86 | — |
 | 59 | §8.1 p6 | `addendum_changes` list | `AddendumChange`; Phase B added defaulted keys `change_type`, `status`, `addendum_date`, `orderable` and `quote` (old records still load) | Reconciliation tests, `test_revisions.py` | Published v4 Bid1: 1 change. Phase B Bid1: 10 changes, each with sources | Format script; quotes verified on pages | PASS | The published `Bid1_extraction.json` is still the v4 run; the Phase B run is published separately | — |
 | 60 | §8.1 p6 | `validation` with passed, failed, not_found | `BidExtraction.validation` | — | Bid1 16/1/3 (+ unresolved 1); Bid2 16/0/4 | Recount equals block | PASS | Extra `unresolved` key duplicates `failed` | — |
 
@@ -271,7 +294,7 @@ local collection, `phasec_clean__79fea6c89a6d`, through the loopback-guarded `in
 | 62 | §9 p6 | Keys and model names from environment or config; no secrets in code | `LLM_*` from `.env` / environment | Secret scans | No key-shaped strings in `src`, `scripts`, `tests`, `examples` | `rg` scan; `verify_extraction.py` | PASS | — | — |
 | 63 | §9 p6 | One command after setup | `python -m rfp.cli process-bid --input <folder> --output <new>` | `test_pipeline.py` | Run summaries (Bid2 exit 0; Bid1 exit 3, host OCR) | Saved live runs | PASS | Setup still needs local Qdrant, `init-models` and keys | — |
 | 64 | §9 p6 | Modular structure | `ingestion/`, `chunking/`, `search/`, `agents/`, `api/`, `evaluation/`, `tests/` | — | — | Tree | PASS | — | — |
-| 65 | §9 p6 | Unit tests for parsing and search, at minimum | `tests/test_parsers.py`, `test_search_*.py` and others | 472 offline + 6 integration (Phase C) | — | Run | PASS | — | — |
+| 65 | §9 p6 | Unit tests for parsing and search, at minimum | `tests/test_parsers.py`, `test_search_*.py` and others | 498 offline + 6 integration (Phase D) | — | Run | PASS | — | — |
 | 66 | §9 p6, §3 p1 | Works on a new, unseen bid folder without code changes | Generic pipeline | `test_pipeline.py` (synthetic, fake model) | No real unseen bid | Section 4 | **UNVERIFIED** | Architecture and synthetic behavior verified; real-bid behavior not | Phase F |
 
 ### Section 11: deliverables
@@ -458,6 +481,24 @@ Totals: Bid1 9 C, 7 P, 4 N; Bid2 11 C, 5 P, 4 N; 0 wrong. `extraction_v4` is the
 several attempts, and a same-code repeat differed in some fields (`docs/live_validation.md`).
 Later `process-bid` runs scored Bid1 8/8 and Bid2 10/6 (correct/partial).
 
+**Phase D extraction rerun.** One live run per bid before the changes (`baseline_rerun`) and one
+after (`after_r4`). Both were classified by the agent against the cited source pages, not by a
+human. Classes: complete, incomplete, incorrect, and correctly not found.
+
+| Bid | Baseline | After |
+|---|---|---|
+| Bid1 | 8 complete, 7 incomplete, 4 not found, 1 incorrect (Delivery Date) | 10 complete, 5 incomplete, 5 not found |
+| Bid2 | 12 complete, 3 incomplete, 4 not found, 1 incorrect (Documents) | 14 complete, 1 incomplete, 4 not found, 1 incorrect (Bid Summary) |
+
+- **Improved:** Bid1 Delivery Date (a quote-due sentence is now rejected, so the field is null),
+  MFG, Product (all tiers with quantities) and Summary. Bid2 Documents (now only the required
+  affidavit and certificate) and Product (both items with quantities).
+- **Regressed:** Bid1 Installation became a less specific restatement. The Bid2 summary links two
+  supported facts wrongly: it says invoices include the Mercury Affidavit and the warranty
+  certificate.
+- **Cost:** Bid1 input tokens rose from about 39k to 55k.
+- **Variation:** earlier iterations of the same code gave different values for some fields.
+
 ## 8. Deliverable availability and Git tracking
 
 | Deliverable | Local | Tracked | After clone | Required content | Sensitive content | Approval |
@@ -513,9 +554,13 @@ remain ignored. `git status` was clean before this file was added.
    - the main collection still holds the pre-cleanup chunks; rebuilding it is the owner's call;
    - OCR pages are not processed;
    - a `CHUNKING__*` environment override builds a `ChunkConfig` with the legacy default `keep`.
-5. **Extraction partials** (rows 52–53). Bid2 Due Date time and zone (`extractors.py` logistics
-   prompt, `semantics.py` Due Date rule); Product quantity from serialized tables; documentation
-   lists; summaries.
+5. **Extraction partials** (rows 52–53). Phase D fixed Product quantities, documentation lists,
+   delivery dates and summary coverage in the live rerun. Remaining:
+   - Bid2 Due Date time and zone (HTML label parsing);
+   - Bid1 Pre Bid zone, Installation detail, reseller certifications, and the EPCNT cooperative;
+   - Bid1 Product Specification (7 of 10 device tiers);
+   - Bid2 summary relation error;
+   - run-to-run variation.
 6. **Published `contact_info` masking** (row 68). Owner decision: publish the originals (the same
    data is already public in tracked files) or accept that the field is unverifiable.
 7. **Observability** (row 42). `agents/trace.py` and `orchestrator.py`: record the evidence ids
@@ -525,8 +570,8 @@ remain ignored. `git status` was clean before this file was added.
    model; `checklist.py` reports it in `limitations`.
 9. **README** (rows 30, 67). Prompt design section, merged-role rationale, a short quick-start at the
    top, and the Python 3.12 pin.
-10. **Confidence semantics** (rows 34, 58). Decide whether to keep fixed status values (documented)
-    or derive a documented score.
+10. **Confidence semantics** (rows 34, 58): resolved in Phase D with a documented,
+    uncalibrated evidence heuristic. Calibration would need human-reviewed labels.
 11. **Shared state plan** (row 37), **`POST /ask`** (row 25), **hyphenated line breaks** (row 10):
     low priority.
 12. **Real unseen bid** (row 66). Obtain one and run it live; record the results as evidence.
@@ -544,8 +589,11 @@ remain ignored. `git status` was clean before this file was added.
    (`chunking/furniture.py`), on by default for new chunking. It comes with 20 tests, a
    deterministic report, a separate `phasec_clean` collection and a retrieval regression. The main
    index was not touched, and no new evidence was published.
-4. **Phase D:** extraction partials (Due Date time and zone, product quantity, lists), and a
-   decision on confidence semantics.
+4. **Phase D (done 2026-10-25):** extraction completeness checks (`agents/semantics.py`,
+   `validator.py`), list-field prompts and citation completion (`extractors.py`,
+   `orchestrator.py`), and summaries built from validated fields. It also added the evidence-based
+   confidence heuristic (`agents/confidence.py`) and 25 tests. Live reruns are in
+   `artifacts/phaseD_extraction/`. No evidence was published.
 5. **Phase E:** observability additions and README restructuring (quick start, prompts, merged
    roles).
 6. **Phase F:** real unseen-bid validation, the demo video, and the owner's privacy decisions.

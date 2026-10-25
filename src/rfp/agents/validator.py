@@ -8,6 +8,7 @@ from rfp.agents.semantics import (
     MONTH_YEAR_RE,
     RELATIVE_RE,
     STOP,
+    TABLE_CELLS_RE,
     bid_number_problems,
     join_split_emails,
     normalize,
@@ -18,6 +19,10 @@ from rfp.schemas.parsed import DocumentType
 DATE_FIELDS = {"Due Date", "Pre Bid Meeting", "Delivery Date"}
 RELATIVE_DATE_FIELDS = {"Delivery Date"}
 IDENTIFIER_FIELDS = {"Bid Number", "Model_no", "Part_no"}
+SCHEDULE_RE = re.compile(
+    r"\bschedul\w*\b[^.]{0,40}\bdeliver|\bdeliver\w*\b[^.]{0,40}\bschedul", re.I
+)
+"""A delivery schedule the vendor must follow, stated without a calendar date."""
 ABSENCE = ("not found", "no evidence", "not stated", "not in the documents", "no requirement")
 
 
@@ -31,19 +36,34 @@ def contained(value: str, text: str) -> bool:
     return needle in haystack
 
 
+def whole_identifier(value: str, text: str) -> bool:
+    """The value occurs with no letter, digit or hyphen joined to either end, so a
+    truncated code such as 210-BLY does not match 210-BLYZ."""
+    needle = normalize(value)
+    haystack = normalize(TABLE_CELLS_RE.sub(" ", text))
+    return bool(needle) and (
+        re.search(rf"(?<![\w-]){re.escape(needle)}(?![\w-])", haystack) is not None
+    )
+
+
 def date_phrases(text: str) -> list[str]:
     return [match.group(0).strip() for match in DATE_RE.finditer(text)]
+
+
+def value_tokens(value: str) -> list[str]:
+    """Distinctive tokens of a value that its cited text must contain."""
+    return [
+        token.rstrip(".,;:")
+        for token in re.findall(r"[a-z0-9][a-z0-9./+-]{2,}", normalize(value))
+        if token.rstrip(".,;:") not in STOP
+    ]
 
 
 def _support(value: str, texts: list[str]) -> bool:
     blob = join_split_emails("\n".join(texts))
     if contained(value, blob):
         return True
-    tokens = [
-        token.rstrip(".,;:")
-        for token in re.findall(r"[a-z0-9][a-z0-9./+-]{2,}", normalize(value))
-        if token.rstrip(".,;:") not in STOP
-    ]
+    tokens = value_tokens(value)
     if not tokens:
         return False
     haystack = normalize(blob)
@@ -92,6 +112,17 @@ def _paraphrase_support(value: str, texts: list[str]) -> bool:
         return False
     present = sum(1 for token in tokens if token[:6] in haystack)
     return present / len(tokens) >= PARAPHRASE_COVERAGE
+
+
+def support_kind(name: str, value: str, texts: list[str]) -> str:
+    """How the cited texts support an accepted value: verbatim, tokens, paraphrase or none."""
+    if any(contained(value, join_split_emails(text)) for text in texts):
+        return "verbatim"
+    if texts and _support(value, texts):
+        return "tokens"
+    if texts and name in PARAPHRASE_FIELDS and _paraphrase_support(value, texts):
+        return "paraphrase"
+    return "none"
 
 
 COPIED_SUMMARY_WORDS = 25
@@ -177,6 +208,7 @@ def validate_field(
         and not date_phrases(draft.value)
         and not MONTH_YEAR_RE.search(draft.value)
         and not (draft.name in RELATIVE_DATE_FIELDS and RELATIVE_RE.search(draft.value))
+        and not (draft.name in RELATIVE_DATE_FIELDS and SCHEDULE_RE.search(draft.value))
         and draft.value.casefold()
         not in {
             "none",
@@ -203,11 +235,21 @@ def validate_field(
     if (
         draft.name in IDENTIFIER_FIELDS
         and chosen
-        and not any(contained(draft.value, hit.text) for hit in chosen)
+        and not any(whole_identifier(draft.value, hit.text) for hit in chosen)
     ):
-        reasons.append("Identifier is not copied from the cited evidence")
+        items = [item.strip() for item in re.split(r"[;,]", draft.value) if item.strip()]
+        if len(items) > 1 and all(
+            any(whole_identifier(item, hit.text) for hit in chosen) for item in items
+        ):
+            reasons.append(
+                f"{draft.name} lists {len(items)} codes; give the one identifier of the "
+                "requested product"
+            )
+        else:
+            reasons.append("Identifier is not copied from the cited evidence")
     if draft.name == "Bid Summary" and chosen:
-        for number in re.findall(r"\d[\d,./:-]*", draft.value):
+        for match in re.findall(r"\d[\d,./:-]*", draft.value):
+            number = match.rstrip(",./:-")
             if not any(number in hit.text for hit in chosen):
                 reasons.append(f"Summary number {number} is not in the cited evidence")
                 break

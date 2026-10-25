@@ -31,9 +31,22 @@ specs-only, label-style sparse) reach the first eight passages shown to the mode
 names the exact JSON keys; reply keys that differ only in case or separators (`term_of_bid`)
 are still matched.
 
-The output `confidence` is required by the assignment schema. It is a fixed value per
-validation status (accepted 0.86, not found 0.74, unresolved 0.35), not a calibrated
-probability, and should be read as a status code.
+The output `confidence` is required by the assignment schema. `confidence.py` computes it
+from what the workflow verified. It is a deterministic evidence-quality heuristic, not a
+probability, and it has not been calibrated against labelled outcomes.
+
+| Outcome | Score |
+| --- | --- |
+| Accepted value | 0.55, plus 0.25 if copied word for word from a cited passage, 0.15 if every distinctive token is cited, or 0.05 for a faithful restatement. Plus 0.10 when two or more sources each support it; minus 0.10 per retry (at most two). Clamped to 0.30–0.95 |
+| Accepted but incomplete (kept with a "Possibly incomplete" note) | Score above minus 0.25, capped at 0.45 |
+| Not found | 0.50, or 0.40 when retries were needed |
+| Unresolved | 0.15, or 0.10 when addenda conflict |
+
+Each field's signals (status, support kind, agreeing sources, retries, incomplete, conflict)
+are written to the trace as a `confidence` / `score` step. The score can only reflect checks
+the validator runs. A value whose individual facts are all cited but whose relation between
+them is wrong still scores as supported. In the Phase D Bid2 run, the incorrect summary scored
+0.6 and the incomplete Payment Terms scored 0.8.
 
 `python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts/extraction` reads loopback
 Qdrant only. A remote host or a URL with credentials is refused. Test mode (`--llm-mode test`)

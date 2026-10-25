@@ -37,8 +37,10 @@ GROUP_INSTRUCTIONS = {
         "verbatim. Specifications may be in a separate specs document rather than the main RFP."
     ),
     "summary": (
-        "Write a 3 to 6 sentence summary using only the evidence. Every number, date and "
-        "identifier in the summary must appear in the cited evidence."
+        "Write a 3 to 6 sentence summary using only the evidence. Cover the scope, the "
+        "products and quantities, key specifications, the due date, the submission method "
+        "and material requirements when the evidence or validated values state them. Every "
+        "number, date and identifier in the summary must appear in the cited evidence."
     ),
 }
 
@@ -81,7 +83,9 @@ FIELD_DEFINITIONS = {
     "MFG for Registration": (
         "The manufacturer the bidder must be authorized by, registered with or a reseller for. "
         "When no manufacturer is named, the manufacturer or authorized-reseller qualification "
-        "the bidder must meet. Business-entity checkboxes are not manufacturer requirements."
+        "the bidder must meet, such as factory authorization or manufacturer certifications "
+        "a reseller must submit. A section heading alone is not a requirement. "
+        "Business-entity checkboxes are not manufacturer requirements."
     ),
     "Contract or Cooperative to use": (
         "The master contract, cooperative or purchasing agreement this purchase uses."
@@ -90,10 +94,14 @@ FIELD_DEFINITIONS = {
         "Manufacturer model name or number of the requested product, such as a series name "
         "and number."
     ),
-    "Part_no": "Part, SKU or item number of the requested product.",
+    "Part_no": (
+        "Part, SKU or item number that identifies the requested product, not the list of "
+        "component codes inside one product's configuration."
+    ),
     "Product": (
-        "The goods or services being bought, with quantities when stated. A list of device "
-        "categories is acceptable when no single product is named."
+        "The goods or services being bought, with quantities when stated: each distinct item "
+        "with its own quantity, unit and model. A list of device categories is acceptable "
+        "when no single product is named. An example is not a requested item."
     ),
     "contact_info": "Name, email and phone of the procurement contact or buyer.",
     "company_name": "The organization issuing the solicitation.",
@@ -101,7 +109,8 @@ FIELD_DEFINITIONS = {
     "Product Specification": (
         "Required technical specifications such as processor, memory, storage, display, "
         "battery and warranty. When several device types are specified, list the stated "
-        "minimums for each."
+        "minimums for each under the device or tier name, so each warranty stays with its "
+        "device."
     ),
 }
 
@@ -238,7 +247,11 @@ def _catalog() -> dict[str, FieldSpec]:
         FieldSpec(
             "Part_no", "product", _steps("part number or SKU of the requested product", hard=True)
         ),
-        FieldSpec("Product", "product", _steps("requested product name and quantity")),
+        FieldSpec(
+            "Product",
+            "product",
+            _steps("requested product name and quantity", "item description quantity unit"),
+        ),
         FieldSpec(
             "contact_info",
             "identity",
@@ -284,6 +297,11 @@ def _catalog() -> dict[str, FieldSpec]:
                 ),
                 QueryStep(
                     "laptop or device specifications for memory display and battery",
+                    RetrievalMode.hybrid_rerank,
+                    hard=True,
+                ),
+                QueryStep(
+                    "minimum requirements for each device type or tier",
                     RetrievalMode.hybrid_rerank,
                     hard=True,
                 ),
@@ -348,13 +366,55 @@ def focus_terms(spec: FieldSpec) -> list[str]:
     return list(dict.fromkeys(word[:6] for word in words if word not in STOPWORDS))
 
 
+LIST_FIELDS = frozenset(
+    {"Product", "Product Specification", "Any Additional Documentation Required", "Bid Summary"}
+)
+"""Fields whose answer is several distinct requirements, often spread over passages."""
+LIST_INSTRUCTION = (
+    "This field can hold several distinct requirements spread over passages. List each one "
+    "with the device, item or condition it applies to; keep different quantities, units, "
+    "model or part numbers and warranty terms separate; and cite every passage you use. "
+    "Return the value as one string, items separated by semicolons."
+)
+DOCUMENT_INSTRUCTION = (
+    "Include only documents the text explicitly requires (must, shall, required, to be "
+    "submitted or presented). A form named in a vendor question, an example, or the "
+    "wording of a blank form is not a requirement; keep the condition of a conditional one."
+)
+
+
+def _table_row(line: str) -> str:
+    """A serialized table row as its non-empty cells separated by ' | '."""
+    try:
+        cells = json.loads(line)
+    except ValueError:
+        return line
+    if not isinstance(cells, list):
+        return line
+    kept = [" ".join(str(cell).split()) for cell in cells if cell not in (None, "")]
+    return " | ".join(cell for cell in kept if cell)
+
+
+def compact(text: str) -> str:
+    """Prompt text for a passage: table rows lose empty cells and JSON escapes.
+
+    Table chunks store each row as a JSON list padded with nulls, which can push the
+    item and quantity cells outside the excerpt window. Validation uses the stored text.
+    """
+    lines = [
+        _table_row(line.strip()) if line.strip().startswith("[") else line
+        for line in text.split("\n")
+    ]
+    return "\n".join(line for line in lines if line.strip())
+
+
 def _excerpt(text: str, limit: int, terms: list[str] | None = None) -> str:
     """The passage, or the window of `limit` characters that mentions the most field terms.
 
     Long chunks often hold the answer after the opening lines, so a head-only cut can
     hide it from the model. The validator still checks the full passage.
     """
-    collapsed = " ".join(text.split())
+    collapsed = " ".join(compact(text).split())
     if len(collapsed) <= limit:
         return collapsed
     lowered = collapsed.casefold()
@@ -380,11 +440,21 @@ def extraction_request(
     reasons: dict[str, list[str]],
     config: ExtractionConfig,
     rejected: dict[str, str] | None = None,
+    facts: list[tuple[str, str, str]] | None = None,
 ) -> ModelRequest:
     blocks = []
     for name in names:
         hits = evidence.get(name) or []
         lines = [f"Field: {name}", f"Definition: {FIELD_DEFINITIONS[name]}"]
+        if name in LIST_FIELDS and name != "Bid Summary":
+            lines.append(LIST_INSTRUCTION)
+        if name == "Any Additional Documentation Required":
+            lines.append(DOCUMENT_INSTRUCTION)
+        if name == "Bid Summary" and facts:
+            lines.append(
+                "Validated field values (cite the id in brackets when the summary uses one):"
+            )
+            lines.extend(f"[{evidence_id}] {field}: {value}" for field, value, evidence_id in facts)
         if reasons.get(name):
             lines.append("Previous rejection: " + "; ".join(reasons[name]))
             if rejected and rejected.get(name):
@@ -408,7 +478,8 @@ def extraction_request(
                 f"[{hit.evidence_id}] {source.file} {where} type={source.document_type.value} "
                 f"addendum={source.addendum_number} rank={hit.rank} mode={hit.mode}"
             )
-            lines.append(_excerpt(hit.text, config.excerpt_chars, focus_terms(CATALOG[name])))
+            limit = config.list_excerpt_chars if name in LIST_FIELDS else config.excerpt_chars
+            lines.append(_excerpt(hit.text, limit, focus_terms(CATALOG[name])))
         blocks.append("\n".join(lines))
     user = (
         f"Attempt: {attempt}\n"
@@ -419,7 +490,8 @@ def extraction_request(
         + (
             "Write the summary in your own sentences; do not copy a passage. "
             if group == "summary"
-            else "Copy values verbatim from the evidence. "
+            else "Copy values verbatim from the evidence; a list may join items copied from "
+            "several passages. "
         )
         + "Use null and notes 'Not found in documents' when the evidence does not state the value. "
         "Do not invent citations, pages, or facts.\n\n" + "\n\n".join(blocks)
@@ -491,12 +563,23 @@ PLACEHOLDERS = frozenset(
 )
 
 
+def _scalars(raw: dict) -> list[str]:
+    return [str(item) for item in raw.values() if isinstance(item, str | int | float)]
+
+
 def _value(raw: object) -> str | None:
-    """A string value; an object or list reply is joined from its non-empty, stated parts."""
+    """A string value; an object or list reply is joined from its non-empty, stated parts.
+
+    A list of objects (one per item) becomes one part per object, its scalar values
+    joined by spaces, so the text stays checkable against the evidence.
+    """
     if isinstance(raw, dict):
-        raw = [item for item in raw.values() if isinstance(item, str | int | float)]
+        raw = _scalars(raw)
     if isinstance(raw, list):
-        parts = [str(item).strip() for item in raw]
+        parts = [
+            " ".join(_scalars(item)).strip() if isinstance(item, dict) else str(item).strip()
+            for item in raw
+        ]
         raw = ", ".join(
             part for part in parts if part and part.casefold().rstrip(".") not in PLACEHOLDERS
         )

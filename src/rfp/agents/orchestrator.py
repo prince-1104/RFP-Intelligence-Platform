@@ -12,8 +12,10 @@ import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from typing import cast
 from uuid import UUID
 
+from rfp.agents.confidence import Signals, Support, band, score
 from rfp.agents.errors import ModelError
 from rfp.agents.extractors import (
     CATALOG,
@@ -41,10 +43,16 @@ from rfp.agents.schemas import (
     TraceEvent,
     ValidationCounts,
 )
-from rfp.agents.semantics import grounded_notes, identifier_aliases, only_incomplete
+from rfp.agents.semantics import (
+    grounded_notes,
+    identifier_aliases,
+    join_split_emails,
+    normalize,
+    only_incomplete,
+)
 from rfp.agents.state import ExtractionState
 from rfp.agents.trace import Tracer, clock
-from rfp.agents.validator import contained, validate_field
+from rfp.agents.validator import contained, support_kind, validate_field, value_tokens
 from rfp.schemas.parsed import DocumentType
 from rfp.schemas.search import SearchRequest, SearchResponse
 from rfp.search.errors import SearchServiceError
@@ -94,12 +102,51 @@ def _repair_citations(
             continue
         source = next((hit for hit in shown if contained(draft.value, hit.text)), None)
         if source is None:
+            added = _complete_citations(draft.value, cited, shown) if cited else []
+            if not added:
+                continue
+            evidence[name] = evidence[name] + [hit for hit in added if hit.evidence_id not in by_id]
+            ids = [*draft.evidence_ids, *(hit.evidence_id for hit in added)]
+            drafts[name] = draft.model_copy(update={"evidence_ids": ids})
+            repaired.append(name)
             continue
         if source.evidence_id not in by_id:
             evidence[name] = evidence[name] + [source]
         drafts[name] = draft.model_copy(update={"evidence_ids": [source.evidence_id]})
         repaired.append(name)
     return repaired
+
+
+def _complete_citations(
+    value: str, cited: list[EvidenceHit], shown: list[EvidenceHit]
+) -> list[EvidenceHit]:
+    """Shown passages that, added to the cited ones, contain every token of a list value.
+
+    A value assembled from several passages is often cited with only some of them. The
+    fewest extra passages are chosen greedily; if the value's tokens cannot all be
+    covered, nothing is added and the validator rejects the value as before.
+    """
+    haystack = normalize("\n".join(join_split_emails(hit.text) for hit in cited))
+    missing = {token for token in value_tokens(value) if token not in haystack}
+    if not missing:
+        return []
+    cited_ids = {hit.evidence_id for hit in cited}
+    pool = [hit for hit in shown if hit.evidence_id not in cited_ids]
+    added: list[EvidenceHit] = []
+    while missing:
+        texts = {hit.evidence_id: normalize(join_split_emails(hit.text)) for hit in pool}
+        best = max(
+            pool, key=lambda hit: sum(t in texts[hit.evidence_id] for t in missing), default=None
+        )
+        if best is None:
+            return []
+        covered = {token for token in missing if token in texts[best.evidence_id]}
+        if not covered:
+            return []
+        added.append(best)
+        missing -= covered
+        pool = [hit for hit in pool if hit.evidence_id != best.evidence_id]
+    return added
 
 
 def _dedupe(hits: list[EvidenceHit], prefix: str) -> list[EvidenceHit]:
@@ -198,13 +245,52 @@ def _reject_copied_identifiers(state: ExtractionState) -> None:
         )
 
 
-def _confidence(status: str) -> float:
-    """Fixed value per validation status, required by the output schema; not a probability."""
-    if status == "accepted":
-        return 0.86
-    if status == "not_found":
-        return 0.74
-    return 0.35
+SUMMARY_FACT_SKIP = frozenset({"Bid Summary", "contact_info"})
+
+
+def _summary_facts(state: ExtractionState) -> list[tuple[str, str, list[EvidenceHit]]]:
+    """Accepted field values with the cited passages that validated each one."""
+    facts: list[tuple[str, str, list[EvidenceHit]]] = []
+    for name in REQUIRED_FIELDS:
+        slot = state.fields[name]
+        if name in SUMMARY_FACT_SKIP or slot.status != "accepted" or slot.draft is None:
+            continue
+        value = slot.draft.value
+        cited = [hit for hit in slot.evidence if hit.evidence_id in slot.draft.evidence_ids]
+        if value and cited:
+            facts.append((name, value[:300], cited))
+    return facts
+
+
+def _expand_facts(drafts: dict[str, DraftField], groups: dict[str, list[str]]) -> None:
+    """A cited validated value stands for every passage that validated it."""
+    draft = drafts.get("Bid Summary")
+    if draft is None or not groups:
+        return
+    ids = [item for cited in draft.evidence_ids for item in groups.get(cited, [cited])]
+    drafts["Bid Summary"] = draft.model_copy(update={"evidence_ids": list(dict.fromkeys(ids))})
+
+
+def _signals(state: ExtractionState, name: str, status: str) -> Signals:
+    slot = state.fields[name]
+    conflict = any(item.conflict for item in state.addendum_changes if item.field == name)
+    if status != "accepted" or slot.draft is None or not slot.draft.value:
+        return Signals(status=status, retries=slot.retry_count, conflict=conflict)
+    value = slot.draft.value
+    cited = [hit for hit in slot.evidence if hit.evidence_id in slot.draft.evidence_ids]
+    agreeing = {
+        (hit.sources[0].file, hit.sources[0].page, hit.sources[0].html_element_id)
+        for hit in cited
+        if hit.sources and support_kind(name, value, [hit.text]) != "none"
+    }
+    return Signals(
+        status=status,
+        support=cast(Support, support_kind(name, value, [hit.text for hit in cited])),
+        agreeing_sources=len(agreeing),
+        retries=slot.retry_count,
+        incomplete=bool(slot.incomplete),
+        conflict=conflict,
+    )
 
 
 def _run_units(
@@ -257,18 +343,34 @@ class Orchestrator:
             self._round(state, tracer, [[name] for name in pending], attempt=attempt)
             _reject_copied_identifiers(state)
         self._finalize(state, skip_summary=True)
-        self._round(state, tracer, [["Bid Summary"]], attempt=0)
+        facts = _summary_facts(state)
+        self._round(state, tracer, [["Bid Summary"]], attempt=0, facts=facts)
         for attempt in range(1, self.config.max_retries + 1):
             if state.fields["Bid Summary"].status != "rejected":
                 break
-            self._round(state, tracer, [["Bid Summary"]], attempt=attempt)
+            self._round(state, tracer, [["Bid Summary"]], attempt=attempt, facts=facts)
         self._finalize(state, skip_summary=False)
         if state.search_ok == 0 and state.search_failed > 0:
             state.status = "failed"
             state.error = "retrieval_unavailable"
         else:
             state.status = "completed"
-        output = self._output(state)
+        output, signals = self._output(state)
+        for name, item in signals.items():
+            value = output.fields[name].confidence
+            tracer.extend(
+                [
+                    _event(
+                        "confidence",
+                        "score",
+                        clock(),
+                        time.perf_counter(),
+                        field=name,
+                        decision=f"{value} ({band(value)})",
+                        reasons=item.reasons(),
+                    )
+                ]
+            )
         return output, state, tracer._events
 
     def _round(
@@ -277,6 +379,7 @@ class Orchestrator:
         tracer: Tracer,
         units: list[list[str]],
         attempt: int,
+        facts: list[tuple[str, str, list[EvidenceHit]]] | None = None,
     ) -> None:
         reasons: dict[str, list[str]] = {}
         rejected: dict[str, str] = {}
@@ -295,6 +398,7 @@ class Orchestrator:
                 attempt,
                 {name: reasons[name] for name in names},
                 {name: rejected[name] for name in names if name in rejected},
+                facts,
             )
 
         for result in _run_units(units, worker, self.config.concurrency):
@@ -308,6 +412,7 @@ class Orchestrator:
         attempt: int,
         reasons: dict[str, list[str]],
         rejected: dict[str, str] | None = None,
+        facts: list[tuple[str, str, list[EvidenceHit]]] | None = None,
     ) -> AttemptResult:
         events: list[TraceEvent] = []
         evidence: dict[str, list[EvidenceHit]] = {}
@@ -377,6 +482,21 @@ class Orchestrator:
                     )
                 )
             evidence[name] = _dedupe(_interleave(collected), evidence_prefix(name))
+        fact_lines: list[tuple[str, str, str]] = []
+        fact_groups: dict[str, list[str]] = {}
+        if facts and "Bid Summary" in evidence:
+            prefix = evidence_prefix("Bid Summary")
+            for index, (field_name, value, hits) in enumerate(facts, start=1):
+                ids = [
+                    f"{prefix}-fact-{index}" + (f"-{part}" if part else "")
+                    for part in range(len(hits))
+                ]
+                evidence["Bid Summary"].extend(
+                    hit.model_copy(update={"evidence_id": item})
+                    for hit, item in zip(hits, ids, strict=True)
+                )
+                fact_groups[ids[0]] = ids
+                fact_lines.append((field_name, value, ids[0]))
         result.evidence = evidence
         asked = [name for name in names if evidence[name]]
         drafts: dict[str, DraftField] = {}
@@ -394,7 +514,7 @@ class Orchestrator:
         if asked:
             group = CATALOG[asked[0]].group
             request = extraction_request(
-                group, evidence, asked, attempt, reasons, self.config, rejected
+                group, evidence, asked, attempt, reasons, self.config, rejected, fact_lines
             )
             started, stamp = clock(), time.perf_counter()
             completion: ModelResponse | None = None
@@ -404,6 +524,7 @@ class Orchestrator:
                 result.provider = completion.provider
                 result.model_name = completion.model
                 drafts.update(parse_drafts(asked, completion.text))
+                _expand_facts(drafts, fact_groups)
                 _borrow_shown(evidence, drafts, asked)
                 repaired = _repair_citations(evidence, drafts, asked)
             except (ModelError, ValueError) as exc:
@@ -689,8 +810,9 @@ class Orchestrator:
                 support="unsupported",
             )
 
-    def _output(self, state: ExtractionState) -> BidExtraction:
+    def _output(self, state: ExtractionState) -> tuple[BidExtraction, dict[str, Signals]]:
         fields: dict[str, FieldOutput] = {}
+        signals: dict[str, Signals] = {}
         passed = not_found = unresolved = 0
         for name in REQUIRED_FIELDS:
             slot = state.fields[name]
@@ -701,10 +823,11 @@ class Orchestrator:
                     sources = _sources(draft, slot.evidence)
                 except ValueError:
                     unresolved += 1
+                    signals[name] = _signals(state, name, "unresolved")
                     fields[name] = FieldOutput(
                         value=None,
                         sources=[],
-                        confidence=_confidence("unresolved"),
+                        confidence=score(signals[name]),
                         notes="Validation failed: citation could not be rendered",
                     )
                     continue
@@ -715,30 +838,34 @@ class Orchestrator:
                 if name == "Bid Number":
                     notes = " ".join(filter(None, [notes, _alias_note(draft.value, slot.evidence)]))
                 if slot.incomplete:
-                    notes = "Possibly incomplete: " + "; ".join(slot.incomplete) + "."
+                    warning = "Possibly incomplete: " + "; ".join(slot.incomplete) + "."
+                    notes = " ".join(filter(None, [warning, _change_notes(changes)]))
+                signals[name] = _signals(state, name, status)
                 fields[name] = FieldOutput(
                     value=draft.value,
                     sources=sources,
-                    confidence=_confidence(status),
+                    confidence=score(signals[name]),
                     notes=notes or "Supported by the cited passage.",
                 )
             elif status == "not_found":
                 not_found += 1
+                signals[name] = _signals(state, name, status)
                 fields[name] = FieldOutput(
                     value=None,
                     sources=[],
-                    confidence=_confidence(status),
+                    confidence=score(signals[name]),
                     notes=draft.notes.strip() or "Not found in documents",
                 )
             else:
                 unresolved += 1
+                signals[name] = _signals(state, name, "unresolved")
                 fields[name] = FieldOutput(
                     value=None,
                     sources=[],
-                    confidence=_confidence("unresolved"),
+                    confidence=score(signals[name]),
                     notes=draft.notes.strip() or "Validation failed",
                 )
-        return BidExtraction(
+        output = BidExtraction(
             bid_id=state.bid_label,
             fields=fields,
             addendum_changes=state.addendum_changes,
@@ -749,6 +876,7 @@ class Orchestrator:
                 not_found=not_found,
             ),
         )
+        return output, signals
 
 
 def _change_order(change: AddendumChange) -> tuple[int, bool, int, str]:

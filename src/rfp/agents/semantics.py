@@ -110,6 +110,14 @@ RULES: dict[str, FieldRule] = {
     ),
     "Pre Bid Meeting": FieldRule(
         cue=r"pre-?bid|pre-?proposal|pre-?submittal|conference|meeting|walk-?through|site visit",
+        omits=r"\b(?:via|through|on|using)\s+(?:microsoft\s+)?(?:teams|zoom|webex|google meet)\b|"
+        r"\bvideo ?conferenc|\bvirtual(?:ly)?\b|\bin[- ]person\b|\bconference call\b",
+        omits_cue=r"teams|zoom|webex|meet\b|video|virtual|in[- ]person|call|online|room|"
+        r"building|street|avenue|address|location|held at",
+        omits_problem=(
+            "Pre Bid Meeting omits how or where the meeting is held, which the cited passage states"
+        ),
+        omits_scope="text",
     ),
     "Installation": FieldRule(cue=r"install|deploy|set-?up|imag|white glove|configur"),
     "Bid Bond Requirement": FieldRule(cue=r"bond|security|guarant|surety"),
@@ -302,10 +310,272 @@ def identifier_aliases(value: str, texts: list[str]) -> list[tuple[int, str]]:
     return aliases
 
 
+DUE_TIME_PROBLEM = "Due Date omits the time stated with the date in the cited passage"
+DUE_ZONE_PROBLEM = "Due Date omits the time zone stated with the date and time in the cited passage"
+WARRANTY_PROBLEM = (
+    "Product Specification gives one warranty term while the cited passages state different "
+    "warranty terms; keep each device's warranty with its device"
+)
+OMISSIONS = frozenset({DUE_TIME_PROBLEM, DUE_ZONE_PROBLEM, WARRANTY_PROBLEM})
+
+
 def only_incomplete(reasons: list[str]) -> bool:
     """The value was rejected only because it leaves out a detail stated next to it."""
-    omissions = {rule.omits_problem for rule in RULES.values() if rule.omits_problem}
+    omissions = {rule.omits_problem for rule in RULES.values() if rule.omits_problem} | OMISSIONS
     return bool(reasons) and all(reason in omissions for reason in reasons)
+
+
+ZONE = (
+    r"\b(?-i:[ECMP][SD]?T|AK[SD]T|H[SD]T|UTC|GMT)\b|\b(?:eastern|central|mountain|pacific|local)"
+    r"(?:\s+(?:standard|daylight|prevailing))?\s+time\b"
+)
+TIME_AFTER_DATE = re.compile(
+    r"^[\s,]{0,3}(?:(?:at|by|@|before|no later than)\s+)?"
+    r"(?P<time>\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\.?)?|\d{1,2}\s*[ap]\.?m\.?)"
+    rf"(?:\s*\(?\s*(?P<zone>{ZONE}))?",
+    re.I,
+)
+TIME_RE = re.compile(r"\d{1,2}:\d{2}|\b\d{1,2}\s*[ap]\.?m\b", re.I)
+ZONE_RE = re.compile(ZONE, re.I)
+ZONE_AFTER = re.compile(rf"^\s*\(?\s*({ZONE})", re.I)
+
+
+CLOCK_START = re.compile(r",?\s+(?:at\s+)?(?=\d{1,2}:\d{2})", re.I)
+
+
+def _date_key(phrase: str) -> str:
+    """The calendar date of a date phrase, without any time or zone."""
+    return normalize(CLOCK_START.split(phrase)[0]).strip(", ")
+
+
+def _stated_times(date: str, texts: list[str]) -> list[tuple[str, str | None]]:
+    """(time, zone) printed with this calendar date in the texts."""
+    stated: list[tuple[str, str | None]] = []
+    for text in texts:
+        flat = " ".join(TABLE_CELLS_RE.sub(" ", text).split())
+        for match in DATE_RE.finditer(flat):
+            phrase = match.group(0)
+            if _date_key(phrase) != date:
+                continue
+            clock = CLOCK_START.search(phrase)
+            inline = TIME_AFTER_DATE.match(phrase[clock.start() :]) if clock else None
+            after = TIME_AFTER_DATE.match(flat[match.end() :])
+            if inline:
+                trailing = ZONE_AFTER.match(flat[match.end() :])
+                zone = inline.group("zone") or (trailing.group(1) if trailing else None)
+                stated.append((inline.group("time"), zone))
+            if after:
+                stated.append((after.group("time"), after.group("zone")))
+    return stated
+
+
+LABEL_CHARS = 60
+QUESTION_LABEL = re.compile(
+    r"\b(?:questions?|inquir\w*|clarifications?)\b"
+    r"(?![^\d]*\b(?:proposals?|bids?|responses?|offers?|solicitation|submissions?)\b)[^\d]*$",
+    re.I,
+)
+
+
+def _labels_before(date: str, texts: list[str]) -> list[str]:
+    """The label just before each occurrence of the calendar date, after any sentence break."""
+    labels: list[str] = []
+    for text in texts:
+        flat = " ".join(TABLE_CELLS_RE.sub(" ", text).split())
+        for match in DATE_RE.finditer(flat):
+            if _date_key(match.group(0)) == date:
+                window = flat[max(0, match.start() - LABEL_CHARS) : match.start()]
+                labels.append(re.split(r"[.;!?]\s", window)[-1])
+    return labels
+
+
+def due_date_problems(value: str, texts: list[str]) -> list[str]:
+    """A deadline keeps the time and zone printed with its date, and adds neither.
+
+    Only a time or zone written immediately after the same calendar date counts; a zone
+    is never taken from the locale or from another passage.
+    """
+    dates = [_date_key(match.group(0)) for match in DATE_RE.finditer(value)]
+    if not dates:
+        return []
+    stated = [item for date in dates for item in _stated_times(date, texts)]
+    problems: list[str] = []
+    labels = [label for date in dates for label in _labels_before(date, texts)]
+    if labels and all(QUESTION_LABEL.search(label) for label in labels):
+        problems.append("Due Date is the deadline for vendor questions, not for responses")
+    has_time = TIME_RE.search(value) is not None
+    zone = ZONE_RE.search(value)
+    if stated and not has_time:
+        problems.append(DUE_TIME_PROBLEM)
+    elif not zone and any(found_zone for _, found_zone in stated):
+        problems.append(DUE_ZONE_PROBLEM)
+    if zone and not any(
+        found_zone and normalize(found_zone) == normalize(zone.group(0)) for _, found_zone in stated
+    ):
+        problems.append("Due Date states a time zone that is not printed with that date")
+    return problems
+
+
+SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n\s*\n")
+
+
+def _segments(text: str) -> list[str]:
+    """Sentences of prose, and whole rows of a table chunk (cells joined by spaces)."""
+    segments: list[str] = []
+    for block in text.split("\n"):
+        stripped = block.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            segments.append(" ".join(TABLE_CELLS_RE.sub(" ", stripped).split()))
+    prose = "\n".join(block for block in text.split("\n") if not block.strip().startswith("["))
+    for part in SENTENCE_SPLIT.split(prose):
+        flat = " ".join(part.split())
+        if flat:
+            segments.append(flat)
+    return segments
+
+
+def _mentions(item: str, segment: str) -> bool:
+    needle = normalize(item)
+    haystack = normalize(segment)
+    if len(needle) <= 6:
+        return re.search(rf"(?<!\w){re.escape(needle)}(?!\w)", haystack) is not None
+    return needle in haystack
+
+
+MONTH_OF_YEAR = re.compile(
+    r"\b(January|February|March|April|May|June|July|August|September|October|November|"
+    r"December)\s+of\s+(\d{4})\b",
+    re.I,
+)
+ORDERING_CUE = r"\bquot(?:e|es|ing|ation)|\border(?:s|ing)?\b|\baward|\bpurchas|\bfund"
+
+
+def delivery_problems(value: str, texts: list[str]) -> list[str]:
+    """A delivery date must come from a sentence about delivery, not about quotes or award."""
+    value = MONTH_OF_YEAR.sub(r"\1 \2", value)
+    sentences = [
+        segment
+        for text in texts
+        for segment in _segments(MONTH_OF_YEAR.sub(r"\1 \2", join_split_emails(text)))
+        if _mentions(value, segment)
+    ]
+    if not sentences or any(re.search(DELIVERY_CUE, item, re.I) for item in sentences):
+        return []
+    if any(re.search(ORDERING_CUE, item, re.I) for item in sentences):
+        return [
+            "Delivery Date is when quotes, orders or the award are expected, not when goods "
+            "must be delivered"
+        ]
+    return []
+
+
+REQUIRED_CUE = re.compile(
+    r"\b(?:must|shall|required|requires?|mandatory|needs? to|will need to)\b|"
+    r"\bshould be (?:submitted|included|provided|attached|completed)\b|"
+    r"\bto be (?:submitted|presented|provided|included|attached|completed|returned|signed)\b|"
+    r"\battached to (?:the|your|each) (?:submission|response|proposal|bid|offer)\b|"
+    r"\bsubmit(?:ted)? (?:it )?with\b|"
+    r"\bcompleted,? (?:and )?(?:signed|attached|returned|submitted)",
+    re.I,
+)
+EXAMPLE_CUE = re.compile(r"\b(?:e\.g\.|for example|for instance|such as)\b", re.I)
+CONDITION_CUE = re.compile(
+    r"^\W*(?:\d+\.\s*)?(?:if|when|where|in the event|should the)\b|\bif (?:applicable|"
+    r"required|requested|awarded)\b|\bunless\b|\bonly if\b|\bwhere applicable\b",
+    re.I,
+)
+VALUE_CONDITION = re.compile(r"\b(?:if|when|where|applicable|only|upon request|unless)\b", re.I)
+DOCUMENT_NOUN = re.compile(
+    r"affidavit|form\b|forms\b|certific|w-?9|attachment|exhibit|document|questionnaire|"
+    r"declaration|statement|disclosure|insurance|licen[cs]e|reference|signature|acknowledg|"
+    r"letter|plan\b|proof|copy|copies|schedule|worksheet|bond|resume|report|list\b|sheet|"
+    r"agreement|addend",
+    re.I,
+)
+"""A listed item must name something submitted, not a product or service requirement."""
+ITEM_SPLIT = re.compile(r"\s*;\s*|\s*,\s*(?=(?:and\s+)?[A-Z0-9])|\n+")
+
+
+def document_problems(value: str, texts: list[str]) -> list[str]:
+    """Each listed document must be required by the cited text.
+
+    A document named only in a vendor question, an example, or a form's own wording is
+    not a requirement, and a conditional requirement must keep its condition. Items the
+    text does not name verbatim are left to the support check.
+    """
+    segments = [segment for text in texts for segment in _segments(join_split_emails(text))]
+    problems: list[str] = []
+    for raw in ITEM_SPLIT.split(value):
+        item = re.sub(r"^(?:and|or)\s+", "", raw.strip().strip(".:"), flags=re.I)
+        if len(re.findall(r"[a-z]", item, re.I)) < 3:
+            continue
+        if not DOCUMENT_NOUN.search(item):
+            problems.append(f"'{item}' is not a document, form or certificate")
+            continue
+        found = [segment for segment in segments if _mentions(item, segment)]
+        if not found:
+            continue
+        stated = [
+            segment
+            for segment in found
+            if not segment.rstrip().endswith("?") and not EXAMPLE_CUE.search(segment)
+        ]
+        required = [segment for segment in stated if REQUIRED_CUE.search(segment)]
+        unconditional = [segment for segment in required if not CONDITION_CUE.search(segment)]
+        if unconditional or (required and VALUE_CONDITION.search(item)):
+            continue
+        if required:
+            problems.append(f"'{item}' is required only under a condition the value omits")
+        elif not stated:
+            problems.append(f"'{item}' appears only in a question or example, not a requirement")
+        else:
+            problems.append(f"'{item}' is not stated as a required submission in the cited text")
+    return problems
+
+
+NUMBER_WORDS = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5"}
+YEARS = r"(\d+|one|two|three|four|five)[\s-]*(?:\(\d+\)[\s-]*)?(?:years?|yrs?)\b"
+WARRANTY_TERM = re.compile(
+    rf"{YEARS}[^.\n]{{0,40}}?\bwarrant|\bwarrant\w*\b[^.\n]{{0,60}}?\b{YEARS}", re.I
+)
+
+
+def _warranty_terms(text: str) -> set[str]:
+    flat = " ".join(TABLE_CELLS_RE.sub(" ", text).split())
+    terms = set()
+    for match in WARRANTY_TERM.finditer(flat):
+        word = (match.group(1) or match.group(2)).casefold()
+        terms.add(NUMBER_WORDS.get(word, word))
+    return terms
+
+
+def warranty_problems(value: str, texts: list[str]) -> list[str]:
+    stated = set().union(*(_warranty_terms(text) for text in texts)) if texts else set()
+    given = _warranty_terms(value)
+    if len(stated) >= 2 and len(given) == 1:
+        return [WARRANTY_PROBLEM]
+    return []
+
+
+HEADING_NOUN = re.compile(
+    r"\b(?:qualifications?|requirements?|registration|certifications?|terms|conditions|"
+    r"specifications?|instructions)\s*:?\s*$",
+    re.I,
+)
+HEADING_FIELDS = frozenset(
+    {"MFG for Registration", "Installation", "Bid Bond Requirement", "Payment Terms"}
+)
+
+
+def heading_problems(name: str, value: str) -> list[str]:
+    """A bare section heading names a topic; the field needs the requirement under it."""
+    words = value.split()
+    if name not in HEADING_FIELDS or not 2 <= len(words) <= 10 or REQUIRED_CUE.search(value):
+        return []
+    content = [word for word in words if len(word) > 3 and word[0].isalpha()]
+    if HEADING_NOUN.search(value) and all(word[0].isupper() for word in content):
+        return [f"{name} value is a section heading; state the requirement written under it"]
+    return []
 
 
 def _anchors(value: str) -> list[str]:
@@ -387,4 +657,13 @@ def semantic_problems(name: str, value: str, texts: list[str]) -> list[str]:
         scope = [normalize(text) for text in texts] if rule.omits_scope == "text" else None
         if any(re.search(rule.omits, part, re.I) for part in scope or windows(value, texts)):
             problems.append(rule.omits_problem)
+    problems.extend(heading_problems(name, value))
+    if name == "Due Date":
+        problems.extend(due_date_problems(value, texts))
+    elif name == "Delivery Date":
+        problems.extend(delivery_problems(value, texts))
+    elif name == "Any Additional Documentation Required":
+        problems.extend(document_problems(value, texts))
+    elif name == "Product Specification":
+        problems.extend(warranty_problems(value, texts))
     return problems

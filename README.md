@@ -741,8 +741,8 @@ so Bid2 answers `Not found in documents`.
 - Grounding is lexical, not entailment.
 - Field-meaning rules (Phase 8) are keyword cues. They reject values of the wrong kind, but they
   cannot judge completeness.
-- Extraction `confidence` is a fixed value per status (0.86 / 0.74 / 0.35), not a calibrated
-  probability.
+- Extraction `confidence` was a fixed value per status (0.86 / 0.74 / 0.35) in these runs. Phase D
+  replaced it with an uncalibrated evidence heuristic.
 - Scanned pages are OCR text without tables.
 - Retrieval labels and all accuracy verdicts are not yet human-approved.
 
@@ -1066,9 +1066,10 @@ stage lists every failed page in `run_summary.json` (`page_warnings`) and the ru
   Number, Title, Model_no, Part_no, contact_info, company_name and Bid Summary are not reconciled.
   Addendum issue dates are not in the index, so a later change wins only when the addendum says
   what it supersedes. Otherwise competing changes are reported as a conflict.
-- **Confidence is not calibrated.** Each field's `confidence` is a fixed value per validation
-  status: 0.86 accepted, 0.74 not found, 0.35 unresolved. It is a status code, not a probability.
-  Q&A answers report `confidence: null`.
+- **Confidence is not calibrated.** Since Phase D, each field's `confidence` is an
+  evidence-quality heuristic (`agents/confidence.py`), not a probability. Errors the validator
+  misses can still score medium. The published `extraction_v4` JSON predates it and shows the old
+  fixed values (0.86 / 0.74 / 0.35). Q&A answers report `confidence: null`.
 - **Cross-bid questions use `ask --compare-bids`** (Phase A, below). Aspect relations are lexical,
   and only the CLI supports comparison.
 - **Repeated PDF headers and footers are removed for new chunking** (Phase C, below), but the
@@ -1490,6 +1491,78 @@ Two further tests check the real parsed artifacts when they are present.
 - One copy of each removed group remains in the document.
 - The main collection and the published evidence were not rebuilt.
 
+## Phase D: extraction completeness and confidence
+
+Phase D fixes causes of incomplete or wrong field values found in a field-by-field baseline. It
+does not enlarge the context window or add answers for particular fields. Retrieval stays
+bid-filtered, and every value still needs a citation.
+
+**Root causes and fixes.**
+- **List fields** (Product, Product Specification, Documents) were copied from a single passage, from
+  excerpts cut at 900 characters and serialized as noisy table JSON. Table rows are now compacted,
+  and list fields get a larger excerpt budget (`list_excerpt_chars`, default 1600). The prompt asks
+  for every item across the passages, joined by semicolons. When the model cites some of the
+  passages a list value comes from, `_complete_citations` adds the fewest other shown passages that
+  cover the missing words; if they cannot all be covered, it adds nothing. Structured replies, such
+  as a list of objects, are flattened.
+- **Due Date.** `semantics.due_date_problems` rejects:
+  - a value that drops a time printed with the date;
+  - a value that drops the zone printed with that time;
+  - a zone that is not printed with that date;
+  - a date taken from a questions or inquiries deadline.
+
+  A date printed alone stays date-only; a zone is never inferred.
+- **Delivery Date.** A sentence about when quotes, orders or the award are expected is rejected.
+- **Documents.** Each item must be a document, form or certificate. It must be stated as required,
+  not only in a question or example, and a condition attached to the requirement must stay in the
+  value.
+- **Warranty and headings.** A value that keeps one duration when the cited text states several is
+  marked incomplete. A value that is only a section heading is rejected.
+- **Identifiers.** Model and part numbers must match a whole code (`210-BLY` no longer matches
+  `210-BLYZ`), and a list of component codes is rejected.
+- **Summary.** It is written after the other fields are validated, using their values and
+  citations, and must cover the key items without facts beyond the cited passages.
+
+**Confidence.** `agents/confidence.py` replaces the fixed 0.86 / 0.74 / 0.35 values with a
+deterministic evidence-quality heuristic. The score depends on:
+- how the value is supported (verbatim, all words cited, or restated);
+- how many sources agree;
+- how many retries the field needed;
+- whether it was kept although incomplete (capped at 0.45);
+- whether it is unresolved (0.15) or conflicting (0.10).
+
+Each field's signals are written to the trace. The score is not a probability and is not
+calibrated; `src/rfp/agents/README.md` has the table.
+
+**Live rerun** (`gpt-4o-mini`, one run per bid, classified by the agent against the cited source
+pages, not human-reviewed; `artifacts/phaseD_extraction/`):
+
+| Bid (baseline → after) | Complete | Incomplete | Correctly not found | Incorrect |
+|---|---|---|---|---|
+| Bid1 | 8 → 10 | 7 → 5 | 4 → 5 | 1 → 0 |
+| Bid2 | 12 → 14 | 3 → 1 | 4 → 4 | 1 → 1 |
+
+- **Improved:** Bid1 Delivery Date, MFG, Product and Summary; Bid2 Documents and Product.
+- **Regressed:**
+  - Bid1 Installation is now a less specific restatement.
+  - The Bid2 summary links two cited facts wrongly. It says invoices include the Mercury Affidavit
+    and the warranty certificate. Word-level validation cannot catch this, and it scored 0.6.
+- **Citations:** no cited file outside the bid, and every source holds words from the value.
+- **Variation:** earlier iterations gave different values for some fields.
+- **Cost:** Bid1 input tokens rose from about 39k to 55k.
+- **Not published:** `submission/evidence/` still holds the Phase 9 `extraction_v4` output.
+
+**Tests.** `tests/test_extraction_completeness.py` (25 fake-model tests) covers:
+- due-date time and zone kept, and a missing zone left missing;
+- addendum reconciliation, device warranties and the OEM requirement;
+- multi-page lists, documents versus questions, and distinct quantities;
+- whole model and part numbers;
+- correct not-found, unsupported claims rejected and conflicts left unresolved;
+- cross-bid isolation and confidence responses;
+- the 20-field JSON shape and determinism.
+
+These tests are synthetic and are not evidence of live accuracy.
+
 ## Submission Evidence and Reproducibility
 
 Generated outputs are written to `artifacts/`, which is git-ignored. The files the assignment asks
@@ -1567,7 +1640,7 @@ evidence used `openai` / `gpt-4o-mini`, as recorded in each trace. Keys are neve
 
 **Live versus offline.** Every file in `submission/evidence/` came from live runs on the two
 assessment bids, or from local search with no LLM (retrieval and `phaseB_reconciliation_Bid1.json`).
-The test suite (472 offline tests, 6 integration tests) uses fake models and constructed or synthetic documents. `tests/test_pipeline.py`
+The test suite (498 offline tests, 6 integration tests) uses fake models and constructed or synthetic documents. `tests/test_pipeline.py`
 runs `process-bid` on a fictional bid, and it is not evidence of live accuracy.
 
 **Retrieval results** (55 cases, 50 scored, default rerank depth 20; rerun on 2026-10-24 with identical
@@ -1577,7 +1650,8 @@ rerank 0.772 / 0.769. The full table is in the retrieval section above.
 **Known limitations of the evidence.**
 - Extraction (model-assisted review): Bid1 9 correct and 7 partial; Bid2 11 correct and 5 partial;
   no wrong values. Partial fields include Bid2 Due Date without time or zone, and incomplete
-  documentation, product and specification fields.
+  documentation, product and specification fields. The unpublished Phase D rerun is summarized in
+  the Phase D section.
 - `extraction_v4` is the chosen Phase 9 run. Earlier attempts ran on changing code, and a same-code
   repeat differed in some fields (`docs/live_validation.md`). Values vary between runs.
 - Q&A: 5 false abstentions on the 14-case gold set (9/14 correct) in the `qa_v7` run, including the
@@ -1586,7 +1660,8 @@ rerank 0.772 / 0.769. The full table is in the retrieval section above.
 - Cross-bid comparison is CLI-only, and its aspect relations are lexical.
 - No real unseen bid was tested; only a synthetic fixture.
 - Retrieval labels and Q&A gold answers are assistant-made and not human-approved.
-- Confidence values are fixed per status, not calibrated.
+- Confidence values in the published extraction JSON are fixed per status. Since Phase D, the
+  code computes an uncalibrated evidence heuristic instead; that output is not published.
 - Addendum supersession and conflict handling are tested offline only. Bid1/Bid2 have no
   competing addendum changes.
 - Masked excerpts in `qa_examples.json` (examples 2 and 11) are no longer verbatim.

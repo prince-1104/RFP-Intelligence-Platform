@@ -20,7 +20,12 @@ from rfp.agents.schemas import (
     ExtractionConfig,
     SourceRef,
 )
-from rfp.agents.semantics import grounded_notes, semantic_problems
+from rfp.agents.semantics import (
+    DUE_TIME_PROBLEM,
+    grounded_notes,
+    only_incomplete,
+    semantic_problems,
+)
 from rfp.agents.validator import validate_field
 from rfp.schemas.parsed import DocumentType
 from rfp.schemas.search import (
@@ -129,7 +134,10 @@ def test_due_date_needs_a_deadline_label_near_the_date():
     issued = "PORFP Issue Date: 05/24/2024 Place of Performance: State Office"
     assert _check("Due Date", "05/24/2024", issued).status == "rejected"
     labelled = "PROPOSAL DUE DATE and TIME: 06/10/2024 at 2:00 PM"
-    assert _check("Due Date", "06/10/2024", labelled).status == "accepted"
+    assert _check("Due Date", "06/10/2024 at 2:00 PM", labelled).status == "accepted"
+    date_only = _check("Due Date", "06/10/2024", labelled)
+    assert date_only.reasons == [DUE_TIME_PROBLEM]
+    assert only_incomplete(date_only.reasons)
 
 
 def test_contact_needs_an_email_or_phone_and_tolerates_a_split_pdf_domain():

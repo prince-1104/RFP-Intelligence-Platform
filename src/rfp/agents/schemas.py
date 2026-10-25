@@ -44,6 +44,8 @@ class ExtractionConfig(Contract):
     concurrency: int = Field(default=4, ge=1, le=8)
     critic_enabled: bool = False
     excerpt_chars: int = Field(default=700, ge=80, le=4000)
+    list_excerpt_chars: int = Field(default=1600, ge=80, le=4000)
+    """Per-passage budget for fields whose requirements are listed across a passage."""
 
 
 class OutputSource(Contract):
