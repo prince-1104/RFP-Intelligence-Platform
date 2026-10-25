@@ -1,61 +1,53 @@
 # Assignment requirement checklist
 
-Updated 2026-10-24 after Phase 10 (end-to-end `process-bid` command and unseen-bid tests). This
-file supersedes the status columns of `ASSIGNMENT_COMPLIANCE_AUDIT.md`, which records the state
-before Phases 5–10.
-Evidence paths are relative to the repository root.
+Updated 2026-10-24 after the final submission audit (Phase 11). This is the short form of
+`docs/final_submission_audit.md`, which gives the implementation, evidence, verification method and
+remaining limitation for each requirement of `Assignment-AI Engineer.pdf`. It supersedes the status
+columns of `ASSIGNMENT_COMPLIANCE_AUDIT.md` (state before Phases 5–11).
 
-Live evidence is in `docs/live_validation.md`. The per-field review is in
-`docs/final_accuracy_review.md`. Accuracy verdicts are model-assisted or automated; no human
-review has taken place.
+**No human review has taken place.** Accuracy verdicts, Q&A gold answers and retrieval labels are
+automated or assistant-assisted. Passing tests do not establish extraction accuracy, and the
+synthetic unseen bid does not establish generalization to real unseen bids.
 
-Statuses:
-
-- **Verified:** complete and verified, by a live run on Bid1 and Bid2 or by offline tests where
-  noted.
-- **Not verified:** implemented but not verified.
-- **Missing.**
-- **Blocked:** blocked by configuration or data.
+Statuses: **Verified** (met and checked in this audit or by a re-checked saved report), **Partial**
+(gap named), **Blocked** (cannot run or ship as is), **Not implemented**.
 
 | Requirement | Status | Evidence / gap |
 |---|---|---|
-| A. Parse HTML and PDF with page and structure | Verified | `artifacts/assessment/*/parsed`; `tests/test_parsers.py` |
-| A. Extract tables | Verified | Native PDF and HTML tables. Scanned pages (Bid1 FINAL pp. 54–59) are OCR text without table structure |
-| A. Clean text (whitespace, wrapped lines, soft hyphens) | Verified | `chunking/normalize.py` and chunk tests |
-| A. Remove repeated page headers and footers | Missing | Headers such as "Request For Proposal 168884 JA-207652 …" stay in the text |
-| A. Metadata (bid, file, doc type, addendum, page, date) | Verified | Citations in every live output carry them |
-| A. Graceful failure for scanned, empty or corrupt files | Verified (offline) | Parser tests |
-| B. RFP-aware chunking with overlap | Verified | Chunk tests; README Phase 3 |
-| B. Embeddings + vector store + metadata | Verified | Local collection `bid_documents__79fea6c89a6d`, 533 points, used by every live run |
-| B. Incremental indexing | Verified (offline) | `tests/test_search_indexing.py`; not re-run this phase (no re-indexing) |
-| B. Hybrid search, filtering, reranking, query expansion | Verified | `artifacts/eval/retrieval_phase8.json`: identical to Phase 7, 0 cross-bid leaks in 4 modes |
-| B. Citations (file, page or element, text) | Verified | Every Q&A citation is a verbatim span with a locator (`artifacts/qa_examples.json`). Chunks that cross pages now cite the page holding the value (Phase 8) |
-| B. Search CLI / API | CLI verified; API not verified | CLI used live. API covered by offline tests only |
-| B. ≥15 query-to-passage pairs, both bids | Verified | 55 cases (`evaluation/assessment_retrieval.json`); `verify` OK |
-| B. Metrics for ≥2 configurations, table in the README | Verified | 4 modes; table in the README retrieval section |
-| B. Human approval of retrieval labels | Not verified | Automated grounding check, plus a model-assisted spot check of 16 cases (two per kind) that found no incorrect labels. `needs_human_labeling` lists open items |
-| C. Orchestrator, specialists, retrieval tool use, shared state | Verified | `artifacts/extraction_v4/traces/*.json` (agents: retrieval, identity, logistics, commercial, product, summary, validator, critic) |
-| C. Addendum reconciliation | Verified | Bid1 due date: 27-JUN-2024 14:00:00 → July 9, 2024 2:00 PM CST (Addendum 2); the note is written from the change record. Bid2 has no addenda |
-| C. Validator with bounded re-extraction | Verified, with gaps | Retries ≤ 2 in every trace. Field-meaning rules (`agents/semantics.py`) reject values of the wrong kind. Phase 9 adds omission checks (Term renewals, Product quantity) and the Bid Number rule. Completeness is only checked for these cases |
-| C. Parallel agent execution | Verified (offline) | Group concurrency test in `tests/test_extraction.py` |
-| C. "Not found in documents" and citation-only values | Verified | Extraction null notes; 5 correct Q&A abstentions |
-| C. Observability: steps, tool calls, tokens, latency in one trace | Verified | Extraction and Q&A traces; question text is hashed |
-| C. Error handling (timeout, bad JSON, empty retrieval) | Verified | Offline tests. A malformed live reply was handled without a crash |
-| C. Extraction mode and Q&A mode | Verified | `extract-bid`, `ask`, `ask-samples` run live |
-| D. 20 fields per bid, one JSON per bid, null with reason, `addendum_changes`, `validation` | Verified (structure) | `artifacts/extraction_v4/Bid1.json`, `Bid2.json`; `artifacts/eval/extraction_v4_check.json` |
-| D. Extraction accuracy | Not verified (issues recorded) | Model-assisted review of `extraction_v4` in `docs/final_accuracy_review.md`: Bid1 9 correct / 7 partial / 0 wrong / 0 missed / 4 null ok; Bid2 11 / 5 / 0 / 0 / 4. Phase 8 re-scored with the same criteria: 7/8/1/1/3 and 10/5/0/1/4. Phase 10 `process-bid` runs: Bid1 9/7/1/0/3, then 8/8/0/0/4 after the Model_no fix; Bid2 10/6/0/0/4. No improvement over Phase 9; partial fields and run-to-run variation remain. Pending human confirmation |
-| D. Per-field confidence | Not verified | Fixed value per status (0.86 / 0.74 / 0.35); documented as not calibrated |
-| Tech. Secrets from the environment, never logged | Verified | `scripts/verify_extraction.py` secret scan; README configuration section |
-| Tech. One command after setup | Verified | `python -m rfp.cli process-bid --input <folder> --output <new folder>` runs validate, parse, chunk, index (loopback Qdrant), extract and verify, writes `run_summary.json`, and exits 0 / 3 (partial) / 1 (stage failed) / 2 (refused). Live on Bid1 (exit 3: no host Tesseract for 6 scanned pages) and Bid2 (exit 0): `artifacts/pipeline_v1/`, `artifacts/pipeline_v2/`. Setup still needs local Qdrant, `init-models` and LLM keys |
-| Tech. Unit tests for parsing and search | Verified | 402 offline tests pass (`pytest -m "not integration"`) |
-| Tech. Unseen bid folder without code changes | Verified offline only | `tests/test_pipeline.py` runs `process-bid` on a synthetic bid (fictional water authority, RFP + addendum + listing page) with real parsers, chunker and indexer and a deterministic evidence-bound fake model. No real unseen bid was available, so live accuracy on an unseen bid is not measured. No bid-specific literals in `src/` |
-| Deliverable. README, architecture diagram | Verified | README; `docs/architecture.md` (end-to-end, search, extraction, Q&A diagrams) |
-| Deliverable. JSON output per bid | Verified | `artifacts/extraction_v4/` (Phase 7 output kept in `artifacts/extraction_v2/`, Phase 8 in `artifacts/extraction_v3/`) |
-| Deliverable. Retrieval evaluation report | Verified | README table; `artifacts/eval/retrieval_phase8.json` |
-| Deliverable. ≥10 cited Q&A examples | Verified | `artifacts/qa_examples.json`: 11 correct, 2 partial, 5 correct abstentions (live) |
-| Deliverable. One full agent trace | Verified | `artifacts/extraction_v4/traces/extraction_Bid1.json` |
-| Deliverable. Demo video | Missing | Not recorded. A reproducible demo sequence is in the README |
-| Bonus. OCR | Verified | Bid1 FINAL pp. 54–59 |
-| Bonus. Token usage per run | Verified | Trace `token_usage`; no currency cost is computed |
-| Bonus. Docker | Not verified | `compose.yaml`; only the Qdrant service was used this phase |
-| Bonus. Web UI, bid comparison, go/no-go, semantic cache, CI | Missing | Optional |
+| A. Parse HTML and PDF with page structure | Verified | `artifacts/assessment/*/parsed`; all citations resolve (`scripts/audit_submission.py`) |
+| A. Extract tables | Partial | Native PDF and HTML tables; scanned pages have no table structure; not human-checked |
+| A. Clean text | Partial | Wrapped lines, soft hyphens, whitespace handled. **Repeated headers and footers are not removed** |
+| A. Metadata (bid, file, doc type, addendum, page, date) | Verified | Citation fields; `document_date` where detected |
+| A. Graceful failure for scanned, empty or corrupt files | Verified | `tests/test_pipeline.py`; live Bid1 OCR failures reported (exit 3) |
+| B. RFP-aware chunking with overlap, justified | Verified | README Phase 3 |
+| B. Embeddings, vector store, metadata | Verified | Local Qdrant `bid_documents__79fea6c89a6d` (533 points, untouched) |
+| B. Incremental indexing | Verified | `tests/test_search_indexing.py`; per-bid `process-bid` runs into `pipeline_check` |
+| B. Hybrid search, metadata filters, reranking, query expansion | Verified | Retrieval rerun `artifacts/eval/retrieval_phase11.json` equals `retrieval_phase7.json`; 0 cross-bid leaks |
+| B. Citations (file, page or element, text) | Verified | Audit: every extraction and Q&A citation resolves. Q&A example 2 lists page 1 first; the text is on page 2 |
+| B. Search CLI / API | Verified (CLI); API partial | CLI live, including `ask --collection` (new). API offline tests only; no `POST /ask` |
+| B. ≥15 query-to-passage pairs, both bids | Verified | 55 cases; `evaluate_retrieval.py verify` OK. Labels not human-approved |
+| B. Metrics for ≥2 configurations, table in README | Verified | 4 modes; README table matches the saved report (audit) |
+| C. Orchestrator, retrieval, extraction specialists, shared state | Verified | 6 live traces (8 agents each), e.g. `artifacts/extraction_v4/traces/extraction_Bid1.json` |
+| C. Ingestion agent | Partial | Deterministic `process-bid` stages rather than an agent |
+| C. Addendum reconciliation | Partial | Due date only (Bid1: 27-JUN-2024 14:00:00 → July 9, 2024 2:00 PM CST) |
+| C. Validator, bounded feedback loop, confidence | Partial | Retries ≤ 2 everywhere. Confidence is fixed per status (0.86 / 0.74 / 0.35), not calibrated |
+| C. Parallel execution | Verified (offline) | Concurrency test |
+| C. Structured outputs, guardrails, observability, error handling | Verified | Pydantic messages; no uncited value; traces with tokens and latency; malformed-output tests |
+| C. Extraction mode | Verified | `extract-bid`, `process-bid` live |
+| C. Q&A mode and section 7.3 examples | Partial | Deadline, bid bond and Addendum 2 examples correct. Bid2 affidavits: false abstention. "Compare both bids": not supported (one bid per question) |
+| D. 20 fields, JSON per bid, null with reason, `addendum_changes`, `validation` | Verified (structure) | Audit of 6 outputs |
+| D. Due Date with time and zone after addenda | Partial | Bid1 correct; Bid2 lacks time and zone |
+| D. Extraction accuracy | Partial | Model-assisted: Bid1 9/7/0/0/4, Bid2 11/5/0/0/4 (correct/partial/wrong/missed/null ok) in `extraction_v4`; not human-reviewed |
+| Tech. Python 3.10+, keys from environment | Verified | Python 3.12; secret scans clean |
+| Tech. One command after setup | Verified | `process-bid` (Bid1 exit 3 for host OCR, Bid2 exit 0) |
+| Tech. Modular structure, unit tests | Verified | 407 offline + 6 integration tests pass; ruff, format, mypy clean |
+| Tech. Unseen bid without code changes | Partial | Synthetic fixture with a fake model only; no real unseen bid tested |
+| Deliverable. Source in Git | Partial | Remote `origin` exists; Phase 11 changes not committed |
+| Deliverable. README with design decisions; architecture diagram | Verified | `README.md`; `docs/architecture.md` |
+| Deliverable. JSON per bid; Q&A log; full trace; retrieval report file | Blocked | Exist in `artifacts/`, which is git-ignored, so they are not in the repository. Owner must decide what to commit |
+| Deliverable. Retrieval results in README | Verified | Table matches the saved report |
+| Deliverable. Demo video | Not implemented | Not recorded. Script and commands in README "Demo sequence" |
+| Bonus. OCR | Verified in Docker; blocked on host | No Tesseract on this Windows host; setup steps in README |
+| Bonus. Token and latency tracking | Partial | In traces; no currency cost, no query cache |
+| Bonus. Docker | Partial | `compose.yaml`; only Qdrant used in validation |
+| Bonus. Web UI, bid comparison, go/no-go, CI | Not implemented | Optional |

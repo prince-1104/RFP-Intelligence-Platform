@@ -40,12 +40,15 @@ def qa_model(mode: str, fixture: Path | None) -> LanguageModel:
     return model_for(mode, fixture)
 
 
-def local_search(qdrant_url: str) -> Search:
+def local_search(qdrant_url: str, collection: str | None = None) -> Search:
     safe_url = assert_local_qdrant(qdrant_url)
     from rfp.cli import local_settings
     from rfp.search.wiring import search_service
 
-    return search_service(local_settings(safe_url)).search
+    settings = local_settings(safe_url)
+    if collection:
+        settings.qdrant_collection = collection
+    return search_service(settings).search
 
 
 def write_trace(trace_dir: Path, trace: QATrace) -> Path:
@@ -67,15 +70,17 @@ def execute_ask(
     output: Path | None,
     search: Search | None = None,
     config: QAConfig | None = None,
+    collection: str | None = None,
+    model: LanguageModel | None = None,
 ) -> tuple[QAResponse, Path | None]:
     safe_url = assert_local_qdrant(qdrant_url)
     label, bid_uuid = resolve_bid(bid)
     if output is not None:
         assert_output_dir(output.parent)
-    model = qa_model(llm_mode, fixture)
-    response, trace = ask(
-        label, bid_uuid, question, search or local_search(safe_url), model, config
-    )
+    model = model or qa_model(llm_mode, fixture)
+    if search is None:
+        search = local_search(safe_url, collection) if collection else local_search(safe_url)
+    response, trace = ask(label, bid_uuid, question, search, model, config)
     trace_path = write_trace(trace_dir, trace) if trace_dir is not None else None
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)

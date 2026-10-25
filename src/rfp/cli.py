@@ -191,6 +191,7 @@ def run_ask(args: argparse.Namespace) -> int:
             trace_dir=args.trace_dir,
             output=args.output,
             config=config,
+            collection=args.collection,
         )
     except (ExtractionError, ModelError) as exc:
         _print_error(exc.code, exc.message)
@@ -456,6 +457,9 @@ def main(argv: list[str] | None = None) -> int:
     ask.add_argument("--bid-id", required=True)
     ask.add_argument("--question", required=True)
     ask.add_argument("--qdrant-url", default=LOCAL_QDRANT)
+    ask.add_argument(
+        "--collection", type=collection_name, help="Local collection (default: configured)"
+    )
     ask.add_argument("--llm-mode", choices=["live", "test"], default="live")
     ask.add_argument("--fixture", type=Path, help="JSON list of model responses for test mode")
     ask.add_argument("--top-k", type=int)

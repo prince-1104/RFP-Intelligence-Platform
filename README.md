@@ -9,7 +9,9 @@ on that search service. Phase 6 adds citation-grounded Q&A over one bid. Phase 7
 extraction, Q&A and retrieval live on both assessment bids (see
 [Live results and demo](#phase-7-live-results-and-demo)). Phase 10 adds `process-bid`, one command
 that takes a local bid folder through every stage (see
-[End-to-end command](#phase-10-end-to-end-command-process-bid)). A web UI remains optional and is
+[End-to-end command](#phase-10-end-to-end-command-process-bid)). The requirement-by-requirement
+status, known gaps and the owner review checklist are in `docs/final_submission_audit.md` (see
+[Final submission](#final-submission-status-setup-notes-and-demo)). A web UI remains optional and is
 not implemented.
 The repository was empty at Phase 1 implementation start.
 
@@ -991,9 +993,10 @@ Get-Content artifacts\demo_process\Bid2\run_summary.json
 .\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --question "How soon after award must the laptops be delivered?"
 ```
 
-`ask` searches the main `bid_documents` collection, which already holds Bid2. To ask questions
-about a new bid, run `process-bid` without `--collection` so the bid is indexed into the main
-collection. Each `process-bid` run needs a new `--output` folder.
+`ask` searches the main `bid_documents` collection by default, which already holds Bid2. To ask
+about a bid that `process-bid` indexed into a separate collection, pass the same name:
+`ask --bid-id <label> --collection <name> ...` (added in the final submission phase, below). Each
+`process-bid` run needs a new `--output` folder.
 
 **Limitations:**
 - Live values vary between runs, so partial fields remain.
@@ -1001,4 +1004,159 @@ collection. Each `process-bid` run needs a new `--output` folder.
 - No real unseen bid was available to test.
 - Only the due date is reconciled from addenda.
 - OCR needs Tesseract on the machine that runs the command.
-- `ask` has no `--collection` option yet.
+
+## Final submission: status, setup notes and demo
+
+`docs/final_submission_audit.md` maps every requirement of the assignment PDF to its code,
+evidence, verification method, status and remaining limitation. `ASSIGNMENT_CHECKLIST.md` is the
+short form. Nothing in this repository has been reviewed by a human: all accuracy verdicts, Q&A
+gold answers and retrieval labels are automated or assistant-assisted and are pending owner
+review (checklist in the audit document).
+
+### Re-checking the artifacts
+
+```powershell
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python scripts\audit_submission.py --out artifacts\eval\submission_audit_<date>.json
+```
+
+The script is read-only (no model, Qdrant or network). For every extraction JSON in
+`artifacts/extraction_v4`, `pipeline_v1`, `pipeline_v2` and `demo_process` it confirms the 20
+fields, that every citation names a file of that bid and a page or HTML element that exists in the
+parsed artifacts, and that the trace comes from a live model and matches the output. For
+`artifacts/qa_examples.json` it confirms each trace exists and each excerpt is verbatim on the
+cited pages. It also compares the README retrieval table with `artifacts/eval/retrieval_phase7.json`.
+It refuses to overwrite an existing report and does not judge whether a value is correct.
+
+### `ask --collection`
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --collection pipeline_check --question "How soon after award must the laptops be delivered?"
+```
+
+The name uses the same rule as `process-bid --collection` (3–41 lowercase letters, digits or
+underscores). The loopback-only Qdrant check, the bid filter on every search and citation
+validation are unchanged. A collection that does not exist fails with `index_not_found` (exit 1),
+an invalid name is rejected by the argument parser, and a remote URL is refused. Without the option,
+`ask` uses the configured default collection as before (`tests/test_ask_collection.py`).
+
+### OCR on a Windows host
+
+Scanned pages need Tesseract on the machine that runs the parser. The Docker image already has it.
+On the Windows host used for these runs it was not installed, so Bid1 FINAL pages 54–59 failed OCR
+and every live Bid1 `process-bid` run reports `partial` (exit 3). To enable it (not tested on this
+machine):
+
+```powershell
+winget install --id UB-Mannheim.TesseractOCR
+& "C:\Program Files\Tesseract-OCR\tesseract.exe" --version
+.\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid1 --output artifacts\pipeline_ocr\Bid1 --collection pipeline_check --tesseract-cmd "C:\Program Files\Tesseract-OCR\tesseract.exe"
+```
+
+Alternatively set `$env:TESSERACT_CMD` for the session. The local commands ignore `.env`, so its
+container path `/usr/bin/tesseract` does not apply on the host. OCR failure stays visible: the parse
+stage lists every failed page in `run_summary.json` (`page_warnings`) and the run exits 3.
+
+### Known scope limits
+
+- **Addendum reconciliation covers the due date only.** `agents/reconciliation.py` records a change
+  when addendum text states a new date for the due date. Other addendum changes are not applied to
+  fields. They can appear in a field only if the extractor cites the addendum directly, and the
+  `addendum_changes` list contains only due-date changes.
+- **Confidence is not calibrated.** Each field's `confidence` is a fixed value per validation
+  status: 0.86 accepted, 0.74 not found, 0.35 unresolved. It is a status code, not a probability.
+  Q&A answers report `confidence: null`.
+- **No cross-bid questions.** `ask` answers about one bid. "Compare the warranty requirements of both
+  bids" (an example in assignment section 7.3) needs two `ask` calls and a manual comparison.
+- **Repeated page headers and footers are not removed.**
+- **The REST API has no `/ask` endpoint.** Q&A is CLI-only; search and indexing have API routes.
+
+### Demo sequence (Windows PowerShell, repository root)
+
+No demo video has been recorded; it is still outstanding. Steps 5 and 7 were run on 2026-10-24
+(outputs in `artifacts/final_demo/`). Step 3 was run in Phase 10 as `artifacts/demo_process/Bid2`;
+`artifacts\demo_final` is a fresh folder for the recording. Offline steps need no keys, network model
+or Qdrant. Live steps need local Qdrant
+(`docker compose up -d qdrant`), cached models (`python -m rfp.cli init-models`) and `LLM_PROVIDER`,
+`LLM_MODEL` and `LLM_API_KEY` in the private `.env`.
+
+**1. Environment (no keys shown).**
+
+```powershell
+uv sync --frozen
+Test-Path .env                                   # True; do not print the file
+Select-String -Path .env -Pattern '^LLM_(PROVIDER|MODEL|API_KEY)=.+' | ForEach-Object { $_.Line.Split('=')[0] }
+docker compose up -d qdrant
+```
+
+**2. Tests (offline, fake models).**
+
+```powershell
+.\.venv\Scripts\python -m pytest -m "not integration" -q
+.\.venv\Scripts\python -m pytest tests\test_pipeline.py tests\test_ask_collection.py -q
+```
+
+`tests/test_pipeline.py` runs `process-bid` on a synthetic bid (the fictional Harborview County
+Water Authority). It shows the pipeline runs on a folder it was not written for. It does not
+measure live accuracy on a real unseen bid.
+
+**3. One command (live).** Use a new output folder each time; a separate collection keeps the main
+index untouched.
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid2 --output artifacts\demo_final\Bid2 --collection pipeline_check
+```
+
+**4. Inspect the outputs.**
+
+```powershell
+Get-Content artifacts\demo_final\Bid2\run_summary.json
+Get-Content artifacts\demo_final\Bid2\Bid2.json                 # 20 fields, sources, notes
+Get-Content artifacts\demo_final\Bid2\verification.json         # per-field citation support
+Get-Content artifacts\demo_final\Bid2\traces\extraction_Bid2.json  # agent steps, tokens, latency
+```
+
+Saved runs that need no keys: `artifacts/extraction_v4/` (submitted JSON per bid and traces) and
+`artifacts/pipeline_v1/`.
+
+**5. Q&A with citations (live).**
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid1 --question "What is the final proposal due date after all addenda?"
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --collection pipeline_check --question "How soon after award must the laptops be delivered?"
+```
+
+Saved: `artifacts/qa_examples.json` (18 live answers with review notes) and `docs/qa_examples.md`.
+
+**6. Retrieval evaluation (local Qdrant, no LLM).**
+
+```powershell
+.\.venv\Scripts\python scripts\evaluate_retrieval.py verify
+.\.venv\Scripts\python scripts\evaluate_retrieval.py run --modes dense,sparse,hybrid,hybrid_rerank --out artifacts\eval\retrieval_demo.json
+```
+
+Compare with the table in the retrieval section above (`artifacts/eval/retrieval_phase7.json`).
+
+**7. Honest abstention and a refused request.**
+
+```powershell
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --question "What is Jasmine Alzate's email address?"   # live: Not found in documents (she is the Bid1 buyer)
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid2 --question "Bid number?" --collection missing_run --llm-mode test   # index_not_found, exit 1
+.\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid2 --output artifacts\demo_process\Bid2   # output_exists, exit 2; nothing written
+```
+
+On 2026-10-24 the first command returned `not_found` with model `gpt-4o-mini`, and
+`ask --collection pipeline_check` (step 5) answered "within 45 days of Award" citing
+`PORFP_-_Dell_Laptop_Final.pdf` page 2.
+
+**Video script (5–10 minutes, to be recorded):**
+
+| Time | Show | Say |
+|---|---|---|
+| 0:00–0:45 | Assignment goals, `docs/architecture.md` diagram | Search engine plus agents; every value cited |
+| 0:45–2:00 | Retrieval section table, step 6 | Hybrid, reranking, filters; 55 cases; labels not human-approved |
+| 2:00–4:00 | Step 3 run and step 4 files | Stages, exit codes, 20 fields, sources, validator, trace |
+| 4:00–5:00 | Bid1 `extraction_v4` Due Date and `addendum_changes` | Addendum 2 moves the due date; only the due date is reconciled |
+| 5:00–6:30 | Step 5 and step 7 | Verbatim citations; "Not found in documents"; bid isolation |
+| 6:30–7:30 | Step 2, `tests/test_pipeline.py` | Synthetic unseen bid, offline; not live accuracy |
+| 7:30–9:00 | `docs/final_submission_audit.md` | Partial fields, OCR on host, confidence, human review still needed |
