@@ -18,7 +18,7 @@ Statuses: **Verified** (met and checked in this audit or by a re-checked saved r
 |---|---|---|
 | A. Parse HTML and PDF with page structure | Verified | `artifacts/assessment/*/parsed`; all citations resolve (`scripts/audit_submission.py`) |
 | A. Extract tables | Partial | Native PDF and HTML tables; scanned pages have no table structure; not human-checked |
-| A. Clean text | Partial | Wrapped lines, soft hyphens, whitespace handled. **Repeated headers and footers are not removed** |
+| A. Clean text | Partial | Wrapped lines, soft hyphens and whitespace are handled. Repeated PDF headers, footers and page numbers are removed before chunking (Phase C, `chunking/furniture.py`; 20 tests, retrieval regression on a separate collection). Still open: ordinary-hyphen line breaks are not joined, and OCR pages get no furniture removal |
 | A. Metadata (bid, file, doc type, addendum, page, date) | Verified | Citation fields; `document_date` where detected |
 | A. Graceful failure for scanned, empty or corrupt files | Verified | `tests/test_pipeline.py`; live Bid1 OCR failures reported (exit 3) |
 | B. RFP-aware chunking with overlap, justified | Verified | README Phase 3 |
@@ -42,7 +42,7 @@ Statuses: **Verified** (met and checked in this audit or by a re-checked saved r
 | D. Extraction accuracy | Partial | Model-assisted: Bid1 9/7/0/0/4, Bid2 11/5/0/0/4 (correct/partial/wrong/missed/null ok) in `extraction_v4`; not human-reviewed |
 | Tech. Python 3.10+, keys from environment | Verified | Python 3.12; secret scans clean |
 | Tech. One command after setup | Verified | `process-bid` (Bid1 exit 3 for host OCR, Bid2 exit 0) |
-| Tech. Modular structure, unit tests | Verified | 452 offline + 6 integration tests pass (Phase B); ruff, format, mypy clean |
+| Tech. Modular structure, unit tests | Verified | 472 offline + 6 integration tests pass (Phase C); ruff, format, mypy clean |
 | Tech. Unseen bid without code changes | Partial | Synthetic fixture with a fake model only; no real unseen bid tested |
 | Deliverable. Source in Git | Partial | Remote `origin` exists; Phase 11 changes not committed |
 | Deliverable. README with design decisions; architecture diagram | Verified | `README.md`; `docs/architecture.md` |

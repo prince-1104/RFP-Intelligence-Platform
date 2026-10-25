@@ -1071,7 +1071,9 @@ stage lists every failed page in `run_summary.json` (`page_warnings`) and the ru
   Q&A answers report `confidence: null`.
 - **Cross-bid questions use `ask --compare-bids`** (Phase A, below). Aspect relations are lexical,
   and only the CLI supports comparison.
-- **Repeated page headers and footers are not removed.**
+- **Repeated PDF headers and footers are removed for new chunking** (Phase C, below), but the
+  main local collection `bid_documents` still holds the earlier chunks. It was not rebuilt; the
+  cleaned index is the separate collection `phasec_clean`.
 - **The REST API has no `/ask` endpoint.** Q&A is CLI-only; search and indexing have API routes.
 
 ### Demo sequence (Windows PowerShell, repository root)
@@ -1350,6 +1352,144 @@ from the model.
 - Subject matching is lexical, and the identity fields are not reconciled.
 - Only clarifications were seen in live runs.
 
+## Phase C: repeated PDF header and footer removal
+
+Running headers, footers and page numbers used to enter chunks and embeddings. For example, Bid1's
+RFP title header and its "Dallas ISD rev 2.0 / Page N of 40" footer appeared on 39 pages, and
+FINAL page 3 produced a chunk containing nothing else.
+
+**Where it runs.** `chunking/furniture.py` detects candidates and `chunking/engine.py`
+`chunk_document` skips the detected blocks. It runs after parsing and before chunking, so it covers
+`chunk-folder`, `process-bid`, the chunk worker and re-indexing. It is on by default:
+`Settings.chunking.page_furniture = "repeated_v1"`. Parsed artifacts and source files are not
+changed. The legacy value `keep` produces the same generation ids and chunk hashes as before.
+Setting any `CHUNKING__*` variable rebuilds the config with `keep`; add
+`CHUNKING__PAGE_FURNITURE=repeated_v1` in that case.
+
+**Algorithm.** It is deterministic, uses no model and no new PDF library, and contains no bid
+names, titles or page counts.
+1. Use PDF native text blocks only, with PyMuPDF coordinates. HTML documents, PDFs under 3 pages
+   and OCR lines are skipped.
+2. The edge bands are the top and bottom 12% of the document's text extent (smallest block top to
+   largest block bottom). Page height is not stored in parsed artifacts.
+3. Each block in a band is keyed by casefolded NFKC text, with punctuation and whitespace
+   collapsed. Digits are masked only when the text contains a page counter ("Page 3", "3 of 40",
+   or a bare number). Blocks are grouped by band and key.
+4. A group is **removed** only if all of these hold:
+   - it is on at least 3 pages;
+   - it covers at least half the pages between its first and last occurrence;
+   - it is at most 160 characters;
+   - no occurrence contains requirement wording (shall, must, required, deadline, due, warranty,
+     submit, deliver, price, cost, fee, quantity, penalty, agree, eligible, "no later than", "$"
+     followed by a digit, a clock time and similar).
+
+   In every other case the group is retained.
+5. Removal keeps the first occurrence in each document, so a title stays citable once. Bare page
+   counters are removed everywhere.
+
+Detection is separate from removal. Removed text is still subtracted from the page remainder, so
+it cannot come back. Page numbers, locators and block offsets do not change, and each page is
+processed independently. A page made only of furniture yields no chunk. The engine adds the
+warning `repeated_page_furniture_removed` and logs `page_furniture_removed` with the document id,
+the block count and the pages per group (no text).
+
+**Inspection report** (no model):
+
+```powershell
+$env:PYTHONPATH="src"
+.venv\Scripts\python.exe scripts\report_page_furniture.py --parsed artifacts\assessment\v2 `
+  --output artifacts\phaseC_pdf_cleanup\furniture_report.json `
+  --baseline-chunks artifacts\assessment\v3 --cleaned-chunks artifacts\phaseC_pdf_cleanup\chunks
+```
+
+For each candidate the report lists document, band, normalized text (truncated), pages, decision
+and reason. It refuses to overwrite an existing file.
+
+**Results on Bid1/Bid2** (7 PDFs): 16 candidates. 9 groups were removed (109 blocks) and 7
+retained:
+- removed in FINAL: the title header (38 of 39 pages), the "Page N of 40" footer (39 of 40), the
+  M/WBE form footer (11 of 12) and a form header (2 of 3);
+- removed in Addendum 1: "Page N | 5" (all 5) and the addendum header (4 of 5);
+- removed in PORFP: bare page numbers (all 4) and two headers (3 of 4 each);
+- retained: "FEDERAL REQUIREMENTS (EDGAR)" (requirement wording), plus groups on only 2 pages.
+
+Chunks went from 533 to 501. Bid1 went from 417 to 386 (FINAL 331 → 300) and Bid2 from 116 to 115
+(PORFP 29 → 28). HTML pages, the affidavits, the specs and Addendum 2 are unchanged. All 109
+removed occurrences were present on their page in the old chunks and are absent in the new ones.
+
+**Isolated re-index.**
+
+```powershell
+$env:PYTHONPATH="src"
+foreach ($b in "Bid1","Bid2") {
+  .venv\Scripts\python.exe -m rfp.cli chunk-folder --path artifacts\assessment\v2\$b\parsed `
+    --output artifacts\phaseC_pdf_cleanup\chunks\$b\chunks
+}
+.venv\Scripts\python.exe -m rfp.cli index-folder --path artifacts\phaseC_pdf_cleanup\chunks --collection phasec_clean
+$env:PYTHONPATH="src;scripts"
+.venv\Scripts\python.exe scripts\evaluate_retrieval.py run --collection phasec_clean --out artifacts\phaseC_pdf_cleanup\retrieval_cleaned.json
+```
+
+`index-folder`, `evaluate_retrieval.py run` and `report_addenda.py` accept `--collection`, and
+`index-folder` now refuses a non-loopback Qdrant URL. The collection `phasec_clean__79fea6c89a6d`
+holds 501 points from the 9 Bid1/Bid2 documents only. A second indexing run reported 9 unchanged
+generations and created no duplicates. The point ids and payload hashes of `bid_documents`,
+`pipeline_check` and `rfp_smoke` were the same before and after.
+
+**Retrieval regression.** The comparison used the same 55 cases, labels, code and metrics. All 86
+judgments are still in the cleaned chunks on their pages. Results are original → cleaned, both run
+on 2026-10-25:
+
+| Mode (original → cleaned) | Recall@5 | MRR@10 | nDCG@10 | hit@5 |
+|---|---|---|---|---|
+| Phase C dense | 0.703 → 0.712 | 0.688 → 0.705 | 0.659 → 0.662 | 0.88 → 0.90 |
+| Phase C sparse | 0.786 → 0.812 | 0.781 → 0.775 | 0.749 → 0.760 | 0.88 → 0.88 |
+| Phase C hybrid | 0.736 → 0.763 | 0.775 → 0.792 | 0.730 → 0.748 | 0.88 → 0.88 |
+| Phase C hybrid + rerank | 0.772 → 0.810 | 0.769 → 0.772 | 0.765 → 0.793 | 0.88 → 0.88 |
+
+Both runs had 50 scored cases, 0 errors, 0 citation errors and 0 cross-bid leaks. Identifier cases
+gain the most (`b1-id-solicitation` sparse and reranked Recall@5 rose from 0.2 to 1.0). Before
+cleaning, the solicitation number also appeared in the 38 header copies, so pages that merely
+carried the header competed with the passages that state it.
+
+Some cases got worse, and each was inspected:
+- In Addendum 1, removing the header and footer moved chunk boundaries. As a result,
+  `b1-warranty-minimum` dense/hybrid Recall@5 fell from 0.75 to 0.5 (reranked it rose from 0.25 to
+  0.5), and `b1-etching` sparse fell from 1.0 to 0.67.
+- A changed PORFP chunk displaced one `b2-drug-free` dense result.
+- No judged passage was removed.
+
+Today's original-collection run differs from the published table in plain hybrid MRR@10 and
+nDCG@10 (0.775 and 0.730 against 0.795 and 0.741). On that unchanged collection, near-tied results
+swapped. The labels are assistant-made and the gains are small, so this shows no harm, not a
+proven improvement.
+
+**Citations and Phase B.** `report_addenda.py` run against `phasec_clean` with the Phase B
+questions gives the same field statuses as Phase B: Bid1 has 6 amended fields and its Due Date is
+replaced by Addendum 2; Bid2 is unchanged. All 104 PDF quotes are found on the cited page of the
+original parsed document. Live `ask --collection phasec_clean` runs (`gpt-4o-mini`) answered the
+Bid1 warranty question, the final deadline (July 9, 2024, 2:00 PM CST), the Bid2 warranty question
+and the warranty comparison. All 9 PDF citations are on their original pages.
+
+**Tests.** `tests/test_page_furniture.py` has 20 tests on synthetic PyMuPDF documents. They cover:
+- headers, footers, changing page numbers, and whitespace and punctuation variants;
+- repeated requirements, unique header-like lines, and deadlines and warranties near the edges;
+- PDFs without repeats, empty and furniture-only pages, and page numbering;
+- citations against the original pages, addendum reconciliation and HTML;
+- no duplicate points, determinism and idempotence;
+- the legacy config hash and similar headers with different text.
+
+Two further tests check the real parsed artifacts when they are present.
+
+**Limitations.**
+- Native PDF text only; OCR pages are not processed.
+- Bands are estimated from the text extent, so a document whose body reaches the page edge has
+  narrower bands.
+- A running header with requirement wording is kept.
+- A footer that appears on only 2 pages is kept.
+- One copy of each removed group remains in the document.
+- The main collection and the published evidence were not rebuilt.
+
 ## Submission Evidence and Reproducibility
 
 Generated outputs are written to `artifacts/`, which is git-ignored. The files the assignment asks
@@ -1427,7 +1567,7 @@ evidence used `openai` / `gpt-4o-mini`, as recorded in each trace. Keys are neve
 
 **Live versus offline.** Every file in `submission/evidence/` came from live runs on the two
 assessment bids, or from local search with no LLM (retrieval and `phaseB_reconciliation_Bid1.json`).
-The test suite (452 offline tests, 6 integration tests) uses fake models and constructed or synthetic documents. `tests/test_pipeline.py`
+The test suite (472 offline tests, 6 integration tests) uses fake models and constructed or synthetic documents. `tests/test_pipeline.py`
 runs `process-bid` on a fictional bid, and it is not evidence of live accuracy.
 
 **Retrieval results** (55 cases, 50 scored, default rerank depth 20; rerun on 2026-10-24 with identical

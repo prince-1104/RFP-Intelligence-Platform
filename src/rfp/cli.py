@@ -311,10 +311,18 @@ def run_search(args: argparse.Namespace) -> int:
 
 
 def run_index_folder(args: argparse.Namespace) -> int:
+    from rfp.agents.errors import ExtractionError
+    from rfp.agents.safety import assert_local_qdrant
     from rfp.search.indexing import load_local_artifacts
     from rfp.search.wiring import local_indexing_service
 
-    settings = local_settings(args.qdrant_url)
+    try:
+        settings = local_settings(assert_local_qdrant(args.qdrant_url))
+    except ExtractionError as exc:
+        _print_error(exc.code, exc.message)
+        return 2
+    if args.collection:
+        settings.qdrant_collection = args.collection
     generations, failures = load_local_artifacts(args.path, settings)
     if not generations:
         print(json.dumps({"error": "no_indexable_chunk_artifacts", "input_failures": failures}))
@@ -405,6 +413,11 @@ def main(argv: list[str] | None = None) -> int:
     index_local.add_argument("--path", type=Path, required=True)
     index_local.add_argument("--qdrant-url", default=LOCAL_QDRANT)
     index_local.add_argument("--cache-dir", type=Path)
+    index_local.add_argument(
+        "--collection",
+        type=collection_name,
+        help="Base collection name (default bid_documents); keeps a run out of the main index",
+    )
     index_bid = commands.add_parser(
         "index-bid", help="Index a bid's active chunk generations (PostgreSQL/R2/Celery)"
     )

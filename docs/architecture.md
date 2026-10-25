@@ -8,7 +8,7 @@ commands remain available.
 ```mermaid
 flowchart LR
   Folder[Bid folder: PDF and HTML] --> Parse[parse-folder: pages, tables, OCR]
-  Parse --> Chunk[chunk-folder: sections, table rows, overlap]
+  Parse --> Chunk[chunk-folder: repeated header/footer removal, sections, table rows, overlap]
   Chunk --> Index[index-folder: dense + BM25 points in Qdrant]
   Index --> Search[SearchService.search: hybrid, RRF, rerank, bid filter, citations]
   Search --> Extract[extract-bid: specialists, reconciliation, validator, retries]
@@ -109,6 +109,22 @@ replaceable default counter uses ceil(UTF-8 bytes / 4), not an embedding-model t
 table rows retain repeated headers, cell arrays and row/page citations; oversized indivisible
 rows are warned rather than sliced. Exact whole-table prose copies are suppressed only when
 unambiguous; uncertain duplicates and repeated legal statements remain evidence.
+
+**Repeated page furniture (Phase C).** Before pieces are built, `chunking/furniture.py` `detect`
+groups native PDF text blocks that lie in the top or bottom 12% of the document's text extent. A
+block's group key is its casefolded, punctuation-collapsed text; page counters are digit-masked. A
+group is removed only if all of these hold:
+
+- it appears on at least 3 pages, covering at least half of its page span;
+- it is at most 160 characters;
+- it contains no requirement wording.
+
+The first occurrence in each document is kept, except for bare page counters. `chunk_document`
+skips those block ids, so page numbers, locators and offsets do not change, and parsed artifacts
+are not modified. The mode is part of `ChunkConfig` (`page_furniture`). Its default in `Settings`
+is `repeated_v1`, and the legacy `keep` reproduces the old generation hashes. The mode is part of
+the generation fingerprint, so a cleaned run never shares point ids with an old one. HTML, OCR
+lines and PDFs under 3 pages are not processed.
 
 Migration 0003 introduces canonical content, source occurrences, generation/job membership and
 parsed-artifact integrity hashes. A generation binds document revision, exact parsed-artifact

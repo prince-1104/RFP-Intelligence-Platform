@@ -1,11 +1,15 @@
+import logging
 import re
 import time
 import uuid
 from dataclasses import dataclass
 from typing import Literal
 
+from rfp.chunking.furniture import detect as detect_furniture
+from rfp.chunking.furniture import removable_blocks
 from rfp.chunking.normalize import normalize
 from rfp.chunking.tokens import EstimatedTokenCounter, TokenCounter, largest, token_windows
+from rfp.core.logging import log_event
 from rfp.ingestion.parser import artifact_bytes
 from rfp.schemas.chunks import (
     CanonicalChunk,
@@ -20,6 +24,7 @@ from rfp.schemas.chunks import (
 from rfp.schemas.parsed import ParsedDocument, ParsedPage, ParseStatus, SourceLocator
 
 CONTENT_NAMESPACE = uuid.UUID("451246e0-aea3-4a38-b122-a37645c89fa9")
+logger = logging.getLogger("rfp.chunking.engine")
 Kind = Literal["prose", "heading", "list", "table_rows", "ocr"]
 
 
@@ -77,7 +82,11 @@ def _table_text(headers: list[str] | None, rows: list[list[str | None]]) -> str:
 
 
 def _page_pieces(
-    page: ParsedPage, doc: ParsedDocument, config: ChunkConfig, deadline: float
+    page: ParsedPage,
+    doc: ParsedDocument,
+    config: ChunkConfig,
+    deadline: float,
+    furniture: frozenset[str] = frozenset(),
 ) -> tuple[list[Piece], list[str]]:
     pieces = []
     warnings = []
@@ -118,7 +127,8 @@ def _page_pieces(
         elif page.blocks:
             warnings.append("table_prose_overlap_uncertain")
     for index, block in enumerate(page.blocks):
-        if index in excluded or not texts[index]:
+        # Furniture text is still subtracted from the page residual below, so it cannot return.
+        if index in excluded or not texts[index] or block.block_id in furniture:
             continue
         segment = SourceSegment(
             source_locator=block.source_locator,
@@ -313,6 +323,27 @@ def chunk_document(
         result.warnings.append("chunk_input_character_limit")
         return result
     deadline = time.monotonic() + config.timeout_seconds
+    furniture: frozenset[str] = frozenset()
+    if config.page_furniture == "repeated_v1":
+        candidates = detect_furniture(document)
+        furniture = frozenset(removable_blocks(candidates))
+        if furniture:
+            result.warnings.append("repeated_page_furniture_removed")
+            log_event(
+                logger,
+                "page_furniture_removed",
+                document_id=str(document.document_id),
+                blocks=len(furniture),
+                candidates=[
+                    {
+                        "zone": c.zone,
+                        "pages": len(c.pages),
+                        "removed_pages": c.removed_pages,
+                    }
+                    for c in candidates
+                    if c.removed
+                ],
+            )
     canonical: dict[str, CanonicalChunk] = {}
     normalized_evidence: list[dict] = []
     output_chars = 0
@@ -410,7 +441,7 @@ def chunk_document(
     try:
         for page in document.parsed_pages:
             guard()
-            pieces, warnings = _page_pieces(page, document, config, deadline)
+            pieces, warnings = _page_pieces(page, document, config, deadline, furniture)
             result.warnings.extend(warnings)
             for piece in pieces:
                 guard()

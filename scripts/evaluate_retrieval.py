@@ -3,6 +3,7 @@
     python scripts/evaluate_retrieval.py verify [--dataset ...] [--parsed ROOT] [--chunks ROOT]
     python scripts/evaluate_retrieval.py run [--modes dense,sparse,hybrid,hybrid_rerank]
                                              [--rerank-depth N] [--out report.json]
+                                             [--collection BASE]
 
 ``verify`` proves every judgment is grounded: its text occurs on the declared parsed PDF page (or
 HTML element) and in at least one active chunk occurrence, and unknown identifiers occur nowhere.
@@ -19,6 +20,7 @@ from pathlib import Path
 
 from local_guard import ROOT, local_only_settings
 
+from rfp.cli import collection_name
 from rfp.evaluation.retrieval import (
     CaseResult,
     EvalCase,
@@ -133,13 +135,20 @@ def run(args: argparse.Namespace) -> int:
 
     dataset = load_dataset(args.dataset)
     settings = local_only_settings()
+    if args.collection:
+        settings.qdrant_collection = args.collection
     # Generous timeouts: a contended workstation must not turn into spurious failures.
     search = settings.search.model_copy(
         update={"qdrant_timeout_seconds": 300, "inference_timeout_seconds": 600}
     )
     service = search_service(settings.model_copy(update={"search": search}))
     modes = args.modes.split(",")
-    report: dict = {"dataset": dataset.version, "modes": {}, "cases": {}}
+    report: dict = {
+        "dataset": dataset.version,
+        "collection": settings.qdrant_collection,
+        "modes": {},
+        "cases": {},
+    }
 
     def searcher(mode: str):
         def search(case: EvalCase):
@@ -236,6 +245,12 @@ def main() -> int:
     sub.choices["run"].add_argument("--modes", default=",".join(MODES))
     sub.choices["run"].add_argument("--rerank-depth", type=int, default=None)
     sub.choices["run"].add_argument("--out", type=Path, default=None)
+    sub.choices["run"].add_argument(
+        "--collection",
+        type=collection_name,
+        default=None,
+        help="Base collection name (default: configured)",
+    )
     args = parser.parse_args()
     return verify(args) if args.command == "verify" else run(args)
 

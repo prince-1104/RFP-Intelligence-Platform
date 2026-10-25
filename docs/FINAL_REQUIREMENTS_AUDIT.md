@@ -40,6 +40,19 @@ The evidence is:
 The Bid1/Bid2 addenda contain clarifications and one due-date replacement only. The conflict and
 supersession paths are therefore tested offline only.
 
+**Phase C update (2026-10-25).** Rows 9, 10 and 65, gap 4, the counts, sections 1, 7, 11 and 12,
+and a Phase C verification table (end of section 13) were updated after Phase C added repeated
+PDF header and footer removal (`chunking/furniture.py`, called from `chunking/engine.py`). The
+evidence is:
+
+- `tests/test_page_furniture.py` (20 tests: synthetic PDFs plus checks on the real Bid1/Bid2
+  parsed artifacts);
+- the deterministic report `scripts/report_page_furniture.py`;
+- a separate local collection `phasec_clean`, with a retrieval regression and the Phase B
+  reconciliation report run against it, in `artifacts/phaseC_pdf_cleanup/`.
+
+The main collection `bid_documents` was not modified and still holds the pre-cleanup chunks.
+
 ## 1. Executive summary
 
 The core system is in place and verified. It has:
@@ -51,8 +64,8 @@ The core system is in place and verified. It has:
 - grounded single-bid Q&A and, since Phase A, cross-bid comparison with per-bid evidence;
 - the exact 20-field JSON structure;
 - a one-command pipeline;
-- 452 offline tests and 6 integration tests, all passing (428 after Phase A, 407 at the Phase 12
-  audit).
+- 472 offline tests and 6 integration tests, all passing (452 after Phase B, 428 after Phase A,
+  407 at the Phase 12 audit).
 
 These parts should not be rebuilt.
 
@@ -72,7 +85,11 @@ The gaps that matter for the assignment:
    company_name and Bid Summary. The real addenda have no replacement other than the due date, so
    ordering and conflicts are tested offline only. **PARTIAL** (narrower than before).
 3. **No demo video** (11). **FAIL** until a video is recorded or a live session is agreed.
-4. **Repeated headers and footers are not removed** (5). **FAIL.**
+4. **Repeated headers and footers** (5). Phase C removes repeated PDF page furniture before
+   chunking, keeps one copy per document, and never removes text with requirement wording. On the
+   real bids it removed 109 blocks in 9 groups and kept 7 groups. In a separate collection, every
+   retrieval metric improved except sparse MRR@10 (−0.007), and the Phase B reconciliation
+   decisions were unchanged. **PASS** (was FAIL). The main collection was not rebuilt.
 5. **Extraction accuracy is partial** (not a FAIL). By assistant review, 12 of 40 field values are partial,
    including Bid2's Due Date without time or zone (8). The published JSON masks contact emails and
    phones, so `contact_info` cannot be checked from the repository. **PARTIAL.**
@@ -86,15 +103,16 @@ Further PARTIAL items:
 - the README has no prompt-design section;
 - real unseen-bid behavior is UNVERIFIED.
 
-Requirement-matrix counts (section 2, 70 rows): **PASS 52, PARTIAL 14, FAIL 2, UNVERIFIED 1,
-OPTIONAL 1** (OCR, listed in Part A). Section 10 lists the other bonus features separately. The two
-FAILs are header and footer removal and the demo video.
+Requirement-matrix counts (section 2, 70 rows): **PASS 53, PARTIAL 14, FAIL 1, UNVERIFIED 1,
+OPTIONAL 1** (OCR, listed in Part A). Section 10 lists the other bonus features separately. The
+remaining FAIL is the demo video.
 
 How the counts changed:
 
 - **Phase 12 audit:** PASS 50, PARTIAL 15, FAIL 3.
 - **Phase A:** row 2 moved from PARTIAL to PASS, and row 48 from FAIL to PARTIAL.
 - **Phase B:** row 48 moved from PARTIAL to PASS. Row 33 stays PARTIAL with a narrower gap.
+- **Phase C:** row 9 moved from FAIL to PASS.
 
 ## 13. Verification run (2026-10-25)
 
@@ -133,6 +151,29 @@ on 2026-10-24 (`artifacts/eval/retrieval_phase11.json`). It was not repeated her
 | `build_submission_evidence.py build`, `verify`, `check` | 0 | 19 files, 0 problems; earlier copies unchanged |
 | `scripts/audit_submission.py` | 0 | 0 problems |
 
+**Phase C verification (2026-10-25).** The main collection was read only. Re-indexing went to a new
+local collection, `phasec_clean__79fea6c89a6d`, through the loopback-guarded `index-folder
+--collection`. Outputs are in `artifacts/phaseC_pdf_cleanup/` (git-ignored).
+
+| Command | Exit | Result |
+|---|---|---|
+| `pytest -m "not integration" -q` | 0 | 472 passed (20 new in `test_page_furniture.py`) |
+| `pytest -m integration -q` (local Qdrant, `RFP_MODEL_SMOKE=1`) | 0 | 6 passed; no test collection left |
+| `ruff check`, `ruff format --check`, `mypy src` | 0 | Clean (87 source files) |
+| `scripts/report_page_furniture.py` (v2 parsed artifacts) | 0 | 7 PDFs: 16 candidates, 9 removed (109 blocks), 7 retained |
+| `chunk-folder` with `page_furniture=repeated_v1` | 0 | 501 chunks (Bid1 386, Bid2 115) versus 533 (417, 116). Only FINAL (331 → 300) and PORFP (29 → 28) lost chunks |
+| Control re-chunk with `page_furniture=keep` | 0 | Same generation ids and chunk hashes as `artifacts/assessment/v3` |
+| Removed-occurrence check (scratch script) | — | All 109 removed occurrences are present on their page in the old chunks and absent in the new ones |
+| `evaluate_retrieval.py verify --chunks artifacts/phaseC_pdf_cleanup/chunks` | 0 | 55 cases, 86 judgments still on their declared pages; labels unchanged |
+| `index-folder --collection phasec_clean` (run twice) | 0 | 9 generations, 501 points; second run 9 unchanged, still 501 points |
+| Collection contents check (scratch script) | — | Only the 9 Bid1/Bid2 documents; every PDF point has a page |
+| `evaluate_retrieval.py run` (original, then `--collection phasec_clean`) | 0 | See section 7; 0 citation errors and 0 cross-bid leaks in both |
+| `report_addenda.py … --collection phasec_clean` (Phase B questions) | 0 | Field statuses and the Due Date decision identical to Phase B; 104 of 104 PDF quotes found on the cited original page (5 table rows matched cell by cell) |
+| Live `ask` / `ask --compare-bids --collection phasec_clean` (4 runs) | 0 | Bid1 warranty, Bid1 final deadline (July 9, 2024, 2:00 PM CST), Bid2 warranty and the warranty comparison answered; 9 of 9 PDF citations on the original page |
+| `evaluate_retrieval.py verify`, `evaluate_qa.py verify` | 0 | OK |
+| `build_submission_evidence.py verify`, `check`; `audit_submission.py` | 0 | 19 files, 0 problems; published evidence unchanged |
+| Qdrant fingerprint before and after (scratch script) | — | `bid_documents` (533), `pipeline_check` (503) and `rfp_smoke` (6): point ids and payload hashes unchanged |
+
 ## 2. Requirement matrix
 
 "Tests" lists the main test files; all of them passed in the run above.
@@ -154,8 +195,8 @@ on 2026-10-24 (`artifacts/eval/retrieval_phase11.json`). It was not repeated her
 | 6 | §5 p2 | Parse HTML bid pages | `ingestion/html.py` (BeautifulSoup) | `test_parsers.py::test_malformed_html_missing_title_and_empty` and others | `artifacts/assessment/*/parsed`; HTML element citations resolve | `audit_submission.py` | PASS | — | — |
 | 7 | §5 p2 | Parse PDFs, keeping page structure | `ingestion/pdf.py` (PyMuPDF, pdfplumber) | `test_parsers.py::test_native_pdf_pages_and_tables` | Page citations resolve | Audit | PASS | — | — |
 | 8 | §5 p2 | Extract tables correctly (specs and bid info) | `pdf.py` tables, `html.py` tables, `chunking/engine.py` table chunks | `test_chunk_engine.py::test_tables_repeat_headers_preserve_rows…` | Table chunks in parsed artifacts | Tests; code | PARTIAL | Table correctness not reviewed against the documents. OCR pages have no table structure. Bid2's product table is serialized as JSON-like cells, and the model failed to read the quantity from it (`final_accuracy_review.md`) | Review table output |
-| 9 | §5 p2 | Remove repeated headers and footers | None (`chunking/normalize.py` has no such step) | None | Bid1 pages repeat the RFP cover header | Code read | **FAIL** | Repeated text enters chunks and embeddings, adds noise and can crowd out retrieval | Phase C |
-| 10 | §5 p2 | Fix broken lines and hyphenation | `normalize.py`: joins wrapped lines; removes soft hyphens at line ends | Chunk tests | — | Code read | PARTIAL | Line breaks after an ordinary hyphen (`require-\nment`) are not joined. This is deliberate, to protect part numbers, but it is undocumented as a gap | Phase C (with row 9) |
+| 9 | §5 p2 | Remove repeated headers and footers | `chunking/furniture.py` (detection), `chunking/engine.py` (skips detected blocks); on by default via `Settings.chunking.page_furniture="repeated_v1"` | `test_page_furniture.py` (20 tests) | `artifacts/phaseC_pdf_cleanup/` (report, cleaned chunks, `phasec_clean` collection, retrieval comparison) | Removed occurrences checked against old and new chunks; labels and citations checked against original pages | PASS | PDF only, from native text blocks; OCR pages are not processed. One copy per document is kept, except bare page counters. Running headers with requirement wording are kept (Bid1 "FEDERAL REQUIREMENTS (EDGAR)"). Page height is not stored, so the edge band comes from the text extent. The main collection was not rebuilt | Rebuild the main index when the owner agrees |
+| 10 | §5 p2 | Fix broken lines and hyphenation | `normalize.py`: joins wrapped lines; removes soft hyphens at line ends | Chunk tests | — | Code read | PARTIAL | Line breaks after an ordinary hyphen (`require-\nment`) are not joined. This is deliberate, to protect part numbers, but it is undocumented as a gap | Later phase (not part of Phase C) |
 | 11 | §5 p2 | Normalize whitespace | `normalize.py` | Chunk tests | — | Code | PASS | — | — |
 | 12 | §5 p2 | Metadata: bid_id, file_name, doc_type (bid_page, rfp, addendum, specs, affidavit), addendum_number, page_number, document date | `schemas/parsed.py` (`DocumentType` has all five; `document_date`), `ingestion/metadata.py` | `test_parsers.py::test_metadata_classification`, `::test_explicit_dates_and_ambiguity` | Citations in Q&A output carry type and addendum number | Code and tests | PASS | Document date is left empty when ambiguous (by design) | — |
 | 13 | §5 p2 | Handle scanned, empty and unreadable files; log them | `pdf.py` page warnings (`ocr_failed…`, `page_has_no_readable_content`, `pdf_page_unreadable`), `parser.py` (timeouts, size limits), `pipeline.py` stage report | `test_parsers.py::test_corrupted_and_encrypted_pdf`, `::test_ocr_failure_partial_and_empty`; `test_pipeline.py` malformed and unsupported files | Live Bid1 runs report 6 OCR page failures, exit 3 | Tests; saved run summaries | PASS | — | — |
@@ -230,7 +271,7 @@ on 2026-10-24 (`artifacts/eval/retrieval_phase11.json`). It was not repeated her
 | 62 | §9 p6 | Keys and model names from environment or config; no secrets in code | `LLM_*` from `.env` / environment | Secret scans | No key-shaped strings in `src`, `scripts`, `tests`, `examples` | `rg` scan; `verify_extraction.py` | PASS | — | — |
 | 63 | §9 p6 | One command after setup | `python -m rfp.cli process-bid --input <folder> --output <new>` | `test_pipeline.py` | Run summaries (Bid2 exit 0; Bid1 exit 3, host OCR) | Saved live runs | PASS | Setup still needs local Qdrant, `init-models` and keys | — |
 | 64 | §9 p6 | Modular structure | `ingestion/`, `chunking/`, `search/`, `agents/`, `api/`, `evaluation/`, `tests/` | — | — | Tree | PASS | — | — |
-| 65 | §9 p6 | Unit tests for parsing and search, at minimum | `tests/test_parsers.py`, `test_search_*.py` and others | 452 offline + 6 integration (Phase B) | — | Run | PASS | — | — |
+| 65 | §9 p6 | Unit tests for parsing and search, at minimum | `tests/test_parsers.py`, `test_search_*.py` and others | 472 offline + 6 integration (Phase C) | — | Run | PASS | — | — |
 | 66 | §9 p6, §3 p1 | Works on a new, unseen bid folder without code changes | Generic pipeline | `test_pipeline.py` (synthetic, fake model) | No real unseen bid | Section 4 | **UNVERIFIED** | Architecture and synthetic behavior verified; real-bid behavior not | Phase F |
 
 ### Section 11: deliverables
@@ -369,6 +410,34 @@ Further checks:
 | hybrid | 0.736 | 0.795 | 0.741 | 0.88 |
 | hybrid + rerank | 0.772 | 0.769 | 0.765 | 0.88 |
 
+**Phase C regression** (same dataset, code, labels and metric definitions; original collection
+versus `phasec_clean`, both run on 2026-10-25; 50 scored cases each, 0 errors, 0 citation errors,
+0 cross-bid leaks, 3/3 unknown identifiers handled):
+
+| Mode | Recall@5 | MRR@10 | nDCG@10 | hit@5 |
+|---|---|---|---|---|
+| dense | 0.703 → 0.712 | 0.688 → 0.705 | 0.659 → 0.662 | 0.88 → 0.90 |
+| sparse | 0.786 → 0.812 | 0.781 → 0.775 | 0.749 → 0.760 | 0.88 → 0.88 |
+| hybrid | 0.736 → 0.763 | 0.775 → 0.792 | 0.730 → 0.748 | 0.88 → 0.88 |
+| hybrid + rerank | 0.772 → 0.810 | 0.769 → 0.772 | 0.765 → 0.793 | 0.88 → 0.88 |
+
+The original-collection rerun reproduced the published table except plain hybrid MRR@10 and
+nDCG@10 (0.795 and 0.741 published). Four cases swap near-tied results; the same run repeated gives
+the same values, and the collection is unchanged. Per case, 6 to 12 cases change in each mode,
+mostly upwards (identifier, addendum_change and specification). The regressions were inspected.
+Removing Addendum 1's header and footer moves its chunk boundaries, so the chunk holding a judged
+passage starts at a different question:
+
+- `b1-warranty-minimum` Recall@5 is 0.75 → 0.5 in dense and hybrid, but 0.25 → 0.5 with reranking;
+- `b1-etching` sparse Recall@5 is 1.0 → 0.67.
+
+Elsewhere, a changed PORFP chunk enters the dense top 10 for `b2-drug-free`, and the
+`b1-buyer-contact` cover chunk moves from rank 10 to 11 in hybrid. No judged passage was removed:
+all 86 judgments are still in the cleaned chunks. Warranty and due-date cases keep their first
+relevant rank in every mode except `b1-deadline-extension` dense (3 → 4) and
+`b1-questions-deadline` sparse (2 → 3). The gains are measured on 50 assistant-labelled cases and
+are small; they are evidence of no harm rather than a proven improvement.
+
 **Extraction** (assistant review of `extraction_v4`; C = correct, P = partial, N = null judged
 right):
 
@@ -440,9 +509,10 @@ remain ignored. `git status` was clean before this file was added.
    - issue dates are not stored in the index, so ordering relies on explicit wording;
    - ordering and conflicts are tested offline only.
 3. **Demo video** (row 69). No code change.
-4. **Header and footer removal** (row 9). `chunking/normalize.py` `normalize`, or a page-level step
-   in `ingestion/pdf.py`. Requires re-chunking and re-indexing, so plan it in its own phase with a
-   retrieval regression check.
+4. **Header and footer removal** (row 9): resolved in Phase C for new chunking. Remaining:
+   - the main collection still holds the pre-cleanup chunks; rebuilding it is the owner's call;
+   - OCR pages are not processed;
+   - a `CHUNKING__*` environment override builds a `ChunkConfig` with the legacy default `keep`.
 5. **Extraction partials** (rows 52–53). Bid2 Due Date time and zone (`extractors.py` logistics
    prompt, `semantics.py` Due Date rule); Product quantity from serialized tables; documentation
    lists; summaries.
@@ -470,8 +540,10 @@ remain ignored. `git status` was clean before this file was added.
    single-bid Q&A and comparison (`agents/revisions.py`). It comes with 24 offline tests, a
    deterministic report and live runs in `artifacts/phaseB_addenda/`. The warranty answer,
    comparison, extraction and report are published as `submission/evidence/phaseB_*.json`.
-3. **Phase C:** repeated header and footer removal, with a retrieval regression on a separate
-   collection before touching the main index.
+3. **Phase C (done 2026-10-25):** repeated PDF header and footer removal
+   (`chunking/furniture.py`), on by default for new chunking. It comes with 20 tests, a
+   deterministic report, a separate `phasec_clean` collection and a retrieval regression. The main
+   index was not touched, and no new evidence was published.
 4. **Phase D:** extraction partials (Due Date time and zone, product quantity, lists), and a
    decision on confidence semantics.
 5. **Phase E:** observability additions and README restructuring (quick start, prompts, merged
@@ -483,4 +555,4 @@ reranking, expansion, citations, incremental indexing); retrieval evaluation and
 orchestrator, specialists, validator, critic and bounded retries; error handling; the 20-field JSON
 structure; `process-bid`; local-only safety and bid isolation; the test suite; cross-bid
 comparison (`agents/compare.py`, Phase A); addendum reconciliation (`agents/revisions.py`,
-Phase B).
+Phase B); page furniture removal (`chunking/furniture.py`, Phase C).

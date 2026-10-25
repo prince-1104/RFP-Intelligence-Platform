@@ -28,6 +28,7 @@ from rfp.agents.retrieval import retrieve  # noqa: E402
 from rfp.agents.revisions import question_terms, reconcile  # noqa: E402
 from rfp.agents.runner import assert_output_dir, resolve_bid  # noqa: E402
 from rfp.agents.schemas import DraftField, EvidenceHit  # noqa: E402
+from rfp.cli import collection_name  # noqa: E402
 from rfp.schemas.parsed import DocumentType  # noqa: E402
 from rfp.schemas.search import RetrievalMode  # noqa: E402
 
@@ -90,6 +91,7 @@ def main() -> int:
     parser.add_argument("--question", action="append", default=[])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--qdrant-url", default="http://127.0.0.1:6333")
+    parser.add_argument("--collection", type=collection_name, default=None)
     args = parser.parse_args()
     out = assert_output_dir(args.output)
     targets = {label: out / f"reconciliation_{label}.json" for label in args.bid_id}
@@ -97,7 +99,7 @@ def main() -> int:
     if existing:
         print(json.dumps({"error": "output_exists", "paths": existing}))
         return 2
-    search = local_search(args.qdrant_url)
+    search = local_search(args.qdrant_url, args.collection)
     out.mkdir(parents=True, exist_ok=True)
     for label, path in targets.items():
         payload = report(search, label, args.question)

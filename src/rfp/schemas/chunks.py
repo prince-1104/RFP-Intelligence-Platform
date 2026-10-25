@@ -38,6 +38,9 @@ class ChunkConfig(Contract):
     min_content_chars: int = Field(default=1, ge=1, le=1000)
     empty_behavior: Literal["failed", "skipped"] = "failed"
     join_wrapped_lines: bool = True
+    # Repeated PDF headers, footers and page numbers (``rfp.chunking.furniture``). "keep" is the
+    # value of configurations written before the option existed, so their hashes are unchanged.
+    page_furniture: Literal["keep", "repeated_v1"] = "keep"
     max_artifact_bytes: int = Field(default=64 * 1024 * 1024, ge=1024, le=256 * 1024 * 1024)
     max_input_chars: int = Field(default=5000000, ge=100, le=20000000)
     max_output_chars: int = Field(default=20000000, ge=100, le=100000000)
@@ -60,7 +63,8 @@ class ChunkConfig(Contract):
 
     @property
     def fingerprint(self) -> str:
-        return sha256(stable_json(self.model_dump(mode="json")))
+        exclude = {"page_furniture"} if self.page_furniture == "keep" else set()
+        return sha256(stable_json(self.model_dump(mode="json", exclude=exclude)))
 
 
 class CanonicalChunk(Contract):
