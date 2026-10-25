@@ -1,0 +1,111 @@
+{
+  "markers": {
+    "email": "[email redacted]",
+    "phone": "[phone redacted]"
+  },
+  "files": {
+    "Bid1_extraction.json": {
+      "source": "artifacts/extraction_v4/Bid1.json",
+      "source_sha256": "12c1dcdaab31057026a4dd89d5a6eea1f5e818535380790759e243bcc2ce0622",
+      "redactions": [
+        {
+          "path": "/fields/contact_info/value",
+          "kind": "email",
+          "count": 1
+        },
+        {
+          "path": "/fields/contact_info/value",
+          "kind": "phone",
+          "count": 1
+        }
+      ]
+    },
+    "Bid2_extraction.json": {
+      "source": "artifacts/extraction_v4/Bid2.json",
+      "source_sha256": "c0e22359d790a6a7c750a528665e61b8390630aa46731e775957c18961a92ccb",
+      "redactions": [
+        {
+          "path": "/fields/contact_info/value",
+          "kind": "email",
+          "count": 1
+        },
+        {
+          "path": "/fields/contact_info/value",
+          "kind": "phone",
+          "count": 1
+        }
+      ]
+    },
+    "Bid1_extraction_trace.json": {
+      "source": "artifacts/extraction_v4/traces/extraction_Bid1.json",
+      "source_sha256": "12e05d30f4f3010088a2d57f89c78436ce5070871bf4e4bf63d69b6f1fede4ea",
+      "redactions": []
+    },
+    "qa_examples.json": {
+      "source": "artifacts/qa_examples.json",
+      "source_sha256": "6edae7aea467a9f609c881a1585caa576502593882bb42f1d9c3759ac5b92587",
+      "redactions": [
+        {
+          "path": "/examples/1/answer",
+          "kind": "email",
+          "count": 1
+        },
+        {
+          "path": "/examples/1/claims/1/text",
+          "kind": "email",
+          "count": 1
+        },
+        {
+          "path": "/examples/1/citations/1/excerpt",
+          "kind": "email",
+          "count": 1
+        },
+        {
+          "path": "/examples/1/review/note",
+          "kind": "email",
+          "count": 1
+        },
+        {
+          "path": "/examples/10/citations/0/excerpt",
+          "kind": "email",
+          "count": 1
+        },
+        {
+          "path": "/examples/10/review/note",
+          "kind": "email",
+          "count": 1
+        }
+      ]
+    },
+    "retrieval_evaluation.json": {
+      "source": "artifacts/eval/retrieval_phase7.json",
+      "source_sha256": "b8d84a978f86fb6e0088bcfcc3de9906a913410a9e057015844a8b931cddc759",
+      "redactions": []
+    },
+    "submission_audit.json": {
+      "source": "artifacts/eval/submission_audit.json",
+      "source_sha256": "22d0e02c7efdc375c44d838209574926a2e1bad5098dd4b3eb2a6137d9c79d79",
+      "redactions": []
+    },
+    "Bid2_process_bid_run_summary.json": {
+      "source": "artifacts/pipeline_v1/Bid2/run_summary.json",
+      "source_sha256": "5ef040531c435f210043e4fa99fccd24b4712a6f99b1137534336ba1446dbb0c",
+      "redactions": []
+    },
+    "demo_ask_bid1_due_date.json": {
+      "source": "artifacts/final_demo/ask_bid1_due_date.json",
+      "source_sha256": "5360c6d323a5415fa6d7e430115aaf838bcc1e8f7f091b10fa8f3672f3731d07",
+      "redactions": []
+    },
+    "demo_ask_bid2_collection.json": {
+      "source": "artifacts/final_demo/ask_bid2_pipeline_check.json",
+      "source_sha256": "5fa4891490157a6d932e099ac9e81812d64297a5868529fddd0106f3e48ff360",
+      "redactions": []
+    },
+    "demo_ask_bid2_abstention.json": {
+      "source": "artifacts/final_demo/ask_bid2_abstention.json",
+      "source_sha256": "e6b9b2d779870695a779d8fa75d23d48c10956794dd1492f9752265c0eb339a2",
+      "redactions": []
+    }
+  }
+}

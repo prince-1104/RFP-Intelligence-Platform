@@ -44,7 +44,7 @@ Statuses: **Verified** (met and checked in this audit or by a re-checked saved r
 | Tech. Unseen bid without code changes | Partial | Synthetic fixture with a fake model only; no real unseen bid tested |
 | Deliverable. Source in Git | Partial | Remote `origin` exists; Phase 11 changes not committed |
 | Deliverable. README with design decisions; architecture diagram | Verified | `README.md`; `docs/architecture.md` |
-| Deliverable. JSON per bid; Q&A log; full trace; retrieval report file | Blocked | Exist in `artifacts/`, which is git-ignored, so they are not in the repository. Owner must decide what to commit |
+| Deliverable. JSON per bid; Q&A log; full trace; retrieval report file | Blocked (pending approval) | Originals are in git-ignored `artifacts/`. Contact-masked copies are prepared in `submission/evidence/` (`docs/submission_artifacts_manifest.md`), not yet committed |
 | Deliverable. Retrieval results in README | Verified | Table matches the saved report |
 | Deliverable. Demo video | Not implemented | Not recorded. Script and commands in README "Demo sequence" |
 | Bonus. OCR | Verified in Docker; blocked on host | No Tesseract on this Windows host; setup steps in README |

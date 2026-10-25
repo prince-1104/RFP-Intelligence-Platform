@@ -1,0 +1,258 @@
+{
+  "bid_id": "Bid2",
+  "fields": {
+    "Bid Number": {
+      "value": "BPM044557",
+      "sources": [
+        {
+          "file": "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_240"
+        },
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "The documents also identify this solicitation as PORFP Number: #E20P4600040 (PORFP_-_Dell_Laptop_Final.pdf, page 1)."
+    },
+    "Title": {
+      "value": "Dell Laptops w/Extended Warranty",
+      "sources": [
+        {
+          "file": "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_240"
+        },
+        {
+          "file": "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "menuSupplierSolicitations"
+        },
+        {
+          "file": "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "mainMenu"
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Due Date": {
+      "value": "06/10/2024",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Bid Submission Type": {
+      "value": "eMaryland Marketplace Advantage (eMMA) e-Procurement system",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Bids will not be accepted by email, fax, U.S. Mail, or hand delivery."
+    },
+    "Term of Bid": {
+      "value": null,
+      "sources": [],
+      "confidence": 0.74,
+      "notes": "Not found in documents"
+    },
+    "Pre Bid Meeting": {
+      "value": null,
+      "sources": [],
+      "confidence": 0.74,
+      "notes": "Not found in documents"
+    },
+    "Installation": {
+      "value": null,
+      "sources": [],
+      "confidence": 0.74,
+      "notes": "Not found in documents"
+    },
+    "Bid Bond Requirement": {
+      "value": null,
+      "sources": [],
+      "confidence": 0.74,
+      "notes": "Not found in documents"
+    },
+    "Delivery Date": {
+      "value": "within 45 days of Award",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 2,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Delivery timeframe specified."
+    },
+    "Payment Terms": {
+      "value": "Invoice(s) shall be submitted within 10 days of delivering the equipment and shall include at a minimum the following: • Contractor name, mailing address, social security number or Federal Tax ID number, and phone number. • Reference the States assigned PORFP number. • Date, invoice number and amount due.",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 2,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Any Additional Documentation Required": {
+      "value": "Contract Affidavit, Mercury Affidavit",
+      "sources": [
+        {
+          "file": "Contract_Affidavit.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "file": "Mercury_Affidavit.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "MFG for Registration": {
+      "value": "Dell",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 2,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Contract or Cooperative to use": {
+      "value": "Desktop, Laptop and Tablet 2015 Master Contract, 060B5400007",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Model_no": {
+      "value": "Dell Latitude 5550",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "file": "Dell_Laptop_Specs.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Part_no": {
+      "value": "SI# CC7802",
+      "sources": [
+        {
+          "file": "Dell_Laptop_Specs.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Product": {
+      "value": "laptops to accommodate MD529 employees",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Possibly incomplete: Product omits the quantity stated in the cited passage; name the items with their quantities."
+    },
+    "contact_info": {
+      "value": "Tamaira Hawkins, [email redacted], [phone redacted]",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "company_name": {
+      "value": "MD State Treasurer’s Office",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Bid Summary": {
+      "value": "The Purchase Order Request for Proposals (PORFP) for Dell Laptops requires questions to be submitted by 06/01/2024 at 2:00 PM EDT. Bids must be submitted through the State's eMaryland Marketplace Advantage (eMMA) e-Procurement system, and will not be accepted via email, fax, or mail. This procurement is limited to certified small business vendors as per the Small Business Reserve Procurement guidelines.",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Product Specification": {
+      "value": "1. Dell Limited Hardware Warranty Extended for all machines purchased - 3 Years",
+      "sources": [
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    }
+  },
+  "addendum_changes": [],
+  "validation": {
+    "passed": 16,
+    "failed": 0,
+    "unresolved": 0,
+    "not_found": 4
+  }
+}

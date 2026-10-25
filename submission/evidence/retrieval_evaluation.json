@@ -1,0 +1,3243 @@
+{
+  "dataset": "1.0",
+  "modes": {
+    "dense": {
+      "cases": 55,
+      "scored_cases": 50,
+      "errors": 0,
+      "recall@5": 0.703,
+      "mrr@10": 0.688,
+      "ndcg@10": 0.6594,
+      "hit@5": 0.88,
+      "unknown_identifier_ok": 3,
+      "unknown_identifier_cases": 3,
+      "cross_bid_leaks": 0,
+      "citation_errors": 0,
+      "latency_p50_ms": 58.2,
+      "latency_max_ms": 831.2
+    },
+    "sparse": {
+      "cases": 55,
+      "scored_cases": 50,
+      "errors": 0,
+      "recall@5": 0.7857,
+      "mrr@10": 0.7812,
+      "ndcg@10": 0.7487,
+      "hit@5": 0.88,
+      "unknown_identifier_ok": 3,
+      "unknown_identifier_cases": 3,
+      "cross_bid_leaks": 0,
+      "citation_errors": 0,
+      "latency_p50_ms": 27.3,
+      "latency_max_ms": 59.4
+    },
+    "hybrid": {
+      "cases": 55,
+      "scored_cases": 50,
+      "errors": 0,
+      "recall@5": 0.7363,
+      "mrr@10": 0.7949,
+      "ndcg@10": 0.7413,
+      "hit@5": 0.88,
+      "unknown_identifier_ok": 3,
+      "unknown_identifier_cases": 3,
+      "cross_bid_leaks": 0,
+      "citation_errors": 0,
+      "latency_p50_ms": 43.8,
+      "latency_max_ms": 133.7
+    },
+    "hybrid_rerank": {
+      "cases": 55,
+      "scored_cases": 50,
+      "errors": 0,
+      "recall@5": 0.7723,
+      "mrr@10": 0.7685,
+      "ndcg@10": 0.7651,
+      "hit@5": 0.88,
+      "unknown_identifier_ok": 3,
+      "unknown_identifier_cases": 3,
+      "cross_bid_leaks": 0,
+      "citation_errors": 0,
+      "latency_p50_ms": 1674.7,
+      "latency_max_ms": 3466.8
+    }
+  },
+  "cases": {
+    "b1-id-solicitation": {
+      "dense": {
+        "recall@5": 0.4,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.6288237698955433,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#floatingToolbar",
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p39"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.2,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.41607037852292533,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#floatingToolbar",
+          "JA-207652 Student and Staff Computing  p24",
+          "JA-207652 Student and Staff Computing  p25"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.4,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.6238454173566234,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#floatingToolbar",
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p36"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.2,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.41607037852292533,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#floatingToolbar",
+          "JA-207652 Student and Staff Computing  p19",
+          "JA-207652 Student and Staff Computing  p13"
+        ]
+      }
+    },
+    "b1-id-sourcing": {
+      "dense": {
+        "recall@5": 0.3333333333333333,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.2781491965442198,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p61",
+          "JA-207652 Student and Staff Computing  p46",
+          "Student and Staff Computing Devices __ html#floatingToolbar"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9072836011519267,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#floatingToolbar",
+          "Student and Staff Computing Devices __ html#g_90",
+          "JA-207652 Student and Staff Computing  p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.7715039881147672,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#floatingToolbar",
+          "Student and Staff Computing Devices __ html#None",
+          "JA-207652 Student and Staff Computing  p61"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9072836011519267,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#floatingToolbar",
+          "Student and Staff Computing Devices __ html#g_90",
+          "JA-207652 Student and Staff Computing  p30"
+        ]
+      }
+    },
+    "b1-final-deadline": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p5",
+          "JA-207652 Student and Staff Computing  p2"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.0,
+        "mrr@10": 0.16666666666666666,
+        "ndcg@10": 0.2943107231069255,
+        "first_relevant_rank": 6,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#None",
+          "JA-207652 Student and Staff Computing  p1-2",
+          "JA-207652 Student and Staff Computing  p49"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p2",
+          "Student and Staff Computing Devices __ html#None"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.0,
+        "mrr@10": 0.125,
+        "ndcg@10": 0.26064801430716,
+        "first_relevant_rank": 8,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p32",
+          "JA-207652 Student and Staff Computing  p2"
+        ]
+      }
+    },
+    "b1-original-due-date": {
+      "dense": {
+        "recall@5": 0.0,
+        "mrr@10": 0.125,
+        "ndcg@10": 0.3154648767857287,
+        "first_relevant_rank": 8,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p4",
+          "JA-207652 Student and Staff Computing  p41"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p1-2",
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.6309297535714574,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p1-2",
+          "Student and Staff Computing Devices __ html#None"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "JA-207652 Student and Staff Computing  p1-2"
+        ]
+      }
+    },
+    "b1-deadline-extension": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.3065735963827292,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "Student and Staff Computing Devices __ html#noticeForm",
+          "Addendum 2 RFP JA-207652 Student and S p1"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9197207891481876,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "Student and Staff Computing Devices __ html#None",
+          "Addendum 2 RFP JA-207652 Student and S p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.6131471927654584,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 2 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.5,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.48247555939075515,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2"
+        ]
+      }
+    },
+    "b1-pre-proposal": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.5697222754831122,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#g_109",
+          "Student and Staff Computing Devices __ html#noticeForm",
+          "Student and Staff Computing Devices __ html#noticeForm"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p1-2",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p30"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.91311732856428,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p1-2",
+          "JA-207652 Student and Staff Computing  p30",
+          "JA-207652 Student and Staff Computing  p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9639404333166532,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p1-2",
+          "JA-207652 Student and Staff Computing  p2",
+          "Student and Staff Computing Devices __ html#g_109"
+        ]
+      }
+    },
+    "b1-questions-deadline": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.3065735963827292,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#noticeForm",
+          "JA-207652 Student and Staff Computing  p2",
+          "Student and Staff Computing Devices __ html#g_112"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.5,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.3868528072345416,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#None",
+          "JA-207652 Student and Staff Computing  p1-2",
+          "Addendum 1 RFP JA-207652 Student and S p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.0,
+        "mrr@10": 0.14285714285714285,
+        "ndcg@10": 0.20438239758848614,
+        "first_relevant_rank": 7,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "Student and Staff Computing Devices __ html#noticeForm",
+          "Student and Staff Computing Devices __ html#None"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.5012658353418872,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p32"
+        ]
+      }
+    },
+    "b1-award-timing": {
+      "dense": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p31",
+          "Student and Staff Computing Devices __ html#btnEproContracts",
+          "JA-207652 Student and Staff Computing  p53"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p28",
+          "JA-207652 Student and Staff Computing  p4",
+          "Addendum 1 RFP JA-207652 Student and S p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p31",
+          "JA-207652 Student and Staff Computing  p24",
+          "JA-207652 Student and Staff Computing  p12"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p31",
+          "JA-207652 Student and Staff Computing  p28",
+          "JA-207652 Student and Staff Computing  p12"
+        ]
+      }
+    },
+    "b1-contract-term": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p20"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p31"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p20"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2",
+          "Student and Staff Computing Devices __ html#btnEproContracts"
+        ]
+      }
+    },
+    "b1-usb-monitor": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p6",
+          "JA-207652 Student and Staff Computing  p5"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9327783893101107,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p6",
+          "JA-207652 Student and Staff Computing  p5"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.944847956559586,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p6",
+          "JA-207652 Student and Staff Computing  p5"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p6",
+          "JA-207652 Student and Staff Computing  p5"
+        ]
+      }
+    },
+    "b1-warranty-minimum": {
+      "dense": {
+        "recall@5": 0.75,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.5928751371365494,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p34",
+          "Addendum 1 RFP JA-207652 Student and S p4-5"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.75,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.6511637214365144,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p34",
+          "Addendum 1 RFP JA-207652 Student and S p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.75,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.6511637214365144,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p34",
+          "Addendum 1 RFP JA-207652 Student and S p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.25,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.5102994747094803,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p34",
+          "JA-207652 Student and Staff Computing  p35"
+        ]
+      }
+    },
+    "b1-oem-warranty": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p34",
+          "JA-207652 Student and Staff Computing  p38",
+          "Addendum 1 RFP JA-207652 Student and S p1-2"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5196610607458307,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p38",
+          "JA-207652 Student and Staff Computing  p3",
+          "Addendum 1 RFP JA-207652 Student and S p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9180385079206221,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "JA-207652 Student and Staff Computing  p38"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9243382314975351,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "JA-207652 Student and Staff Computing  p3",
+          "JA-207652 Student and Staff Computing  p4"
+        ]
+      }
+    },
+    "b1-repair-turnaround": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9091417955461737,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p8",
+          "JA-207652 Student and Staff Computing  p38"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9091417955461737,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "Addendum 1 RFP JA-207652 Student and S p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.91311732856428,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "JA-207652 Student and Staff Computing  p8"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "Addendum 1 RFP JA-207652 Student and S p2"
+        ]
+      }
+    },
+    "b1-accidental-damage": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "Addendum 1 RFP JA-207652 Student and S p3-4",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p26"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p2"
+        ]
+      }
+    },
+    "b1-etching": {
+      "dense": {
+        "recall@5": 0.3333333333333333,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.35098520806348704,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p7",
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p1"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.6623050836026849,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p7"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5837863690062238,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p7",
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.827324822401198,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p7",
+          "JA-207652 Student and Staff Computing  p38"
+        ]
+      }
+    },
+    "b1-form-1295": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.7967075809905066,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p14",
+          "Addendum 1 RFP JA-207652 Student and S p4",
+          "JA-207652 Student and Staff Computing  p26"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.5950427489208391,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p14",
+          "Addendum 1 RFP JA-207652 Student and S p3-4",
+          "JA-207652 Student and Staff Computing  p54"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.7967075809905066,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p14",
+          "Addendum 1 RFP JA-207652 Student and S p4",
+          "JA-207652 Student and Staff Computing  p54"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.7967075809905066,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p14",
+          "Addendum 1 RFP JA-207652 Student and S p4",
+          "Addendum 1 RFP JA-207652 Student and S p3-4"
+        ]
+      }
+    },
+    "b1-funding-source": {
+      "dense": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p38",
+          "JA-207652 Student and Staff Computing  p34",
+          "JA-207652 Student and Staff Computing  p38"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p3",
+          "Addendum 1 RFP JA-207652 Student and S p1-2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p34",
+          "JA-207652 Student and Staff Computing  p38",
+          "Addendum 1 RFP JA-207652 Student and S p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "Addendum 1 RFP JA-207652 Student and S p1-2",
+          "Student and Staff Computing Devices __ html#g_103"
+        ]
+      }
+    },
+    "b1-autopilot": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.13770577618809332,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p4-5",
+          "JA-207652 Student and Staff Computing  p34",
+          "JA-207652 Student and Staff Computing  p4"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p4",
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p5"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.27541155237618664,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "Addendum 1 RFP JA-207652 Student and S p4-5",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9639404333166532,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p4",
+          "Addendum 1 RFP JA-207652 Student and S p4-5",
+          "JA-207652 Student and Staff Computing  p4"
+        ]
+      }
+    },
+    "b1-tier3-processor": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.6309297535714574,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p5",
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p35"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p34",
+          "JA-207652 Student and Staff Computing  p35",
+          "JA-207652 Student and Staff Computing  p4"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p35",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p35",
+          "JA-207652 Student and Staff Computing  p39",
+          "JA-207652 Student and Staff Computing  p4"
+        ]
+      }
+    },
+    "b1-chromebook-spec": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p35",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p34",
+          "JA-207652 Student and Staff Computing  p35"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p34",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p4",
+          "JA-207652 Student and Staff Computing  p35",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      }
+    },
+    "b1-evaluation-points": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p30",
+          "JA-207652 Student and Staff Computing  p21",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p30",
+          "JA-207652 Student and Staff Computing  p21",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p30",
+          "JA-207652 Student and Staff Computing  p21",
+          "JA-207652 Student and Staff Computing  p34"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p30",
+          "JA-207652 Student and Staff Computing  p21",
+          "JA-207652 Student and Staff Computing  p31"
+        ]
+      }
+    },
+    "b1-mwbe-goal": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9180385079206221,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p49",
+          "JA-207652 Student and Staff Computing  p31",
+          "JA-207652 Student and Staff Computing  p49"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p49",
+          "JA-207652 Student and Staff Computing  p30",
+          "JA-207652 Student and Staff Computing  p49"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9058464496821221,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p49",
+          "JA-207652 Student and Staff Computing  p49",
+          "JA-207652 Student and Staff Computing  p49"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p49",
+          "JA-207652 Student and Staff Computing  p49",
+          "JA-207652 Student and Staff Computing  p48"
+        ]
+      }
+    },
+    "b1-insurance-certificate": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p17",
+          "JA-207652 Student and Staff Computing  p31",
+          "JA-207652 Student and Staff Computing  p58"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p17",
+          "JA-207652 Student and Staff Computing  p16",
+          "JA-207652 Student and Staff Computing  p9"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p17",
+          "JA-207652 Student and Staff Computing  p25",
+          "JA-207652 Student and Staff Computing  p22"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p17",
+          "JA-207652 Student and Staff Computing  p25",
+          "JA-207652 Student and Staff Computing  p31"
+        ]
+      }
+    },
+    "b1-local-location": {
+      "dense": {
+        "recall@5": 0.0,
+        "mrr@10": 0.14285714285714285,
+        "ndcg@10": 0.27541155237618664,
+        "first_relevant_rank": 7,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p24",
+          "JA-207652 Student and Staff Computing  p23",
+          "JA-207652 Student and Staff Computing  p60-61"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9639404333166532,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "Addendum 1 RFP JA-207652 Student and S p1",
+          "JA-207652 Student and Staff Computing  p7"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "JA-207652 Student and Staff Computing  p16",
+          "JA-207652 Student and Staff Computing  p3"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "JA-207652 Student and Staff Computing  p3"
+        ]
+      }
+    },
+    "b1-buyer-contact": {
+      "dense": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#btnSolicitations",
+          "JA-207652 Student and Staff Computing  p11",
+          "JA-207652 Student and Staff Computing  p22"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.0,
+        "mrr@10": 0.14285714285714285,
+        "ndcg@10": 0.27541155237618664,
+        "first_relevant_rank": 7,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Student and Staff Computing Devices __ html#None",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.0,
+        "mrr@10": 0.1,
+        "ndcg@10": 0.2388353776606868,
+        "first_relevant_rank": 10,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p2",
+          "Student and Staff Computing Devices __ html#None",
+          "Student and Staff Computing Devices __ html#mainMenu"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.0,
+        "mrr@10": 0.1,
+        "ndcg@10": 0.2388353776606868,
+        "first_relevant_rank": 10,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "JA-207652 Student and Staff Computing  p2",
+          "JA-207652 Student and Staff Computing  p20"
+        ]
+      }
+    },
+    "b1-unknown-id": {
+      "dense": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "sparse": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "hybrid": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "hybrid_rerank": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      }
+    },
+    "b1-unanswerable-bid-bond": {
+      "dense": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p15",
+          "JA-207652 Student and Staff Computing  p20",
+          "JA-207652 Student and Staff Computing  p14"
+        ]
+      },
+      "sparse": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p17",
+          "Addendum 1 RFP JA-207652 Student and S p2",
+          "JA-207652 Student and Staff Computing  p35"
+        ]
+      },
+      "hybrid": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p17",
+          "JA-207652 Student and Staff Computing  p52",
+          "JA-207652 Student and Staff Computing  p52"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "JA-207652 Student and Staff Computing  p25",
+          "Addendum 1 RFP JA-207652 Student and S p2-3",
+          "JA-207652 Student and Staff Computing  p35"
+        ]
+      }
+    },
+    "b2-id-porfp": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.91311732856428,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9639404333166532,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9639404333166532,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9639404333166532,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      }
+    },
+    "b2-id-emma": {
+      "dense": {
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9217868789962073,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "Dell Laptops w_Extended Warranty - Bid html#g_240",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#g_240"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "Dell Laptops w_Extended Warranty - Bid html#g_240",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      }
+    },
+    "b2-sku-base": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.6309297535714574,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1-2",
+          "Dell_Laptop_Specs.pdf p1",
+          "Contract_Affidavit.pdf p1"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "Dell_Laptop_Specs.pdf p1-2",
+          "Contract_Affidavit.pdf p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "Dell_Laptop_Specs.pdf p1-2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      }
+    },
+    "b2-processor": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell_Laptop_Specs.pdf p1-2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "Dell_Laptop_Specs.pdf p1-2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar"
+        ]
+      }
+    },
+    "b2-memory": {
+      "dense": {
+        "recall@5": 0.0,
+        "mrr@10": 0.1,
+        "ndcg@10": 0.2890648263178878,
+        "first_relevant_rank": 10,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "Dell Laptops w_Extended Warranty - Bid html#g_240"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell_Laptop_Specs.pdf p2-3"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.4306765580733931,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      }
+    },
+    "b2-storage": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "Dell_Laptop_Specs.pdf p1"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell_Laptop_Specs.pdf p3"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell_Laptop_Specs.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#documentsAbstractTab",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      }
+    },
+    "b2-display": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.4306765580733931,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.0,
+        "mrr@10": 0.14285714285714285,
+        "ndcg@10": 0.3333333333333333,
+        "first_relevant_rank": 7,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      }
+    },
+    "b2-battery": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.4306765580733931,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell_Laptop_Specs.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.0,
+        "mrr@10": 0.0,
+        "ndcg@10": 0.0,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.0,
+        "mrr@10": 0.1,
+        "ndcg@10": 0.2890648263178878,
+        "first_relevant_rank": 10,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      }
+    },
+    "b2-model-quantity": {
+      "dense": {
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.5735547080277393,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#g_240",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.5661908030898144,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.3333333333333333,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.4377421629918346,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#g_240",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.3333333333333333,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.4808383091796661,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      }
+    },
+    "b2-dock": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.7967075809905066,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#g_251",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p4"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.7967075809905066,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#g_251",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.7967075809905066,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#g_251",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#mainMenu"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.5296052411645183,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#mainMenu",
+          "Dell Laptops w_Extended Warranty - Bid html#g_251",
+          "Dell Laptops w_Extended Warranty - Bid html#mainMenu"
+        ]
+      }
+    },
+    "b2-warranty": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "Dell Laptops w_Extended Warranty - Bid html#floatingToolbar",
+          "Dell Laptops w_Extended Warranty - Bid html#g_240"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      }
+    },
+    "b2-delivery": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      }
+    },
+    "b2-questions-due": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      }
+    },
+    "b2-proposal-due": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8065735963827292,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#g_249",
+          "Dell Laptops w_Extended Warranty - Bid html#noticeForm",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.5,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.3065735963827292,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.26406812257259094,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.5,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.3065735963827292,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      }
+    },
+    "b2-quote-validity": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.6309297535714574,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell Laptops w_Extended Warranty - Bid html#None"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.6309297535714574,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Contract_Affidavit.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Contract_Affidavit.pdf p2"
+        ]
+      }
+    },
+    "b2-mercury-required": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.5950427489208391,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Mercury_Affidavit.pdf p1",
+          "Contract_Affidavit.pdf p1",
+          "Mercury_Affidavit.pdf p1"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9639404333166532,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Mercury_Affidavit.pdf p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.7967075809905066,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Mercury_Affidavit.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.9639404333166532,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Mercury_Affidavit.pdf p1"
+        ]
+      }
+    },
+    "b2-mercury-disclosure": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Mercury_Affidavit.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell_Laptop_Specs.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Mercury_Affidavit.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Mercury_Affidavit.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell_Laptop_Specs.pdf p3"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Mercury_Affidavit.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      }
+    },
+    "b2-sdat-registration": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p1",
+          "Mercury_Affidavit.pdf p1",
+          "Contract_Affidavit.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p1",
+          "Contract_Affidavit.pdf p1",
+          "Mercury_Affidavit.pdf p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p1",
+          "Contract_Affidavit.pdf p1",
+          "Mercury_Affidavit.pdf p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p1",
+          "Contract_Affidavit.pdf p1",
+          "Contract_Affidavit.pdf p2"
+        ]
+      }
+    },
+    "b2-drug-free": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.4126007205321268,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p3",
+          "Contract_Affidavit.pdf p2",
+          "Contract_Affidavit.pdf p2-3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.5296052411645183,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p2-3",
+          "Contract_Affidavit.pdf p2",
+          "Contract_Affidavit.pdf p3"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.4573369727327457,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p3",
+          "Contract_Affidavit.pdf p2-3",
+          "Contract_Affidavit.pdf p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 0.3333333333333333,
+        "ndcg@10": 0.4935456744811716,
+        "first_relevant_rank": 3,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p3",
+          "Contract_Affidavit.pdf p2-3",
+          "Contract_Affidavit.pdf p2"
+        ]
+      }
+    },
+    "b2-political-contribution": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p2",
+          "Contract_Affidavit.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p2",
+          "Contract_Affidavit.pdf p1",
+          "Mercury_Affidavit.pdf p1"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p2",
+          "Contract_Affidavit.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Contract_Affidavit.pdf p2",
+          "Contract_Affidavit.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#btnEproContracts"
+        ]
+      }
+    },
+    "b2-eligibility": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p4"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p4"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p4"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 0.8262346571285599,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p4"
+        ]
+      }
+    },
+    "b2-submission-method": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.6309297535714574,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#menuSupplierSolicitations",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#mainMenu"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "Dell Laptops w_Extended Warranty - Bid html#mainMenu",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p1",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      }
+    },
+    "b2-invoice-timing": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      }
+    },
+    "b2-evaluation-criteria": {
+      "dense": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p4",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "sparse": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p4",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p4",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p1"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 1.0,
+        "mrr@10": 1.0,
+        "ndcg@10": 1.0,
+        "first_relevant_rank": 1,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p4",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      }
+    },
+    "b2-contact": {
+      "dense": {
+        "recall@5": 0.5,
+        "mrr@10": 0.2,
+        "ndcg@10": 0.23719771276929622,
+        "first_relevant_rank": 5,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#btnSolicitations",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "sparse": {
+        "recall@5": 0.5,
+        "mrr@10": 0.25,
+        "ndcg@10": 0.26406812257259094,
+        "first_relevant_rank": 4,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell Laptops w_Extended Warranty - Bid html#mainMenu"
+        ]
+      },
+      "hybrid": {
+        "recall@5": 0.5,
+        "mrr@10": 0.5,
+        "ndcg@10": 0.3868528072345416,
+        "first_relevant_rank": 2,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "Dell Laptops w_Extended Warranty - Bid html#mainMenu",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p3"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.0,
+        "mrr@10": 0.125,
+        "ndcg@10": 0.1934264036172708,
+        "first_relevant_rank": 8,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "Dell Laptops w_Extended Warranty - Bid html#btnSolicitations"
+        ]
+      }
+    },
+    "b2-unknown-id": {
+      "dense": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "sparse": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "hybrid": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "hybrid_rerank": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      }
+    },
+    "b2-unknown-sku": {
+      "dense": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "sparse": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "hybrid": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      },
+      "hybrid_rerank": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": true,
+        "error": null,
+        "warnings": [
+          "identifier_evidence_not_found",
+          "no_results"
+        ],
+        "top3": []
+      }
+    },
+    "b2-unanswerable-liquidated-damages": {
+      "dense": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "sparse": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      },
+      "hybrid_rerank": {
+        "recall@5": null,
+        "mrr@10": null,
+        "ndcg@10": null,
+        "first_relevant_rank": null,
+        "unknown_ok": null,
+        "error": null,
+        "warnings": [],
+        "top3": [
+          "PORFP_-_Dell_Laptop_Final.pdf p2",
+          "PORFP_-_Dell_Laptop_Final.pdf p3",
+          "PORFP_-_Dell_Laptop_Final.pdf p2"
+        ]
+      }
+    }
+  }
+}

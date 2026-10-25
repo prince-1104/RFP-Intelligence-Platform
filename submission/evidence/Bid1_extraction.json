@@ -1,0 +1,314 @@
+{
+  "bid_id": "Bid1",
+  "fields": {
+    "Bid Number": {
+      "value": "JA-207652",
+      "sources": [
+        {
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_90"
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "The documents also identify this solicitation as SOURCING #168884 (Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html, #g_90)."
+    },
+    "Title": {
+      "value": "Student and Staff Computing Devices",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Due Date": {
+      "value": "July 9, 2024 at 2:00 PM CST",
+      "sources": [
+        {
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Addendum 2 states July 9, 2024 at 2:00 PM CST; the base document stated 27-JUN-2024 14:00:00."
+    },
+    "Bid Submission Type": {
+      "value": "online via our electronic system",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Manual submissions must be delivered to the Procurement Services Department."
+    },
+    "Term of Bid": {
+      "value": "3 years with 2 renewals of 1 year each",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Total contract term may not exceed 5 years."
+    },
+    "Pre Bid Meeting": {
+      "value": "10-JUN-2024 14:00:00",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Installation": {
+      "value": "All deliveries and deployments must incorporate white glove services, which include asset decaling, asset reporting, etching, and deployment services.",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Bid Bond Requirement": {
+      "value": null,
+      "sources": [],
+      "confidence": 0.74,
+      "notes": "Not found in documents"
+    },
+    "Delivery Date": {
+      "value": "Starting in September of 2024",
+      "sources": [
+        {
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Payment Terms": {
+      "value": null,
+      "sources": [],
+      "confidence": 0.35,
+      "notes": "Validation failed: Value is the vendor's duty to pay its subcontractors, not how the buyer pays the vendor"
+    },
+    "Any Additional Documentation Required": {
+      "value": "Form 1295 should be submitted with the RFP response.",
+      "sources": [
+        {
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "MFG for Registration": {
+      "value": "Manufacturer or Authorized Reseller Qualifications",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Contract or Cooperative to use": {
+      "value": "Central Texas Purchasing Alliance (CTPA)",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 20,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Model_no": {
+      "value": null,
+      "sources": [],
+      "confidence": 0.74,
+      "notes": "Not found in documents"
+    },
+    "Part_no": {
+      "value": null,
+      "sources": [],
+      "confidence": 0.74,
+      "notes": "Not found in documents"
+    },
+    "Product": {
+      "value": "Tier 1 Small Student Chromebook Laptop (Touch), Tier 2 Large Student Chromebook Laptop (Non- Touch), Tier 3 Student Windows Laptop, Student Tablet, Tier 1 Staff Basic Desktop, Tier 2 Staff Professional Desktop, Tier 1 Staff Laptop, Tier 2 Staff Laptop, Display Monitor - Touch, Display Monitor - Non-Touch",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 34,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 35,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "contact_info": {
+      "value": "ALZATE, JASMINE, [email redacted], [phone redacted]",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "company_name": {
+      "value": "Dallas Independent School District",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Bid Summary": {
+      "value": "The Dallas Independent School District is seeking proposals for student and staff computing devices, including laptops, desktops, tablet devices, and display monitors. The contract will last for three years with the possibility of two one-year extensions, totaling a maximum of five years. Vendors may submit proposals for one or multiple categories of devices, and the district may award contracts to one or multiple vendors. All questions regarding the proposal must be submitted by the specified deadline, and responses will be provided through an addendum.",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    },
+    "Product Specification": {
+      "value": "• Screen Resolution 1920-1080 Non-Touch • Memory: Minimum 16GB RAM DDR5 Memory • Wireless: 802.11AX WiFi-6E and Bluetooth 5.1 • Power Supply: Type C, 65W • Battery Life: Minimum 10 Hours • Ports, Minimum 2 USB 3.0; 1 Type C; 65HDMI; 1 headphone/microphone combo • Storage: 256 GB NVMe SSD • Windows 11 Pro • Warranty: 3-year minimum Tier 2 Large Student Chromebook Laptop Minimum Requirements • Enterprise Management Ready • Intel Celeron Processor N100 or equivalent • Display: Minimum 14\" diagonal Non-Touch • Integrated Camera: 720p minimum • Screen Resolution 1920-1080 • Memory: Minimum 8GB DDR5 Memory • Wireless: 802.11AX WiFi-6E and Bluetooth 5.1 • Power Supply: Type C, 65W • Battery Life: Minimum 10 hours • Ports: Minimum 2 USB 3.0; type C; 1 headphone/microphone combo • Storage: 64 GB eMMC • Chrome O/S License Required • Warranty: 1-year minimum Tier 1 Staff Basic Laptop Minimum Requirements • Enterprise Management Ready • Intel i5 CPU, 14th Gen or equivalent. • Display: Minimum 13\" diagonal screen • Integrated Camera: 1080p • Memory: Minimum 16GB DDR5 RAM • Wireless: 802.11AX WiFi-6E and Bluetooth 5.1 • Power Supply: USB Type C, 65W • Battery Life: Minimum 10 hours • Ports: Minimum 1 USB 3.0;1 USB-C, 1 HDMI; 1 headphone/microphone combo • Storage: 512 GB NVMe SSD • 0/S Windows 11 or Mac OS • Warranty: 3-year minimum",
+      "sources": [
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 6,
+          "html_element_id": null
+        }
+      ],
+      "confidence": 0.86,
+      "notes": "Supported by the cited passage."
+    }
+  },
+  "addendum_changes": [
+    {
+      "field": "Due Date",
+      "original_value": "27-JUN-2024 14:00:00",
+      "revised_value": "July 9, 2024 at 2:00 PM CST",
+      "addendum_number": 2,
+      "sources": [
+        {
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "explanation": "Addendum 2 states a new due date. The addendum text, not the addendum number alone, is the reason for the change.",
+      "conflict": false
+    }
+  ],
+  "validation": {
+    "passed": 16,
+    "failed": 1,
+    "unresolved": 1,
+    "not_found": 3
+  }
+}

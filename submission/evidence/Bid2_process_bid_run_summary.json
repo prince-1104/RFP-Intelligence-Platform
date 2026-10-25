@@ -1,0 +1,153 @@
+{
+  "pipeline_version": "1",
+  "bid_id": "Bid2",
+  "bid_uuid": "05876a57-4ff3-52ce-a5fe-9d605ebf94b3",
+  "input_folder": "Bid2",
+  "status": "succeeded",
+  "exit_code": 0,
+  "started_at": "2026-10-24T18:16:29.489585+00:00",
+  "duration_ms": 85781.0,
+  "qdrant": {
+    "url": "http://127.0.0.1:6333",
+    "collection": "pipeline_check"
+  },
+  "llm_mode": "live",
+  "stages": [
+    {
+      "name": "validate",
+      "status": "succeeded",
+      "duration_ms": 0.0,
+      "documents": [
+        "Contract_Affidavit.pdf",
+        "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html",
+        "Dell_Laptop_Specs.pdf",
+        "Mercury_Affidavit.pdf",
+        "PORFP_-_Dell_Laptop_Final.pdf"
+      ],
+      "ignored": [],
+      "warnings": []
+    },
+    {
+      "name": "parse",
+      "status": "succeeded",
+      "duration_ms": 10000.0,
+      "parsed": 5,
+      "partially_parsed": 0,
+      "failed": 0,
+      "documents": [
+        {
+          "file": "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html",
+          "document_id": "0f2235b2-bf2e-5284-b44d-187fa6bd3e70",
+          "doc_type": "bid_page",
+          "addendum_number": null,
+          "pages": 0,
+          "status": "succeeded",
+          "warnings": []
+        },
+        {
+          "file": "Contract_Affidavit.pdf",
+          "document_id": "26f3e500-9d17-5619-a138-2b1f3b4e02d5",
+          "doc_type": "affidavit",
+          "addendum_number": null,
+          "pages": 3,
+          "status": "succeeded",
+          "warnings": []
+        },
+        {
+          "file": "PORFP_-_Dell_Laptop_Final.pdf",
+          "document_id": "5b36e648-3ccb-5ffe-b421-03e0ea9b08fb",
+          "doc_type": "rfp",
+          "addendum_number": null,
+          "pages": 4,
+          "status": "succeeded",
+          "warnings": []
+        },
+        {
+          "file": "Mercury_Affidavit.pdf",
+          "document_id": "afae0c9c-289d-5f7c-82bd-a3142fa9f15e",
+          "doc_type": "affidavit",
+          "addendum_number": null,
+          "pages": 1,
+          "status": "succeeded",
+          "warnings": []
+        },
+        {
+          "file": "Dell_Laptop_Specs.pdf",
+          "document_id": "f8177745-5be7-5c27-8f33-ac9c5f5824ae",
+          "doc_type": "specs",
+          "addendum_number": null,
+          "pages": 3,
+          "status": "succeeded",
+          "warnings": []
+        }
+      ]
+    },
+    {
+      "name": "chunk",
+      "status": "succeeded",
+      "duration_ms": 547.0,
+      "source_documents": 5,
+      "chunks": 116,
+      "failures": [],
+      "partial_documents": 0
+    },
+    {
+      "name": "index",
+      "status": "succeeded",
+      "duration_ms": 14906.0,
+      "collection": "pipeline_check__79fea6c89a6d",
+      "generations": 5,
+      "completed": 5,
+      "unchanged": 0,
+      "failed": 0,
+      "pending": 0,
+      "points": 116,
+      "input_failures": [],
+      "other_active_points_for_bid": 0
+    },
+    {
+      "name": "extract",
+      "status": "succeeded",
+      "duration_ms": 59594.0,
+      "outcome": "completed",
+      "validation": {
+        "passed": 16,
+        "failed": 0,
+        "unresolved": 0,
+        "not_found": 4
+      },
+      "model": {
+        "provider": "openai",
+        "model": "gpt-4o-mini"
+      },
+      "model_errors": 0,
+      "token_usage": {
+        "input_tokens": 41122,
+        "output_tokens": 2265,
+        "calls": 25
+      }
+    },
+    {
+      "name": "verify",
+      "status": "succeeded",
+      "duration_ms": 62.0,
+      "schema_valid": true,
+      "accepted": 16,
+      "verbatim": 14,
+      "addendum_changes": 0,
+      "problems": [],
+      "notes": [
+        "Part_no: some cited sources lack the value's tokens",
+        "Bid Summary: restated (token share 0.9)"
+      ]
+    }
+  ],
+  "outputs": {
+    "extraction": "Bid2.json",
+    "trace": "traces/extraction_Bid2.json",
+    "verification": "verification.json",
+    "index_report": "index.json",
+    "parsed": "parsed",
+    "chunks": "chunks"
+  }
+}

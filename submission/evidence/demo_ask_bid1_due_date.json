@@ -1,0 +1,48 @@
+{
+  "bid_id": "Bid1",
+  "question": "What is the final proposal due date after all addenda?",
+  "answer": "The new due date for this RFP will be July 9, 2024 at 2:00 PM CST.",
+  "status": "answered",
+  "claims": [
+    {
+      "text": "The new due date for this RFP will be July 9, 2024 at 2:00 PM CST.",
+      "citation_ids": [
+        "C1"
+      ]
+    }
+  ],
+  "citations": [
+    {
+      "citation_id": "C1",
+      "evidence_id": "E1",
+      "document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+      "page": 1,
+      "page_end": 1,
+      "html_element_id": null,
+      "document_type": "addendum",
+      "addendum_number": 2,
+      "excerpt": "The new due date for this RFP will be July 9, 2024 at 2:00 PM CST."
+    }
+  ],
+  "completeness": null,
+  "limitations": [],
+  "confidence": null,
+  "validation": {
+    "passed": true,
+    "attempts": 1,
+    "checks": [
+      {
+        "evidence_id": "E1",
+        "valid": true,
+        "reason": null
+      }
+    ],
+    "reasons": []
+  },
+  "trace_id": "49518f33-d369-40c5-b80a-15cee4bd12c7",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "evidence_count": 12
+}

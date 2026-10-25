@@ -1,0 +1,787 @@
+{
+  "summary": {
+    "source_run": "artifacts/qa_phase7_final/qa_samples.json",
+    "command": "python -m rfp.cli ask-samples --questions examples/qa_phase7_questions.json --output artifacts/qa_phase7_final",
+    "mode": "live",
+    "model": {
+      "provider": "openai",
+      "model": "gpt-4o-mini"
+    },
+    "review_method": "Assistant review of each answer against the parsed source text (artifacts/assessment/<Bid>/parsed). Not yet confirmed by a human reviewer.",
+    "questions": 18,
+    "answered": 13,
+    "not_found": 5,
+    "correct_cited_answers": 11,
+    "partially_correct": 2,
+    "correct_abstentions": 5,
+    "false_abstentions": 0,
+    "wrong": 0
+  },
+  "examples": [
+    {
+      "id": 1,
+      "bid_id": "Bid1",
+      "purpose": "deadline (addendum-revised)",
+      "question": "What is the final proposal due date after all addenda?",
+      "status": "answered",
+      "answer": "The new due date for this RFP will be July 9, 2024 at 2:00 PM CST.",
+      "claims": [
+        {
+          "text": "The new due date for this RFP will be July 9, 2024 at 2:00 PM CST.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "page_end": 1,
+          "html_element_id": null,
+          "document_type": "addendum",
+          "addendum_number": 2,
+          "excerpt": "The new due date for this RFP will be July 9, 2024 at 2:00 PM CST."
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 1,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_bfbcef27-02b2-49fc-a141-967f3bc88f3a.json",
+      "review": {
+        "verdict": "correct",
+        "note": "Addendum 2 p1 states the new due date; it supersedes the original 27-JUN-2024 14:00:00."
+      }
+    },
+    {
+      "id": 2,
+      "bid_id": "Bid1",
+      "purpose": "contact",
+      "question": "Who is the buyer for this RFP and what is their email address?",
+      "status": "answered",
+      "answer": "The buyer for this RFP is Jasmine Alzate. The email address of the buyer is [email redacted].",
+      "claims": [
+        {
+          "text": "The buyer for this RFP is Jasmine Alzate.",
+          "citation_ids": [
+            "C1"
+          ]
+        },
+        {
+          "text": "The email address of the buyer is [email redacted].",
+          "citation_ids": [
+            "C2"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "page_end": 2,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Buyer ALZATE, JASMINE"
+        },
+        {
+          "citation_id": "C2",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "page_end": 2,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Email [email redacted]"
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 2,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_24deee71-4528-42ba-82e7-cda3b71f8ed1.json",
+      "review": {
+        "verdict": "correct",
+        "note": "FINAL p2 header: Buyer ALZATE, JASMINE; Email [email redacted] (chunk spans pp. 1-2)."
+      }
+    },
+    {
+      "id": 3,
+      "bid_id": "Bid1",
+      "purpose": "scope",
+      "question": "What types of devices does this RFP cover?",
+      "status": "answered",
+      "answer": "This Request for Proposal (RFP) will be for student and staff computing devices, including laptops, desktops, tablet devices, and display monitors.",
+      "claims": [
+        {
+          "text": "This Request for Proposal (RFP) will be for student and staff computing devices, including laptops, desktops, tablet devices, and display monitors.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "page_end": null,
+          "html_element_id": "g_103",
+          "document_type": "bid_page",
+          "addendum_number": null,
+          "excerpt": "This Request for Proposal (RFP) will be for student and staff computing devices, including laptops, desktops, tablet devices, and display monitors."
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 1,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_0831481c-4e5b-4ad1-8341-61336d56590a.json",
+      "review": {
+        "verdict": "correct",
+        "note": "Same sentence appears in the BidNet description and FINAL p3."
+      }
+    },
+    {
+      "id": 4,
+      "bid_id": "Bid1",
+      "purpose": "technical",
+      "question": "What wireless and Bluetooth standards must the devices support?",
+      "status": "answered",
+      "answer": "The devices must support 802.11AX WiFi-6E and Bluetooth 5.1. The devices must support 802.11AC and Bluetooth 4.2.",
+      "claims": [
+        {
+          "text": "The devices must support 802.11AX WiFi-6E and Bluetooth 5.1.",
+          "citation_ids": [
+            "C1",
+            "C2",
+            "C3",
+            "C4"
+          ]
+        },
+        {
+          "text": "The devices must support 802.11AC and Bluetooth 4.2.",
+          "citation_ids": [
+            "C5"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 4,
+          "page_end": 4,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Wireless: 802.11AX WiFi-6E and Bluetooth 5.1"
+        },
+        {
+          "citation_id": "C2",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "page_end": 5,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Wireless: 802.11AX WiFi-6E and Bluetooth 5.1"
+        },
+        {
+          "citation_id": "C3",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "page_end": 5,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Wireless: 802.11AX WiFi-6E and Bluetooth 5.1"
+        },
+        {
+          "citation_id": "C4",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 6,
+          "page_end": 6,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Wireless: 802.11AX WiFi-6E and Bluetooth 5.1"
+        },
+        {
+          "citation_id": "C5",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "page_end": 5,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Wireless: 802.11AC and Bluetooth 4.2"
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 5,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_e065453f-4eed-4c94-9620-240139a44981.json",
+      "review": {
+        "verdict": "partially_correct",
+        "note": "802.11AX WiFi-6E / Bluetooth 5.1 is correct for most device types; 802.11AC / Bluetooth 4.2 applies to one device type on p5, so 'the devices must support' both overgeneralizes."
+      }
+    },
+    {
+      "id": 5,
+      "bid_id": "Bid1",
+      "purpose": "eligibility",
+      "question": "What must resellers submit regarding factory-authorized repair and maintenance?",
+      "status": "answered",
+      "answer": "Resellers must submit a copy of all factory-authorized repair and maintenance certifications.",
+      "claims": [
+        {
+          "text": "Resellers must submit a copy of all factory-authorized repair and maintenance certifications.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "page_end": 3,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "a copy of all factory-authorized repair and maintenance certifications must be submitted with each proposal."
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 1,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_5953bb5b-a011-4cac-b59b-203aab1dcf7e.json",
+      "review": {
+        "verdict": "correct",
+        "note": "FINAL p3."
+      }
+    },
+    {
+      "id": 6,
+      "bid_id": "Bid1",
+      "purpose": "commercial",
+      "question": "What is the contract term and how many renewals are allowed?",
+      "status": "answered",
+      "answer": "The term of this proposal shall be for a three (3) year agreement. Two (2) successive one (1) year extensions are allowed.",
+      "claims": [
+        {
+          "text": "The term of this proposal shall be for a three (3) year agreement.",
+          "citation_ids": [
+            "C1"
+          ]
+        },
+        {
+          "text": "Two (2) successive one (1) year extensions are allowed.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "page_end": 2,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "The term of this proposal shall be for a three (3) year agreement with two (2) successive one (1) year extensions based on the long-range needs of the District and mutual consent of both parties not to exceed five (5) years total."
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 2,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_77edeaf9-5696-43df-84ec-bfe05a4e89b7.json",
+      "review": {
+        "verdict": "correct",
+        "note": "FINAL p2: three-year term with two one-year extensions, not to exceed five years."
+      }
+    },
+    {
+      "id": 7,
+      "bid_id": "Bid1",
+      "purpose": "addendum change",
+      "question": "According to Addendum 1, when does Dallas ISD anticipate requesting quotes from awarded vendors?",
+      "status": "answered",
+      "answer": "Dallas ISD is anticipating requesting quotes for different projects from awarded vendors starting in September of 2024.",
+      "claims": [
+        {
+          "text": "Dallas ISD is anticipating requesting quotes for different projects from awarded vendors starting in September of 2024.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "page_end": 1,
+          "html_element_id": null,
+          "document_type": "addendum",
+          "addendum_number": 1,
+          "excerpt": "Dallas ISD is anticipating requesting quotes for different projects from awarded vendors starting in September of 2024."
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 1,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_96d525fa-c642-4266-8896-864cc01ccc43.json",
+      "review": {
+        "verdict": "correct",
+        "note": "Addendum 1 p1 question-and-answer item."
+      }
+    },
+    {
+      "id": 8,
+      "bid_id": "Bid1",
+      "purpose": "absent answer",
+      "question": "What liquidated damages per day apply for late delivery?",
+      "status": "not_found",
+      "answer": "Not found in documents",
+      "claims": [],
+      "citations": [],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [
+          "Model abstained"
+        ],
+        "valid_citations": 0,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_195429fe-c5fe-4c9f-b506-b7100cd798a6.json",
+      "review": {
+        "verdict": "correct_abstention",
+        "note": "No 'liquidated' text exists in any parsed Bid1 document."
+      }
+    },
+    {
+      "id": 9,
+      "bid_id": "Bid1",
+      "purpose": "bid isolation (Bid2 identifier asked of Bid1)",
+      "question": "What is PORFP number E20P4600040 for?",
+      "status": "not_found",
+      "answer": "Not found in documents",
+      "claims": [],
+      "citations": [],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 0,
+        "reasons": [
+          "No evidence retrieved for this bid"
+        ],
+        "valid_citations": 0,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_90ac7cd3-0117-4366-9074-a079261bfb0c.json",
+      "review": {
+        "verdict": "correct_abstention",
+        "note": "E20P4600040 is a Bid2 identifier; Bid1 retrieval is filtered to Bid1 only."
+      }
+    },
+    {
+      "id": 10,
+      "bid_id": "Bid2",
+      "purpose": "deadline",
+      "question": "When are proposals due, including the time?",
+      "status": "answered",
+      "answer": "Proposals are due on 06/10/2024 at 02:00 PM EDT.",
+      "claims": [
+        {
+          "text": "Proposals are due on 06/10/2024 at 02:00 PM EDT.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "Dell Laptops w_Extended Warranty - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "page_end": null,
+          "html_element_id": "g_249",
+          "document_type": "bid_page",
+          "addendum_number": null,
+          "excerpt": "06/10/2024 02:00 PM EDT"
+        }
+      ],
+      "limitations": [
+        "1 non-verbatim quote(s) were discarded; the remaining citations support each claim."
+      ],
+      "validation": {
+        "passed": true,
+        "attempts": 2,
+        "reasons": [
+          "Discarded non-verbatim quote: Citation E4: quote is not a verbatim span of the cited passage; E4 does contain '06/10/2024' - quote those spans"
+        ],
+        "valid_citations": 1,
+        "invalid_citations": 1
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_d2f3696c-66cc-4302-b0e2-cf3e1ad68807.json",
+      "review": {
+        "verdict": "correct",
+        "note": "BidNet closing date 06/10/2024 02:00 PM EDT; one stitched table quote was discarded and is disclosed in limitations."
+      }
+    },
+    {
+      "id": 11,
+      "bid_id": "Bid2",
+      "purpose": "contact",
+      "question": "Who is the procurement officer and how can they be contacted?",
+      "status": "answered",
+      "answer": "The procurement officer can be contacted via email.",
+      "claims": [
+        {
+          "text": "The procurement officer can be contacted via email.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 2,
+          "page_end": 2,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Questions must be submitted in writing to [email redacted] with the subject line, “QUESTION for Dell Laptop #E20P4600040”, and be submitted in writing via e-mail to the Procurement Officer no later than the date and time specified."
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 1,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_c1698d90-5799-41da-bacb-86517edbb633.json",
+      "review": {
+        "verdict": "partially_correct",
+        "note": "True but uninformative: the cited passage names [email redacted], the answer text does not; the officer's name (Tamaira Hawkins) is omitted."
+      }
+    },
+    {
+      "id": 12,
+      "bid_id": "Bid2",
+      "purpose": "scope",
+      "question": "Which laptop model and how many units are being purchased?",
+      "status": "answered",
+      "answer": "The laptop model being purchased is Dell Latitude 5550. The number of units being purchased is 30.",
+      "claims": [
+        {
+          "text": "The laptop model being purchased is Dell Latitude 5550.",
+          "citation_ids": [
+            "C1"
+          ]
+        },
+        {
+          "text": "The number of units being purchased is 30.",
+          "citation_ids": [
+            "C2"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 3,
+          "page_end": 3,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Dell Latitude 5550"
+        },
+        {
+          "citation_id": "C2",
+          "document": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 3,
+          "page_end": 3,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "30"
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 2,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_5874cd56-bb5c-45ac-8ca0-f41b6329586e.json",
+      "review": {
+        "verdict": "correct",
+        "note": "PORFP p3 table: Dell Latitude 5550, quantity 30."
+      }
+    },
+    {
+      "id": 13,
+      "bid_id": "Bid2",
+      "purpose": "technical",
+      "question": "What processor is specified for the laptops?",
+      "status": "answered",
+      "answer": "The specified processor for the laptops is Intel Core Ultra 5 125U.",
+      "claims": [
+        {
+          "text": "The specified processor for the laptops is Intel Core Ultra 5 125U.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "Dell_Laptop_Specs.pdf",
+          "page": 1,
+          "page_end": 1,
+          "html_element_id": null,
+          "document_type": "specs",
+          "addendum_number": null,
+          "excerpt": "Intel Core Ultra 5 125U processor (12 MB cache, 12 cores, 14 threads, up to 4.3 GHz Turbo)"
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 1,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_fb036838-1788-4229-be90-d86481ee292f.json",
+      "review": {
+        "verdict": "correct",
+        "note": "Dell_Laptop_Specs p1."
+      }
+    },
+    {
+      "id": 14,
+      "bid_id": "Bid2",
+      "purpose": "eligibility",
+      "question": "Who is eligible to submit a proposal?",
+      "status": "answered",
+      "answer": "Only Master Contractors that are awarded a contract under the Desktop, Laptop and Tablet 2015 Master Contract, 060B5400007, are eligible to submit a bid in response to this secondary competition Purchase Order Request for Proposal (PORFP). Only businesses that meet the statutory requirements set forth in State Finance and Procurement Article, §§14-501—14-505, Annotated Code of Maryland, and that are certified by GOSBA Small Business Reserve Program are eligible for award of a contract.",
+      "claims": [
+        {
+          "text": "Only Master Contractors that are awarded a contract under the Desktop, Laptop and Tablet 2015 Master Contract, 060B5400007, are eligible to submit a bid in response to this secondary competition Purchase Order Request for Proposal (PORFP).",
+          "citation_ids": [
+            "C1"
+          ]
+        },
+        {
+          "text": "Only businesses that meet the statutory requirements set forth in State Finance and Procurement Article, §§14-501—14-505, Annotated Code of Maryland, and that are certified by GOSBA Small Business Reserve Program are eligible for award of a contract.",
+          "citation_ids": [
+            "C2"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 1,
+          "page_end": 1,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Only Master Contractors that are awarded a contract under the Desktop, Laptop and Tablet 2015 Master Contract, 060B5400007, are eligible to submit a bid in response to this secondary competition Purchase Order Request for Proposal (PORFP)."
+        },
+        {
+          "citation_id": "C2",
+          "document": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 1,
+          "page_end": 1,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Only businesses that meet the statutory requirements set forth in State Finance and Procurement Article, §§14-501—14-505, Annotated Code of Maryland, and that are certified by GOSBA Small Business Reserve Program are eligible for award of a contract."
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 2,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_4c75e292-34bd-435c-a230-8daab7bc3ff2.json",
+      "review": {
+        "verdict": "correct",
+        "note": "PORFP p1 special instructions and Small Business Reserve paragraph."
+      }
+    },
+    {
+      "id": 15,
+      "bid_id": "Bid2",
+      "purpose": "commercial",
+      "question": "How soon after award must the laptops be delivered?",
+      "status": "answered",
+      "answer": "Laptops must be delivered within 45 days of Award.",
+      "claims": [
+        {
+          "text": "Laptops must be delivered within 45 days of Award.",
+          "citation_ids": [
+            "C1"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "citation_id": "C1",
+          "document": "PORFP_-_Dell_Laptop_Final.pdf",
+          "page": 2,
+          "page_end": 2,
+          "html_element_id": null,
+          "document_type": "rfp",
+          "addendum_number": null,
+          "excerpt": "Delivery within 45 days of Award."
+        }
+      ],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [],
+        "valid_citations": 1,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_6a26e071-5ef2-4026-bab8-b90571206426.json",
+      "review": {
+        "verdict": "correct",
+        "note": "PORFP p2 item 9."
+      }
+    },
+    {
+      "id": 16,
+      "bid_id": "Bid2",
+      "purpose": "addendum change (none expected)",
+      "question": "Were any addenda issued that changed the due date?",
+      "status": "not_found",
+      "answer": "Not found in documents",
+      "claims": [],
+      "citations": [],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [
+          "Model abstained"
+        ],
+        "valid_citations": 0,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_8a4bae7e-ce43-4317-875a-a9a2c55b6993.json",
+      "review": {
+        "verdict": "correct_abstention",
+        "note": "Bid2 contains no addendum documents; the addendum-only search returned no results."
+      }
+    },
+    {
+      "id": 17,
+      "bid_id": "Bid2",
+      "purpose": "absent answer",
+      "question": "What liquidated damages apply for late delivery?",
+      "status": "not_found",
+      "answer": "Not found in documents",
+      "claims": [],
+      "citations": [],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [
+          "Model abstained"
+        ],
+        "valid_citations": 0,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_28f5944b-79e3-4b3c-90a0-bc278cf406bf.json",
+      "review": {
+        "verdict": "correct_abstention",
+        "note": "No bond or liquidated-damages text in Bid2."
+      }
+    },
+    {
+      "id": 18,
+      "bid_id": "Bid2",
+      "purpose": "bid isolation (Bid1 contact asked of Bid2)",
+      "question": "What is Jasmine Alzate's email address?",
+      "status": "not_found",
+      "answer": "Not found in documents",
+      "claims": [],
+      "citations": [],
+      "limitations": [],
+      "validation": {
+        "passed": true,
+        "attempts": 1,
+        "reasons": [
+          "Model abstained"
+        ],
+        "valid_citations": 0,
+        "invalid_citations": 0
+      },
+      "trace": "artifacts/qa_phase7_final/traces/qa_683fd720-3e2d-4f48-b6fa-696f5e57c470.json",
+      "review": {
+        "verdict": "correct_abstention",
+        "note": "Jasmine Alzate is the Bid1 buyer; Bid2 retrieval is filtered to Bid2 only."
+      }
+    }
+  ]
+}

@@ -1,0 +1,312 @@
+{
+  "extractions": [
+    {
+      "run": "extraction_v4",
+      "bid_id": "Bid1",
+      "output": "artifacts\\extraction_v4\\Bid1.json",
+      "fields": 20,
+      "statuses": {
+        "accepted": 16,
+        "not_found": 3,
+        "unresolved": 1
+      },
+      "citations_checked": 31,
+      "addendum_changes": 1,
+      "problems": [],
+      "trace": {
+        "path": "artifacts\\extraction_v4\\traces\\extraction_Bid1.json",
+        "model": {
+          "provider": "openai",
+          "model": "gpt-4o-mini"
+        },
+        "outcome": "completed",
+        "events": 86,
+        "agents": [
+          "commercial",
+          "critic",
+          "identity",
+          "logistics",
+          "product",
+          "retrieval",
+          "summary",
+          "validator"
+        ],
+        "search_calls": 36,
+        "model_calls": 26,
+        "token_usage": {
+          "input_tokens": 41983,
+          "output_tokens": 2653,
+          "calls": 26
+        },
+        "final_statuses_match": true
+      }
+    },
+    {
+      "run": "extraction_v4",
+      "bid_id": "Bid2",
+      "output": "artifacts\\extraction_v4\\Bid2.json",
+      "fields": 20,
+      "statuses": {
+        "accepted": 16,
+        "not_found": 4,
+        "unresolved": 0
+      },
+      "citations_checked": 22,
+      "addendum_changes": 0,
+      "problems": [],
+      "trace": {
+        "path": "artifacts\\extraction_v4\\traces\\extraction_Bid2.json",
+        "model": {
+          "provider": "openai",
+          "model": "gpt-4o-mini"
+        },
+        "outcome": "completed",
+        "events": 94,
+        "agents": [
+          "commercial",
+          "critic",
+          "identity",
+          "logistics",
+          "product",
+          "retrieval",
+          "summary",
+          "validator"
+        ],
+        "search_calls": 44,
+        "model_calls": 25,
+        "token_usage": {
+          "input_tokens": 42454,
+          "output_tokens": 2236,
+          "calls": 25
+        },
+        "final_statuses_match": true
+      }
+    },
+    {
+      "run": "pipeline_v1",
+      "bid_id": "Bid1",
+      "output": "artifacts\\pipeline_v1\\Bid1\\Bid1.json",
+      "fields": 20,
+      "statuses": {
+        "accepted": 17,
+        "not_found": 3,
+        "unresolved": 0
+      },
+      "citations_checked": 30,
+      "addendum_changes": 1,
+      "problems": [],
+      "trace": {
+        "path": "artifacts\\pipeline_v1\\Bid1\\traces\\extraction_Bid1.json",
+        "model": {
+          "provider": "openai",
+          "model": "gpt-4o-mini"
+        },
+        "outcome": "completed",
+        "events": 80,
+        "agents": [
+          "commercial",
+          "critic",
+          "identity",
+          "logistics",
+          "product",
+          "retrieval",
+          "summary",
+          "validator"
+        ],
+        "search_calls": 34,
+        "model_calls": 24,
+        "token_usage": {
+          "input_tokens": 38382,
+          "output_tokens": 2511,
+          "calls": 24
+        },
+        "final_statuses_match": true
+      }
+    },
+    {
+      "run": "pipeline_v1",
+      "bid_id": "Bid2",
+      "output": "artifacts\\pipeline_v1\\Bid2\\Bid2.json",
+      "fields": 20,
+      "statuses": {
+        "accepted": 16,
+        "not_found": 4,
+        "unresolved": 0
+      },
+      "citations_checked": 22,
+      "addendum_changes": 0,
+      "problems": [],
+      "trace": {
+        "path": "artifacts\\pipeline_v1\\Bid2\\traces\\extraction_Bid2.json",
+        "model": {
+          "provider": "openai",
+          "model": "gpt-4o-mini"
+        },
+        "outcome": "completed",
+        "events": 91,
+        "agents": [
+          "commercial",
+          "critic",
+          "identity",
+          "logistics",
+          "product",
+          "retrieval",
+          "summary",
+          "validator"
+        ],
+        "search_calls": 42,
+        "model_calls": 25,
+        "token_usage": {
+          "input_tokens": 41122,
+          "output_tokens": 2265,
+          "calls": 25
+        },
+        "final_statuses_match": true
+      }
+    },
+    {
+      "run": "pipeline_v2",
+      "bid_id": "Bid1",
+      "output": "artifacts\\pipeline_v2\\Bid1\\Bid1.json",
+      "fields": 20,
+      "statuses": {
+        "accepted": 16,
+        "not_found": 4,
+        "unresolved": 0
+      },
+      "citations_checked": 29,
+      "addendum_changes": 1,
+      "problems": [],
+      "trace": {
+        "path": "artifacts\\pipeline_v2\\Bid1\\traces\\extraction_Bid1.json",
+        "model": {
+          "provider": "openai",
+          "model": "gpt-4o-mini"
+        },
+        "outcome": "completed",
+        "events": 82,
+        "agents": [
+          "commercial",
+          "critic",
+          "identity",
+          "logistics",
+          "product",
+          "retrieval",
+          "summary",
+          "validator"
+        ],
+        "search_calls": 35,
+        "model_calls": 24,
+        "token_usage": {
+          "input_tokens": 39550,
+          "output_tokens": 2486,
+          "calls": 24
+        },
+        "final_statuses_match": true
+      }
+    },
+    {
+      "run": "demo_process",
+      "bid_id": "Bid2",
+      "output": "artifacts\\demo_process\\Bid2\\Bid2.json",
+      "fields": 20,
+      "statuses": {
+        "accepted": 16,
+        "not_found": 4,
+        "unresolved": 0
+      },
+      "citations_checked": 22,
+      "addendum_changes": 0,
+      "problems": [],
+      "trace": {
+        "path": "artifacts\\demo_process\\Bid2\\traces\\extraction_Bid2.json",
+        "model": {
+          "provider": "openai",
+          "model": "gpt-4o-mini"
+        },
+        "outcome": "completed",
+        "events": 91,
+        "agents": [
+          "commercial",
+          "critic",
+          "identity",
+          "logistics",
+          "product",
+          "retrieval",
+          "summary",
+          "validator"
+        ],
+        "search_calls": 42,
+        "model_calls": 25,
+        "token_usage": {
+          "input_tokens": 41118,
+          "output_tokens": 2250,
+          "calls": 25
+        },
+        "final_statuses_match": true
+      }
+    }
+  ],
+  "qa": {
+    "path": "artifacts\\qa_examples.json",
+    "model": {
+      "provider": "openai",
+      "model": "gpt-4o-mini"
+    },
+    "examples": 18,
+    "answered": 13,
+    "not_found": 5,
+    "citations": 20,
+    "verbatim_citations": 20,
+    "imprecise_first_page": [
+      "#2: excerpt is on a later page of the cited range 1-2, not on the first page",
+      "#2: excerpt is on a later page of the cited range 1-2, not on the first page"
+    ],
+    "review_verdicts": {
+      "correct": 11,
+      "correct_abstention": 5,
+      "partially_correct": 2
+    },
+    "review_method": "Assistant review of each answer against the parsed source text (artifacts/assessment/<Bid>/parsed). Not yet confirmed by a human reviewer.",
+    "problems": []
+  },
+  "retrieval": {
+    "report": "artifacts/eval/retrieval_phase7.json",
+    "modes": {
+      "dense": {
+        "recall@5": 0.703,
+        "mrr@10": 0.688,
+        "ndcg@10": 0.6594,
+        "hit@5": 0.88,
+        "cross_bid_leaks": 0,
+        "citation_errors": 0
+      },
+      "sparse": {
+        "recall@5": 0.7857,
+        "mrr@10": 0.7812,
+        "ndcg@10": 0.7487,
+        "hit@5": 0.88,
+        "cross_bid_leaks": 0,
+        "citation_errors": 0
+      },
+      "hybrid": {
+        "recall@5": 0.7363,
+        "mrr@10": 0.7949,
+        "ndcg@10": 0.7413,
+        "hit@5": 0.88,
+        "cross_bid_leaks": 0,
+        "citation_errors": 0
+      },
+      "hybrid_rerank": {
+        "recall@5": 0.7723,
+        "mrr@10": 0.7685,
+        "ndcg@10": 0.7651,
+        "hit@5": 0.88,
+        "cross_bid_leaks": 0,
+        "citation_errors": 0
+      }
+    },
+    "problems": []
+  },
+  "problem_count": 0
+}

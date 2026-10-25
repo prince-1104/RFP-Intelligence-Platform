@@ -1160,3 +1160,84 @@ On 2026-10-24 the first command returned `not_found` with model `gpt-4o-mini`, a
 | 5:00–6:30 | Step 5 and step 7 | Verbatim citations; "Not found in documents"; bid isolation |
 | 6:30–7:30 | Step 2, `tests/test_pipeline.py` | Synthetic unseen bid, offline; not live accuracy |
 | 7:30–9:00 | `docs/final_submission_audit.md` | Partial fields, OCR on host, confidence, human review still needed |
+
+## Submission Evidence and Reproducibility
+
+Generated outputs are written to `artifacts/`, which is git-ignored. The files the assignment asks
+for are copied to `submission/evidence/` by `scripts/build_submission_evidence.py`. The copies mask
+email addresses and phone numbers and change nothing else. `submission/evidence/README.md`
+describes each file, and `docs/submission_artifacts_manifest.md` records the privacy review and
+what was left out. No output has been reviewed by a human.
+
+| Evidence file | Demonstrates | Produced by |
+|---|---|---|
+| `Bid1_extraction.json`, `Bid2_extraction.json` | 20 cited fields per bid, addendum change, validation counts | `extract-bid` (live) |
+| `Bid1_extraction_trace.json` | One full multi-agent run with tokens and latency | `extract-bid` (live) |
+| `qa_examples.json` | 18 live Q&A results (13 cited answers, 5 abstentions) | `ask-samples` (live), plus assistant review notes |
+| `retrieval_evaluation.json` | Four retrieval configurations on 55 labeled cases | `evaluate_retrieval.py run` (local search, no LLM) |
+| `submission_audit.json` | Automated artifact checks | `audit_submission.py` |
+| `Bid2_process_bid_run_summary.json` | One-command pipeline stages and exit code | `process-bid` (live) |
+| `demo_ask_*.json` | Cited answer, separate collection, abstention | `ask` (live) |
+
+**Commands that produced the originals** (Windows PowerShell; live steps need local Qdrant with the
+assessment bids indexed, cached models, and the assessment bid folders in `data/assessment/`):
+
+```powershell
+# Extraction JSON and traces (Phase 9 code)
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid1 --output artifacts\extraction_v4 --trace-dir artifacts\extraction_v4\traces
+.\.venv\Scripts\python -m rfp.cli extract-bid --bid-id Bid2 --output artifacts\extraction_v4 --trace-dir artifacts\extraction_v4\traces
+.\.venv\Scripts\python scripts\verify_extraction.py --outputs artifacts\extraction_v4 --traces artifacts\extraction_v4\traces --out artifacts\eval\extraction_v4_check.json
+
+# Q&A log (raw run; qa_examples.json adds an assistant review note per answer)
+.\.venv\Scripts\python -m rfp.cli ask-samples --questions examples\qa_phase7_questions.json --output artifacts\qa_phase7_final
+
+# Retrieval evaluation (no LLM)
+.\.venv\Scripts\python scripts\evaluate_retrieval.py verify
+.\.venv\Scripts\python scripts\evaluate_retrieval.py run --modes dense,sparse,hybrid,hybrid_rerank --out artifacts\eval\retrieval_phase7.json
+
+# One-command pipeline and demo answers
+.\.venv\Scripts\python -m rfp.cli process-bid --input data\assessment\Bid2 --output artifacts\pipeline_v1\Bid2 --collection pipeline_check
+.\.venv\Scripts\python -m rfp.cli ask --bid-id Bid1 --question "What is the final proposal due date after all addenda?" --trace-dir artifacts\final_demo\traces --output artifacts\final_demo\ask_bid1_due_date.json
+
+# Artifact audit and evidence copies
+.\.venv\Scripts\python scripts\audit_submission.py --out artifacts\eval\submission_audit.json
+.\.venv\Scripts\python scripts\build_submission_evidence.py build
+.\.venv\Scripts\python scripts\build_submission_evidence.py check
+```
+
+**Verifying from a clone** (no artifacts, models, Qdrant or keys):
+
+```powershell
+.\.venv\Scripts\python scripts\build_submission_evidence.py verify
+.\.venv\Scripts\python -m pytest -m "not integration" -q
+```
+
+`evaluate_qa.py verify`, `evaluate_retrieval.py verify` and `audit_submission.py` check labels and
+citations against the parsed bid artifacts, so they need the local assessment data.
+
+**LLM configuration.** Live commands read `LLM_PROVIDER` (`openai` or `openai_compatible`),
+`LLM_MODEL` and `LLM_API_KEY`, plus optional `LLM_BASE_URL`, from the private `.env`. All live
+evidence used `openai` / `gpt-4o-mini`, as recorded in each trace. Keys are never written to outputs;
+`verify_extraction.py` and `audit_submission.py` scan for them.
+
+**Live versus offline.** Every file in `submission/evidence/` came from live runs on the two
+assessment bids, or from local search with no LLM (retrieval). The test suite (407 offline tests,
+6 integration tests) uses fake models and constructed or synthetic documents. `tests/test_pipeline.py`
+runs `process-bid` on a fictional bid, and it is not evidence of live accuracy.
+
+**Retrieval results** (55 cases, 50 scored, default rerank depth 20; rerun on 2026-10-24 with identical
+metrics): dense 0.703 Recall@5 / 0.688 MRR@10; sparse 0.786 / 0.781; hybrid 0.736 / 0.795; hybrid +
+rerank 0.772 / 0.769. The full table is in the retrieval section above.
+
+**Known limitations of the evidence.**
+- Extraction (model-assisted review): Bid1 9 correct and 7 partial; Bid2 11 correct and 5 partial;
+  no wrong values. Partial fields include Bid2 Due Date without time or zone, and incomplete
+  documentation, product and specification fields.
+- `extraction_v4` is the chosen Phase 9 run. Earlier attempts ran on changing code, and a same-code
+  repeat differed in some fields (`docs/live_validation.md`). Values vary between runs.
+- Q&A: 5 false abstentions on the 14-case gold set (9/14 correct), including the Bid2 affidavits
+  question. Cross-bid comparison questions are not supported.
+- No real unseen bid was tested; only a synthetic fixture.
+- Retrieval labels and Q&A gold answers are assistant-made and not human-approved.
+- Confidence values are fixed per status, not calibrated. Only the due date is reconciled from addenda.
+- Masked excerpts in `qa_examples.json` (examples 2 and 11) are no longer verbatim.

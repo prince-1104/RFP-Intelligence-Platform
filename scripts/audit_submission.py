@@ -13,6 +13,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from rfp.agents.schemas import REQUIRED_FIELDS, BidExtraction, ExtractionTrace
 from rfp.agents.validator import contained
@@ -247,7 +248,7 @@ def main() -> int:
                 continue
             trace = output.parent / "traces" / f"extraction_{bid}.json"
             extractions.append(check_extraction(run, output, trace, ROOT / parsed.format(bid=bid)))
-    result = {
+    result: dict[str, Any] = {
         "extractions": extractions,
         "qa": check_qa(ROOT / QA_EXAMPLES),
         "retrieval": check_retrieval(),

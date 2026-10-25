@@ -1,0 +1,4076 @@
+{
+  "workflow_id": "efa50f39-2890-4606-8675-6b468bbf8d2a",
+  "bid_id": "Bid1",
+  "bid_uuid": "5809c088-8514-58c3-a0e5-4d9e72adab0b",
+  "documents": [
+    "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+    "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+    "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+    "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html"
+  ],
+  "events": [
+    {
+      "sequence": 0,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Bid Number",
+      "started_at": "2026-10-24T17:47:51.067Z",
+      "ended_at": "2026-10-24T17:47:54.529Z",
+      "duration_ms": 3462.55,
+      "query": "official solicitation or RFP number",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "bid-number1",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        },
+        {
+          "evidence_id": "bid-number2",
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number5",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number6",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_90"
+        },
+        {
+          "evidence_id": "bid-number7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 41,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number8",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 1,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Title",
+      "started_at": "2026-10-24T17:47:54.529Z",
+      "ended_at": "2026-10-24T17:47:59.279Z",
+      "duration_ms": 4749.79,
+      "query": "full title of the bid or request for proposal",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "title1",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 41,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 48,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 21,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 30,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 32,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 32,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 2,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Title",
+      "started_at": "2026-10-24T17:47:59.279Z",
+      "ended_at": "2026-10-24T17:48:03.114Z",
+      "duration_ms": 3834.74,
+      "query": "request for proposal solicitation title",
+      "query_hash": null,
+      "mode": "sparse",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 19,
+      "evidence": [
+        {
+          "evidence_id": "title1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title2",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title4",
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title7",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        },
+        {
+          "evidence_id": "title8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 3,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "contact_info",
+      "started_at": "2026-10-24T17:48:03.115Z",
+      "ended_at": "2026-10-24T17:48:09.399Z",
+      "duration_ms": 6284.79,
+      "query": "procurement contact name email and phone",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 19,
+      "evidence": [
+        {
+          "evidence_id": "contact-info1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 61,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 46,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 61,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 44,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 46,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 42,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 45,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 44,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 4,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "contact_info",
+      "started_at": "2026-10-24T17:48:09.399Z",
+      "ended_at": "2026-10-24T17:48:14.303Z",
+      "duration_ms": 4903.44,
+      "query": "buyer name and email address",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 19,
+      "evidence": [
+        {
+          "evidence_id": "contact-info1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info2",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 61,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 61,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 41,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 13,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 46,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 46,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 5,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "contact_info",
+      "started_at": "2026-10-24T17:48:14.303Z",
+      "ended_at": "2026-10-24T17:48:17.374Z",
+      "duration_ms": 3071.64,
+      "query": "Who is the buyer for this solicitation and how can they be contacted?",
+      "query_hash": null,
+      "mode": "sparse",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 19,
+      "evidence": [
+        {
+          "evidence_id": "contact-info1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 20,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info4",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "mainMenu"
+        },
+        {
+          "evidence_id": "contact-info5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 60,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info7",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contact-info8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 16,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 6,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "company_name",
+      "started_at": "2026-10-24T17:48:17.374Z",
+      "ended_at": "2026-10-24T17:48:24.366Z",
+      "duration_ms": 6991.24,
+      "query": "issuing organization or agency name",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 11,
+      "evidence": [
+        {
+          "evidence_id": "company-name1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 24,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 58,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 48,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 25,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 27,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 29,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 26,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 46,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 7,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "company_name",
+      "started_at": "2026-10-24T17:48:24.366Z",
+      "ended_at": "2026-10-24T17:48:26.986Z",
+      "duration_ms": 2619.92,
+      "query": "organization soliciting offers or proposals",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 11,
+      "evidence": [
+        {
+          "evidence_id": "company-name1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 30,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name6",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "mainMenu"
+        },
+        {
+          "evidence_id": "company-name7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 15,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 8,
+      "agent": "identity",
+      "task": "extract",
+      "field": "Bid Number,Title,contact_info,company_name",
+      "started_at": "2026-10-24T17:48:26.990Z",
+      "ended_at": "2026-10-24T17:48:30.506Z",
+      "duration_ms": 3516.18,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 5889,
+      "output_tokens": 255,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 9,
+      "agent": "critic",
+      "task": "review",
+      "field": "Bid Number",
+      "started_at": "2026-10-24T17:48:30.513Z",
+      "ended_at": "2026-10-24T17:48:32.077Z",
+      "duration_ms": 1564.53,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 738,
+      "output_tokens": 42,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 10,
+      "agent": "validator",
+      "task": "check",
+      "field": "Bid Number",
+      "started_at": "2026-10-24T17:48:32.077Z",
+      "ended_at": "2026-10-24T17:48:32.077Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "bid-number-2",
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number-3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number-4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number-5",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-number-6",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_90"
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 11,
+      "agent": "critic",
+      "task": "review",
+      "field": "Title",
+      "started_at": "2026-10-24T17:48:32.080Z",
+      "ended_at": "2026-10-24T17:48:33.485Z",
+      "duration_ms": 1404.79,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 701,
+      "output_tokens": 48,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 12,
+      "agent": "validator",
+      "task": "check",
+      "field": "Title",
+      "started_at": "2026-10-24T17:48:33.485Z",
+      "ended_at": "2026-10-24T17:48:33.485Z",
+      "duration_ms": 0.03,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "title-2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title-4",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title-5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "title-8",
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 13,
+      "agent": "critic",
+      "task": "review",
+      "field": "contact_info",
+      "started_at": "2026-10-24T17:48:33.487Z",
+      "ended_at": "2026-10-24T17:48:34.671Z",
+      "duration_ms": 1184.15,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 305,
+      "output_tokens": 38,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 14,
+      "agent": "validator",
+      "task": "check",
+      "field": "contact_info",
+      "started_at": "2026-10-24T17:48:34.671Z",
+      "ended_at": "2026-10-24T17:48:34.671Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "contact-info-2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 15,
+      "agent": "critic",
+      "task": "review",
+      "field": "company_name",
+      "started_at": "2026-10-24T17:48:34.672Z",
+      "ended_at": "2026-10-24T17:48:35.938Z",
+      "duration_ms": 1266.28,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 369,
+      "output_tokens": 40,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 16,
+      "agent": "validator",
+      "task": "check",
+      "field": "company_name",
+      "started_at": "2026-10-24T17:48:35.938Z",
+      "ended_at": "2026-10-24T17:48:35.938Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "company-name-2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "company-name-4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 17,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Due Date",
+      "started_at": "2026-10-24T17:47:51.068Z",
+      "ended_at": "2026-10-24T17:47:55.677Z",
+      "duration_ms": 4609.14,
+      "query": "final proposal submission deadline after addendums",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 19,
+      "evidence": [
+        {
+          "evidence_id": "due-date1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 32,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date3",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date4",
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date7",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 18,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Due Date",
+      "started_at": "2026-10-24T17:47:55.677Z",
+      "ended_at": "2026-10-24T17:47:59.307Z",
+      "duration_ms": 3630.35,
+      "query": "new due date for this RFP",
+      "query_hash": null,
+      "mode": "sparse",
+      "top_k": 20,
+      "doc_types": [
+        "addendum"
+      ],
+      "result_count": 10,
+      "evidence": [
+        {
+          "evidence_id": "due-date1",
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date2",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date3",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date4",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date5",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date6",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date7",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date8",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 19,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Due Date",
+      "started_at": "2026-10-24T17:47:59.307Z",
+      "ended_at": "2026-10-24T17:48:04.630Z",
+      "duration_ms": 5322.64,
+      "query": "solicitation due date on the original RFP",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [
+        "rfp"
+      ],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "due-date1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "due-date8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 20,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Bid Submission Type",
+      "started_at": "2026-10-24T17:48:04.631Z",
+      "ended_at": "2026-10-24T17:48:11.262Z",
+      "duration_ms": 6631.53,
+      "query": "how the bid or proposal must be submitted, portal or sealed",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "bid-submission-type1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-submission-type2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 48,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-submission-type3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 30,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-submission-type4",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-submission-type5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 21,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-submission-type6",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-submission-type7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-submission-type8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 32,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 21,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Term of Bid",
+      "started_at": "2026-10-24T17:48:11.262Z",
+      "ended_at": "2026-10-24T17:48:15.623Z",
+      "duration_ms": 4360.53,
+      "query": "contract term duration and renewal options",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "term-of-bid1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "term-of-bid2",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "btnEproContracts"
+        },
+        {
+          "evidence_id": "term-of-bid3",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "mainMenu"
+        },
+        {
+          "evidence_id": "term-of-bid4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 29,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "term-of-bid5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 32,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "term-of-bid6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "term-of-bid7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "term-of-bid8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 12,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 22,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Pre Bid Meeting",
+      "started_at": "2026-10-24T17:48:15.623Z",
+      "ended_at": "2026-10-24T17:48:19.062Z",
+      "duration_ms": 3439.09,
+      "query": "pre-proposal or pre-bid meeting date time location and whether it is mandatory",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "pre-bid-meeting1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "pre-bid-meeting2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "pre-bid-meeting3",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "noticeForm"
+        },
+        {
+          "evidence_id": "pre-bid-meeting4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "pre-bid-meeting5",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_109"
+        },
+        {
+          "evidence_id": "pre-bid-meeting6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 47,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "pre-bid-meeting7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 30,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "pre-bid-meeting8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 32,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 23,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Installation",
+      "started_at": "2026-10-24T17:48:19.062Z",
+      "ended_at": "2026-10-24T17:48:26.043Z",
+      "duration_ms": 6980.36,
+      "query": "whether installation deployment imaging or white glove services are required",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "installation1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation3",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 7,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation5",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 38,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 7,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation8",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 24,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Delivery Date",
+      "started_at": "2026-10-24T17:48:26.043Z",
+      "ended_at": "2026-10-24T17:48:28.567Z",
+      "duration_ms": 2524.84,
+      "query": "required delivery date or delivery window after award",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "delivery-date1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date2",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date4",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 19,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 23,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 52,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 15,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 25,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Delivery Date",
+      "started_at": "2026-10-24T17:48:28.567Z",
+      "ended_at": "2026-10-24T17:48:28.765Z",
+      "duration_ms": 197.56,
+      "query": "When is the contract expected to be awarded?",
+      "query_hash": null,
+      "mode": "sparse",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "delivery-date1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 28,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date3",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 12,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 24,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 24,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 26,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Delivery Date",
+      "started_at": "2026-10-24T17:48:28.765Z",
+      "ended_at": "2026-10-24T17:48:30.080Z",
+      "duration_ms": 1314.76,
+      "query": "anticipated approval or award date",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 19,
+      "evidence": [
+        {
+          "evidence_id": "delivery-date1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date3",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 30,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date7",
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "delivery-date8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 30,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 27,
+      "agent": "logistics",
+      "task": "extract",
+      "field": "Due Date,Bid Submission Type,Term of Bid,Pre Bid Meeting,Installation,Delivery Date",
+      "started_at": "2026-10-24T17:48:30.087Z",
+      "ended_at": "2026-10-24T17:48:33.614Z",
+      "duration_ms": 3526.66,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 8575,
+      "output_tokens": 320,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 28,
+      "agent": "critic",
+      "task": "review",
+      "field": "Due Date",
+      "started_at": "2026-10-24T17:48:33.614Z",
+      "ended_at": "2026-10-24T17:48:34.729Z",
+      "duration_ms": 1114.47,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 243,
+      "output_tokens": 44,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 29,
+      "agent": "validator",
+      "task": "check",
+      "field": "Due Date",
+      "started_at": "2026-10-24T17:48:34.732Z",
+      "ended_at": "2026-10-24T17:48:34.732Z",
+      "duration_ms": 0.01,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "due-date-2",
+          "file": "Addendum 2 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 30,
+      "agent": "critic",
+      "task": "review",
+      "field": "Bid Submission Type",
+      "started_at": "2026-10-24T17:48:34.732Z",
+      "ended_at": "2026-10-24T17:48:35.866Z",
+      "duration_ms": 1134.36,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 200,
+      "output_tokens": 42,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 31,
+      "agent": "validator",
+      "task": "check",
+      "field": "Bid Submission Type",
+      "started_at": "2026-10-24T17:48:35.866Z",
+      "ended_at": "2026-10-24T17:48:35.866Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "bid-submission-type-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 32,
+      "agent": "critic",
+      "task": "review",
+      "field": "Term of Bid",
+      "started_at": "2026-10-24T17:48:35.870Z",
+      "ended_at": "2026-10-24T17:48:36.920Z",
+      "duration_ms": 1050.14,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 225,
+      "output_tokens": 40,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 33,
+      "agent": "validator",
+      "task": "check",
+      "field": "Term of Bid",
+      "started_at": "2026-10-24T17:48:36.920Z",
+      "ended_at": "2026-10-24T17:48:36.920Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "term-of-bid-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 34,
+      "agent": "critic",
+      "task": "review",
+      "field": "Pre Bid Meeting",
+      "started_at": "2026-10-24T17:48:36.921Z",
+      "ended_at": "2026-10-24T17:48:38.089Z",
+      "duration_ms": 1168.49,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 296,
+      "output_tokens": 38,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 35,
+      "agent": "validator",
+      "task": "check",
+      "field": "Pre Bid Meeting",
+      "started_at": "2026-10-24T17:48:38.089Z",
+      "ended_at": "2026-10-24T17:48:38.090Z",
+      "duration_ms": 0.04,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "pre-bid-meeting-2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 36,
+      "agent": "validator",
+      "task": "check",
+      "field": "Installation",
+      "started_at": "2026-10-24T17:48:38.090Z",
+      "ended_at": "2026-10-24T17:48:38.090Z",
+      "duration_ms": 0.03,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "installation-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "decision": "rejected value: Yes, deployment services required including setup and imaging.",
+      "reasons": [
+        "Cited evidence does not support the value"
+      ],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 37,
+      "agent": "critic",
+      "task": "review",
+      "field": "Delivery Date",
+      "started_at": "2026-10-24T17:48:38.093Z",
+      "ended_at": "2026-10-24T17:48:40.228Z",
+      "duration_ms": 2135.38,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 246,
+      "output_tokens": 44,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 38,
+      "agent": "validator",
+      "task": "check",
+      "field": "Delivery Date",
+      "started_at": "2026-10-24T17:48:40.228Z",
+      "ended_at": "2026-10-24T17:48:40.228Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "delivery-date-8",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 1,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 39,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Bid Bond Requirement",
+      "started_at": "2026-10-24T17:47:51.069Z",
+      "ended_at": "2026-10-24T17:47:57.399Z",
+      "duration_ms": 6329.94,
+      "query": "required bid bond or bid security amount or percentage, or that none is required",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "bid-bond-requirement1",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-bond-requirement2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 21,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-bond-requirement3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 26,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-bond-requirement4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 47,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-bond-requirement5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 48,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-bond-requirement6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 34,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-bond-requirement7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 52,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-bond-requirement8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 21,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 40,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:47:57.399Z",
+      "ended_at": "2026-10-24T17:48:01.250Z",
+      "duration_ms": 3850.74,
+      "query": "payment terms net days and invoicing conditions",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "payment-terms1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 14,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms7",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 55,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 41,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Any Additional Documentation Required",
+      "started_at": "2026-10-24T17:48:01.250Z",
+      "ended_at": "2026-10-24T17:48:06.223Z",
+      "duration_ms": 4973.31,
+      "query": "affidavits forms and certificates that must be submitted with the response",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "any-additional-documentation-required1",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 14,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 15,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required6",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 31,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 42,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Any Additional Documentation Required",
+      "started_at": "2026-10-24T17:48:06.223Z",
+      "ended_at": "2026-10-24T17:48:11.291Z",
+      "duration_ms": 5067.94,
+      "query": "required forms attachments and affidavits",
+      "query_hash": null,
+      "mode": "sparse",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "any-additional-documentation-required1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required2",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required3",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 14,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 33,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 33,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 11,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "any-additional-documentation-required8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 42,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 43,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "MFG for Registration",
+      "started_at": "2026-10-24T17:48:11.292Z",
+      "ended_at": "2026-10-24T17:48:17.343Z",
+      "duration_ms": 6051.23,
+      "query": "manufacturer the bidder must be registered or authorized with",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "mfg-for-registration1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "mfg-for-registration2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 47,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "mfg-for-registration3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 20,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "mfg-for-registration4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "mfg-for-registration5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 15,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "mfg-for-registration6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "mfg-for-registration7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 18,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "mfg-for-registration8",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 44,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Contract or Cooperative to use",
+      "started_at": "2026-10-24T17:48:17.343Z",
+      "ended_at": "2026-10-24T17:48:21.161Z",
+      "duration_ms": 3818.3,
+      "query": "cooperative purchasing agreement or state contract vehicle",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "contract-or-cooperative-to-use1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 20,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contract-or-cooperative-to-use2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 19,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contract-or-cooperative-to-use3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 19,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contract-or-cooperative-to-use4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 27,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contract-or-cooperative-to-use5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 28,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contract-or-cooperative-to-use6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 26,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contract-or-cooperative-to-use7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 32,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "contract-or-cooperative-to-use8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 45,
+      "agent": "commercial",
+      "task": "extract",
+      "field": "Bid Bond Requirement,Payment Terms,Any Additional Documentation Required,MFG for Registration,Contract or Cooperative to use",
+      "started_at": "2026-10-24T17:48:21.167Z",
+      "ended_at": "2026-10-24T17:48:24.089Z",
+      "duration_ms": 2922.21,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 7258,
+      "output_tokens": 238,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 46,
+      "agent": "validator",
+      "task": "check",
+      "field": "Bid Bond Requirement",
+      "started_at": "2026-10-24T17:48:24.089Z",
+      "ended_at": "2026-10-24T17:48:24.089Z",
+      "duration_ms": 0.01,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "not_found",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 47,
+      "agent": "validator",
+      "task": "check",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:48:24.090Z",
+      "ended_at": "2026-10-24T17:48:24.090Z",
+      "duration_ms": 0.01,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "payment-terms-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        }
+      ],
+      "decision": "rejected value: All Prime vendors must pay all submitted invoices, including retainage to subcontractors, suppliers, or entities within 10 days of receiving payment from the district.",
+      "reasons": [
+        "Value is the vendor's duty to pay its subcontractors, not how the buyer pays the vendor"
+      ],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 48,
+      "agent": "critic",
+      "task": "review",
+      "field": "Any Additional Documentation Required",
+      "started_at": "2026-10-24T17:48:24.091Z",
+      "ended_at": "2026-10-24T17:48:25.663Z",
+      "duration_ms": 1571.7,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 227,
+      "output_tokens": 37,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 49,
+      "agent": "validator",
+      "task": "check",
+      "field": "Any Additional Documentation Required",
+      "started_at": "2026-10-24T17:48:25.663Z",
+      "ended_at": "2026-10-24T17:48:25.663Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "any-additional-documentation-required-1",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 50,
+      "agent": "critic",
+      "task": "review",
+      "field": "MFG for Registration",
+      "started_at": "2026-10-24T17:48:25.664Z",
+      "ended_at": "2026-10-24T17:48:27.073Z",
+      "duration_ms": 1409.22,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 185,
+      "output_tokens": 50,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 51,
+      "agent": "validator",
+      "task": "check",
+      "field": "MFG for Registration",
+      "started_at": "2026-10-24T17:48:27.073Z",
+      "ended_at": "2026-10-24T17:48:27.073Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "mfg-for-registration-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 52,
+      "agent": "critic",
+      "task": "review",
+      "field": "Contract or Cooperative to use",
+      "started_at": "2026-10-24T17:48:27.074Z",
+      "ended_at": "2026-10-24T17:48:28.495Z",
+      "duration_ms": 1420.63,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 210,
+      "output_tokens": 40,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 53,
+      "agent": "validator",
+      "task": "check",
+      "field": "Contract or Cooperative to use",
+      "started_at": "2026-10-24T17:48:28.495Z",
+      "ended_at": "2026-10-24T17:48:28.495Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "contract-or-cooperative-to-use-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 20,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 54,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Model_no",
+      "started_at": "2026-10-24T17:47:51.069Z",
+      "ended_at": "2026-10-24T17:47:57.861Z",
+      "duration_ms": 6791.0,
+      "query": "model number of the requested product",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "model-no1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 38,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 39,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 36,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 37,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 11,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 12,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 54,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 55,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Part_no",
+      "started_at": "2026-10-24T17:47:57.861Z",
+      "ended_at": "2026-10-24T17:48:03.087Z",
+      "duration_ms": 5226.31,
+      "query": "part number or SKU of the requested product",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "part-no1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "part-no2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 54,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "part-no3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 54,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "part-no4",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "part-no5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 35,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "part-no6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 12,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "part-no7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 57,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "part-no8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 20,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 56,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Product",
+      "started_at": "2026-10-24T17:48:03.087Z",
+      "ended_at": "2026-10-24T17:48:07.731Z",
+      "duration_ms": 4643.69,
+      "query": "requested product name and quantity",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "product1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 34,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 35,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product4",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        },
+        {
+          "evidence_id": "product5",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 8,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product7",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "mainMenu"
+        },
+        {
+          "evidence_id": "product8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 61,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 57,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Product Specification",
+      "started_at": "2026-10-24T17:48:07.731Z",
+      "ended_at": "2026-10-24T17:48:12.812Z",
+      "duration_ms": 5080.97,
+      "query": "technical specifications CPU RAM storage display battery and warranty",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "product-specification1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 6,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 38,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 6,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 40,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 58,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Product Specification",
+      "started_at": "2026-10-24T17:48:12.812Z",
+      "ended_at": "2026-10-24T17:48:17.349Z",
+      "duration_ms": 4536.17,
+      "query": "RAM memory display screen size and battery specifications",
+      "query_hash": null,
+      "mode": "sparse",
+      "top_k": 20,
+      "doc_types": [
+        "specs"
+      ],
+      "result_count": 0,
+      "evidence": [],
+      "decision": "no_results",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 59,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Product Specification",
+      "started_at": "2026-10-24T17:48:17.349Z",
+      "ended_at": "2026-10-24T17:48:22.953Z",
+      "duration_ms": 5603.91,
+      "query": "laptop or device specifications for memory display and battery",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "product-specification1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 6,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification4",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        },
+        {
+          "evidence_id": "product-specification5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 37,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 39,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 60,
+      "agent": "product",
+      "task": "extract",
+      "field": "Model_no,Part_no,Product,Product Specification",
+      "started_at": "2026-10-24T17:48:22.957Z",
+      "ended_at": "2026-10-24T17:48:29.426Z",
+      "duration_ms": 6469.25,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 6049,
+      "output_tokens": 671,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 61,
+      "agent": "critic",
+      "task": "review",
+      "field": "Model_no",
+      "started_at": "2026-10-24T17:48:29.429Z",
+      "ended_at": "2026-10-24T17:48:30.804Z",
+      "duration_ms": 1374.95,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 532,
+      "output_tokens": 43,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 62,
+      "agent": "validator",
+      "task": "check",
+      "field": "Model_no",
+      "started_at": "2026-10-24T17:48:30.804Z",
+      "ended_at": "2026-10-24T17:48:30.804Z",
+      "duration_ms": 0.03,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "model-no-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 38,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no-2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 39,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no-3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 36,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no-4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 37,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 63,
+      "agent": "validator",
+      "task": "check",
+      "field": "Part_no",
+      "started_at": "2026-10-24T17:48:30.805Z",
+      "ended_at": "2026-10-24T17:48:30.805Z",
+      "duration_ms": 0.01,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "not_found",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 64,
+      "agent": "critic",
+      "task": "review",
+      "field": "Product",
+      "started_at": "2026-10-24T17:48:30.807Z",
+      "ended_at": "2026-10-24T17:48:31.876Z",
+      "duration_ms": 1069.93,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 502,
+      "output_tokens": 39,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 65,
+      "agent": "validator",
+      "task": "check",
+      "field": "Product",
+      "started_at": "2026-10-24T17:48:31.876Z",
+      "ended_at": "2026-10-24T17:48:31.876Z",
+      "duration_ms": 0.01,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "product-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 34,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 35,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 66,
+      "agent": "critic",
+      "task": "review",
+      "field": "Product Specification",
+      "started_at": "2026-10-24T17:48:31.879Z",
+      "ended_at": "2026-10-24T17:48:33.180Z",
+      "duration_ms": 1300.98,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 1087,
+      "output_tokens": 50,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 67,
+      "agent": "validator",
+      "task": "check",
+      "field": "Product Specification",
+      "started_at": "2026-10-24T17:48:33.180Z",
+      "ended_at": "2026-10-24T17:48:33.180Z",
+      "duration_ms": 0.03,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "product-specification-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification-2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "product-specification-3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 6,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 68,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Installation",
+      "started_at": "2026-10-24T17:48:40.230Z",
+      "ended_at": "2026-10-24T17:48:41.840Z",
+      "duration_ms": 1610.19,
+      "query": "whether installation deployment imaging or white glove services are required",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "installation1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation3",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 7,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation5",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 38,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 7,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "installation8",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 69,
+      "agent": "logistics",
+      "task": "extract",
+      "field": "Installation",
+      "started_at": "2026-10-24T17:48:41.841Z",
+      "ended_at": "2026-10-24T17:48:43.145Z",
+      "duration_ms": 1303.62,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": 1545,
+      "output_tokens": 63,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 70,
+      "agent": "critic",
+      "task": "review",
+      "field": "Installation",
+      "started_at": "2026-10-24T17:48:43.146Z",
+      "ended_at": "2026-10-24T17:48:44.309Z",
+      "duration_ms": 1163.44,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": 203,
+      "output_tokens": 41,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 71,
+      "agent": "validator",
+      "task": "check",
+      "field": "Installation",
+      "started_at": "2026-10-24T17:48:44.309Z",
+      "ended_at": "2026-10-24T17:48:44.309Z",
+      "duration_ms": 0.01,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "installation-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 72,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:48:40.230Z",
+      "ended_at": "2026-10-24T17:48:43.250Z",
+      "duration_ms": 3019.14,
+      "query": "payment terms net days and invoicing conditions",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "payment-terms1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 14,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms7",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 55,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 73,
+      "agent": "commercial",
+      "task": "extract",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:48:43.250Z",
+      "ended_at": "2026-10-24T17:48:44.891Z",
+      "duration_ms": 1640.95,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": 1507,
+      "output_tokens": 75,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 74,
+      "agent": "validator",
+      "task": "check",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:48:44.892Z",
+      "ended_at": "2026-10-24T17:48:44.892Z",
+      "duration_ms": 0.01,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "payment-terms-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        }
+      ],
+      "decision": "rejected value: All Prime vendors must pay all submitted invoices, including retainage to subcontractors, suppliers, or entities within 10 days of receiving payment from the district.",
+      "reasons": [
+        "Value is the vendor's duty to pay its subcontractors, not how the buyer pays the vendor"
+      ],
+      "retry": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 75,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Model_no",
+      "started_at": "2026-10-24T17:48:40.231Z",
+      "ended_at": "2026-10-24T17:48:43.585Z",
+      "duration_ms": 3353.55,
+      "query": "model number of the requested product",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "model-no1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 38,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 39,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 36,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 37,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 11,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 12,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "model-no8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 54,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 76,
+      "agent": "product",
+      "task": "extract",
+      "field": "Model_no",
+      "started_at": "2026-10-24T17:48:43.585Z",
+      "ended_at": "2026-10-24T17:48:44.734Z",
+      "duration_ms": 1148.4,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": 1506,
+      "output_tokens": 40,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 77,
+      "agent": "validator",
+      "task": "check",
+      "field": "Model_no",
+      "started_at": "2026-10-24T17:48:44.734Z",
+      "ended_at": "2026-10-24T17:48:44.734Z",
+      "duration_ms": 0.0,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "not_found",
+      "reasons": [],
+      "retry": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 78,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:48:44.892Z",
+      "ended_at": "2026-10-24T17:48:46.210Z",
+      "duration_ms": 1316.79,
+      "query": "payment terms net days and invoicing conditions",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 12,
+      "doc_types": [],
+      "result_count": 12,
+      "evidence": [
+        {
+          "evidence_id": "payment-terms1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 14,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 17,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 22,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms7",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 5,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 55,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 2,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 79,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:48:46.210Z",
+      "ended_at": "2026-10-24T17:48:46.244Z",
+      "duration_ms": 34.21,
+      "query": "payment terms net days and invoicing conditions",
+      "query_hash": null,
+      "mode": "dense",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "payment-terms1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 14,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 55,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 57,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms4",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 56,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 56,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 58,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "payment-terms8",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 20,
+          "html_element_id": null
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 2,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 80,
+      "agent": "commercial",
+      "task": "extract",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:48:46.244Z",
+      "ended_at": "2026-10-24T17:48:47.622Z",
+      "duration_ms": 1377.74,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 2,
+      "input_tokens": 1542,
+      "output_tokens": 75,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 81,
+      "agent": "validator",
+      "task": "check",
+      "field": "Payment Terms",
+      "started_at": "2026-10-24T17:48:47.622Z",
+      "ended_at": "2026-10-24T17:48:47.622Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "payment-terms-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 51,
+          "html_element_id": null
+        }
+      ],
+      "decision": "rejected value: All Prime vendors must pay all submitted invoices, including retainage to subcontractors, suppliers, or entities within 10 days of receiving payment from the district.",
+      "reasons": [
+        "Value is the vendor's duty to pay its subcontractors, not how the buyer pays the vendor"
+      ],
+      "retry": 2,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 82,
+      "agent": "retrieval",
+      "task": "search",
+      "field": "Bid Summary",
+      "started_at": "2026-10-24T17:48:47.623Z",
+      "ended_at": "2026-10-24T17:48:49.155Z",
+      "duration_ms": 1531.21,
+      "query": "scope of the procurement, deadlines, products and submission requirements",
+      "query_hash": null,
+      "mode": "hybrid_rerank",
+      "top_k": 20,
+      "doc_types": [],
+      "result_count": 20,
+      "evidence": [
+        {
+          "evidence_id": "bid-summary1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-summary2",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 3,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-summary3",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 8,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-summary4",
+          "file": "Addendum 1 RFP JA-207652 Student and Staff Computing Devices.pdf",
+          "page": 4,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-summary5",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-summary6",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 32,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-summary7",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 9,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-summary8",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        }
+      ],
+      "decision": null,
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    },
+    {
+      "sequence": 83,
+      "agent": "summary",
+      "task": "extract",
+      "field": "Bid Summary",
+      "started_at": "2026-10-24T17:48:49.156Z",
+      "ended_at": "2026-10-24T17:48:50.989Z",
+      "duration_ms": 1833.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "drafts returned",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 1408,
+      "output_tokens": 148,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 84,
+      "agent": "critic",
+      "task": "review",
+      "field": "Bid Summary",
+      "started_at": "2026-10-24T17:48:50.991Z",
+      "ended_at": "2026-10-24T17:48:52.578Z",
+      "duration_ms": 1585.63,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [],
+      "decision": "critic did not override",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": 435,
+      "output_tokens": 92,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "error": null
+    },
+    {
+      "sequence": 85,
+      "agent": "validator",
+      "task": "check",
+      "field": "Bid Summary",
+      "started_at": "2026-10-24T17:48:52.578Z",
+      "ended_at": "2026-10-24T17:48:52.578Z",
+      "duration_ms": 0.02,
+      "query": null,
+      "query_hash": null,
+      "mode": null,
+      "top_k": null,
+      "doc_types": [],
+      "result_count": null,
+      "evidence": [
+        {
+          "evidence_id": "bid-summary-1",
+          "file": "JA-207652 Student and Staff Computing Devices FINAL.pdf",
+          "page": 2,
+          "html_element_id": null
+        },
+        {
+          "evidence_id": "bid-summary-8",
+          "file": "Student and Staff Computing Devices __SOURCING #168884__ - Bid Information - {3} _ BidNet Direct.html",
+          "page": null,
+          "html_element_id": "g_103"
+        }
+      ],
+      "decision": "accepted",
+      "reasons": [],
+      "retry": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "provider": null,
+      "model": null,
+      "error": null
+    }
+  ],
+  "final_statuses": {
+    "Bid Number": "accepted",
+    "Title": "accepted",
+    "Due Date": "accepted",
+    "Bid Submission Type": "accepted",
+    "Term of Bid": "accepted",
+    "Pre Bid Meeting": "accepted",
+    "Installation": "accepted",
+    "Bid Bond Requirement": "not_found",
+    "Delivery Date": "accepted",
+    "Payment Terms": "unresolved",
+    "Any Additional Documentation Required": "accepted",
+    "MFG for Registration": "accepted",
+    "Contract or Cooperative to use": "accepted",
+    "Model_no": "not_found",
+    "Part_no": "not_found",
+    "Product": "accepted",
+    "contact_info": "accepted",
+    "company_name": "accepted",
+    "Bid Summary": "accepted",
+    "Product Specification": "accepted"
+  },
+  "outcome": "completed",
+  "token_usage": {
+    "input_tokens": 41983,
+    "output_tokens": 2653,
+    "calls": 26
+  },
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "error": null
+}

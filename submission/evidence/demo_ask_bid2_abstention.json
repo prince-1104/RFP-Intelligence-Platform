@@ -1,0 +1,25 @@
+{
+  "bid_id": "Bid2",
+  "question": "What is Jasmine Alzate's email address?",
+  "answer": "Not found in documents",
+  "status": "not_found",
+  "claims": [],
+  "citations": [],
+  "completeness": null,
+  "limitations": [],
+  "confidence": null,
+  "validation": {
+    "passed": true,
+    "attempts": 1,
+    "checks": [],
+    "reasons": [
+      "Model abstained"
+    ]
+  },
+  "trace_id": "48217c8a-1772-4c2c-881e-1634a833d602",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "evidence_count": 8
+}

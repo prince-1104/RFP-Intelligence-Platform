@@ -1,0 +1,48 @@
+{
+  "bid_id": "Bid2",
+  "question": "How soon after award must the laptops be delivered?",
+  "answer": "The laptops must be delivered within 45 days of Award.",
+  "status": "answered",
+  "claims": [
+    {
+      "text": "The laptops must be delivered within 45 days of Award.",
+      "citation_ids": [
+        "C1"
+      ]
+    }
+  ],
+  "citations": [
+    {
+      "citation_id": "C1",
+      "evidence_id": "E1",
+      "document": "PORFP_-_Dell_Laptop_Final.pdf",
+      "page": 2,
+      "page_end": 2,
+      "html_element_id": null,
+      "document_type": "rfp",
+      "addendum_number": null,
+      "excerpt": "Delivery within 45 days of Award."
+    }
+  ],
+  "completeness": null,
+  "limitations": [],
+  "confidence": null,
+  "validation": {
+    "passed": true,
+    "attempts": 1,
+    "checks": [
+      {
+        "evidence_id": "E1",
+        "valid": true,
+        "reason": null
+      }
+    ],
+    "reasons": []
+  },
+  "trace_id": "f7ee7a74-ec77-4305-b50e-a5327f704fbf",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini"
+  },
+  "evidence_count": 8
+}

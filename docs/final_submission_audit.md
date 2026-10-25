@@ -141,6 +141,10 @@ Section 7.3 examples, using the latest saved live answers:
 | One full extraction trace | `artifacts/extraction_v4/traces/extraction_Bid1.json` | **Blocked for submission** | Git-ignored |
 | Demo video (5–10 min) or live demo | Script and commands in README "Demo sequence" | Not implemented | **No video has been recorded** |
 
+Update 2026-10-25: contact-masked copies of the JSON per bid, the Bid1 trace, the Q&A log and the
+retrieval report are prepared in `submission/evidence/` for owner approval
+(`docs/submission_artifacts_manifest.md`). They stay blocked until they are committed.
+
 ## Section 12: bonus
 
 | Item | Status | Note |
